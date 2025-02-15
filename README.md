@@ -89,7 +89,6 @@ SlioChat 是一个现代化的、功能丰富的单文件大模型AI聊天应用
 
 ![1](https://skwang-static.oss-cn-hongkong.aliyuncs.com/img/1.png)
 ![2](https://skwang-static.oss-cn-hongkong.aliyuncs.com/img/2.png)
-![3](https://skwang-static.oss-cn-hongkong.aliyuncs.com/img/3.png)
 
 ## 📝 License
 

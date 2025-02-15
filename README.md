@@ -9,8 +9,8 @@ SlioChat 是一个现代化的、功能丰富的单文件大模型AI聊天应用
   - 响应式设计，完美支持移动端
   - 现代化的 UI 组件和动画效果
 
-- 💬 强大的对话功能
-  - 支持多种对话类型（普通对话、IT专家、小红书文案等）
+- 💬 完整的对话功能
+  - 支持设置系统提示词
   - 实时流式响应
   - 支持暂停/继续生成
   - 思考过程可视化
@@ -39,7 +39,7 @@ SlioChat 是一个现代化的、功能丰富的单文件大模型AI聊天应用
 
 1. 配置 API
    - 在 `index.html` 中配置你的 API 密钥
-   - 端点配置在 `models` 对象中
+   - 大模型的配置在 `models` 对象中
    ```javascript
    const API_CONFIG = {
         models: {
@@ -67,6 +67,15 @@ SlioChat 是一个现代化的、功能丰富的单文件大模型AI聊天应用
         },
    };
    ```
+   - 搜索的api配置在 `models` 对象中
+   ```javascript
+    search: {
+        url: 'https://api.bochaai.com/v1/web-search',
+        enabled: false,  // 控制是否启用搜索功能
+        token: 'xxxxxxxxx'  // bochaai的api key
+    }
+   ```
+   
 
 2. 启动应用
    - 使用任意 Web 服务器托管项目文件
@@ -83,7 +92,7 @@ SlioChat 是一个现代化的、功能丰富的单文件大模型AI聊天应用
 
 目前可以直接体验的 API：
     - 智谱 GLM - 免费模型
-    
+
 支持自定义添加OPENAI兼容的模型API（gpt,claude,deepseek,glm,qwen）
 
 

@@ -66,7 +66,7 @@ SlioChat 是一个现代化的、功能丰富的单文件大模型AI聊天应用
         },
    };
    ```
-   - 搜索的api配置在 `models` 对象中
+   - 搜索的api配置在 `search` 对象中
    ```javascript
     search: {
         url: 'https://api.bochaai.com/v1/web-search',

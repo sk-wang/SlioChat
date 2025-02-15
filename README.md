@@ -84,8 +84,6 @@ SlioChat 是一个现代化的、功能丰富的单文件大模型AI聊天应用
 
 - 纯原生 JavaScript
 - TailwindCSS 用于样式
-- Marked.js 用于 Markdown 渲染
-- Highlight.js 用于代码高亮
 
 ## 🔑 API 支持
 

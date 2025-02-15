@@ -82,7 +82,7 @@ SlioChat 是一个现代化的、功能丰富的单文件大模型AI聊天应用
 ## 🔑 API 支持
 
 目前可以直接体验的 API：
-- 支持自定义添加OPENAI兼容的模型API（）
+- 支持自定义添加OPENAI兼容的模型API（gpt,claude,deepseek,glm,qwen）
 - 智谱 GLM - 免费模型
 
 ## 📸 截图展示

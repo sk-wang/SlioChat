@@ -698,11 +698,11 @@
                 <!-- 对话标题 -->
                 <div class="flex-1 min-w-0 flex items-center">
                     <h2 id="current-conversation-title" 
-                        class="text-lg font-medium cursor-pointer truncate max-w-[200px] md:max-w-[320px] lg:max-w-[500px] hover:text-[var(--button-primary-bg)]"
+                        class="text-lg font-medium cursor-pointer truncate max-w-[180px] md:max-w-[320px] lg:max-w-[500px] hover:text-[var(--button-primary-bg)]"
                         onclick="startEditingTitle(this)"></h2>
                     <input type="text" 
                             id="title-input"
-                            class="hidden w-full max-w-[200px] md:max-w-[320px] lg:max-w-[500px] px-2 py-1 border border-[var(--border-color)] rounded bg-[var(--bg-primary)] text-[var(--text-primary)]"
+                            class="hidden w-full max-w-[180px] md:max-w-[320px] lg:max-w-[500px] px-2 py-1 border border-[var(--border-color)] rounded bg-[var(--bg-primary)] text-[var(--text-primary)]"
                             onblur="saveTitle()"
                             onkeypress="handleTitleKeyPress(event)">
                 </div>
@@ -888,18 +888,33 @@
                     class="px-4 py-2 bg-[var(--button-primary-bg)] text-white rounded-md hover:bg-[var(--button-primary-hover)] transition-colors">
                 保存
             </button>
+            <div class="flex-1"></div>
+            <!-- 导入按钮 -->
+            <button onclick="importChat()"
+                    class="p-2 rounded-lg hover:bg-[var(--hover-bg)] transition-colors flex items-center gap-2"
+                    title="导入对话">
+                <svg class="w-6 h-6 text-[var(--text-primary)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                        d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                </svg>
+                <span>导入</span>
+            </button>
             <!-- 导出按钮 -->
             <button onclick="exportCurrentChat()"
-                class="p-2 rounded-lg hover:bg-[var(--hover-bg)] transition-colors"
-                title="导出对话">
-            <svg class="w-6 h-6 text-[var(--text-primary)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                    d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-            </svg>
-        </button>
+                    class="p-2 rounded-lg hover:bg-[var(--hover-bg)] transition-colors flex items-center gap-2"
+                    title="导出对话">
+                <svg class="w-6 h-6 text-[var(--text-primary)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                        d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                </svg>
+                <span>导出</span>
+            </button>
         </div>
     </div>
 </div>
+
+<!-- 添加隐藏的文件输入元素 -->
+<input type="file" id="chat-import" accept=".json" style="display: none;" onchange="handleFileImport(this)">
 
 <script>
     // API配置
@@ -2398,6 +2413,88 @@ A small dog that misses home, with a sad look on its face and its tail tucked be
         // 添加搜索开关到设置面板
         addSearchToggleToSettings();
     });
+
+    // 导入对话功能
+    function importChat() {
+        document.getElementById('chat-import').click();
+    }
+
+    async function handleFileImport(input) {
+        const file = input.files[0];
+        if (!file) return;
+
+        try {
+            const text = await file.text();
+            const chatData = JSON.parse(text);
+
+            // 验证导入的数据格式
+            if (!chatData.title || !Array.isArray(chatData.messages)) {
+                throw new Error('无效的对话文件格式');
+            }
+
+            // 创建新的对话 ID
+            const conversationId = 'conv_' + Date.now();
+            
+            // 构建新的对话对象
+            conversations[conversationId] = {
+                title: chatData.title,
+                messages: chatData.messages,
+                systemPrompt: chatData.systemPrompt || API_CONFIG.defaultSystemPrompt,
+                type: chatData.type || 'normal'
+            };
+
+            // 保存并切换到新导入的对话
+            saveConversations();
+            switchConversation(conversationId);
+            refreshConversationList();
+            
+            // 显示成功提示
+            showAlert('对话导入成功');
+            
+            // 关闭设置面板
+            closeSystemPromptModal();
+        } catch (error) {
+            showAlert('导入失败：' + (error.message || '文件格式错误'));
+        }
+
+        // 清除文件输入，允许重复导入相同文件
+        input.value = '';
+    }
+
+    // 修改导出函数，增加更多元数据
+    function exportCurrentChat() {
+        if (!currentConversationId || !conversations[currentConversationId]) {
+            showAlert('没有可导出的对话');
+            return;
+        }
+
+        const currentChat = conversations[currentConversationId];
+        const chatData = {
+            title: currentChat.title,
+            messages: currentChat.messages,
+            systemPrompt: currentChat.systemPrompt,
+            type: currentChat.type,
+            exportDate: new Date().toISOString(),
+            version: '1.0'
+        };
+
+        // 创建 Blob 对象
+        const blob = new Blob([JSON.stringify(chatData, null, 2)], { type: 'application/json' });
+        
+        // 创建下载链接
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${currentChat.title}_${new Date().toISOString().split('T')[0]}.json`;
+        
+        // 触发下载
+        document.body.appendChild(a);
+        a.click();
+        
+        // 清理
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }
 
     initialize();
 </script>

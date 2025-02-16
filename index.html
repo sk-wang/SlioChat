@@ -952,6 +952,10 @@
                 name: '普通对话',
                 systemPrompt: '你是一位专业、友善且富有同理心的AI助手。你会根据问题的复杂程度调整回答方式：对于复杂问题，你会条理清晰地展示思考过程并给出详细解释；对于简单问题，你会直接给出准确简洁的答案。你善于倾听用户的需求，用平易近人的语气进行交流，在必要时会主动询问以更好地理解用户意图。你的回答始终保持客观专业，并在适当时候提供有见地的建议。'
             },
+            translator:{
+                name: '翻译助手',
+                systemPrompt: '你是一个好用的翻译助手。请将我的中文翻译成英文，将所有非中文的翻译成中文。我发给你所有的话都是需要翻译的内容，你只需要回答翻译结果。翻译结果请符合中文的语言习惯。'
+            },
             it: {
                 name: 'IT专家',
                 systemPrompt: '我希望你充当 IT 专家。我会向您提供有关我的技术问题所需的所有信息，而您的职责是解决我的问题。你应该使用你的项目管理知识，敏捷开发知识来解决我的问题。在您的回答中使用适合所有级别的人的智能、简单和易于理解的语言将很有帮助。用要点逐步解释您的解决方案很有帮助。我希望您回复解决方案，而不是写任何解释。'
@@ -1307,16 +1311,23 @@ A small dog that misses home, with a sad look on its face and its tail tucked be
         event.stopPropagation();
         if (!(await showDialog('删除确认', '确定要删除这个对话吗？'))) return;
 
-        delete conversations[conversationId];
-        saveConversations();
-
         if (currentConversationId === conversationId) {
             const remainingIds = Object.keys(conversations);
-            if (remainingIds.length > 0) {
-                switchConversation(remainingIds[0]);
+            const currentIndex = remainingIds.indexOf(conversationId);
+            // 获取前一个对话的 ID，如果没有前一个则获取下一个
+            const nextId = remainingIds[currentIndex - 1] || remainingIds[currentIndex + 1];
+            
+            delete conversations[conversationId];
+            saveConversations();
+
+            if (nextId) {
+                switchConversation(nextId);
             } else {
                 createNewConversation();
             }
+        } else {
+            delete conversations[conversationId];
+            saveConversations();
         }
 
         refreshConversationList();

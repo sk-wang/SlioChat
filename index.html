@@ -897,7 +897,6 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
                         d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
                 </svg>
-                <span>导入</span>
             </button>
             <!-- 导出按钮 -->
             <button onclick="exportCurrentChat()"
@@ -907,7 +906,6 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
                         d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                 </svg>
-                <span>导出</span>
             </button>
         </div>
     </div>
@@ -1183,7 +1181,7 @@ A small dog that misses home, with a sad look on its face and its tail tucked be
         if (savedModel && API_CONFIG.models[savedModel]) {
             modelSelect.value = savedModel;
         } else {
-            modelSelect.value = 'deepseek-r1'; // 默认选择完整版
+            modelSelect.value = 'glm-4v-plus'; // 默认选择完整版
         }
 
         // 初始化时更新模型按钮可见性
@@ -2161,7 +2159,7 @@ A small dog that misses home, with a sad look on its face and its tail tucked be
             if (modelType !== currentModelType) {
                 showAlert('不能在同一个对话中混用深度思考模型和普通模型');
                 // 恢复之前的选择
-                modelSelect.value = localStorage.getItem('preferred-model') || 'deepseek-r1';
+                modelSelect.value = localStorage.getItem('preferred-model') || 'glm-4v-plus';
                 return;
             }
         }
@@ -2170,36 +2168,6 @@ A small dog that misses home, with a sad look on its face and its tail tucked be
         localStorage.setItem('preferred-model', modelId);
         // 更新下拉框的值
         modelSelect.value = modelId;
-    }
-
-    function exportCurrentChat() {
-        if (!currentConversationId || !conversations[currentConversationId]) {
-            showAlert('没有可导出的对话');
-            return;
-        }
-
-        const currentChat = conversations[currentConversationId];
-        const chatData = {
-            title: currentChat.title,
-            messages: currentChat.messages
-        };
-
-        // 创建 Blob 对象
-        const blob = new Blob([JSON.stringify(chatData, null, 2)], { type: 'application/json' });
-        
-        // 创建下载链接
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `${currentChat.title}.json`;
-        
-        // 触发下载
-        document.body.appendChild(a);
-        a.click();
-        
-        // 清理
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
     }
 
     async function showDialog(title, message) {

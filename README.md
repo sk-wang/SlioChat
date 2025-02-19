@@ -78,8 +78,8 @@ SlioChat is a modern, feature-rich single-file large language model (LLM) AI cha
    
 
 2. 启动应用
-   - 如果需要更好的浏览器兼容性，可以执行`yarn && yarn build`，在dist目录中获取打包后的`index.html`
-   - 否则可以直接用根目录的`index.html`
+   - 如果需要更方便的在内网部署，可以执行`yarn && yarn build`，使用dist目录中打包后的`index.html`
+   - 否则可以直接用当前的`index.html`
    - 使用任意 Web 服务器托管项目文件
    - 直接打开 `index.html` 文件（本地使用）
 

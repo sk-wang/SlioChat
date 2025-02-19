@@ -4,7 +4,7 @@
   "description": "SlioChat - AI Chat Application",
   "main": "index.js",
   "scripts": {
-    "build": "(cp index.html index.html.bak || copy index.html index.html.bak) && node scripts/build.js && webpack --mode production && (mv index.html.bak index.html || move index.html.bak index.html)",
+    "build": "(cp index.html index.html.bak || copy index.html index.html.bak) && node scripts/build.js && webpack --mode production && (mv index.html.bak index.html || move index.html.bak index.html) && (rm -f ./dist/main.js || del ./dist/main.js)",
     "build:webpack": "webpack --mode production"
   },
   "devDependencies": {

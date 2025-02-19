@@ -6,7 +6,6 @@ module.exports = {
   entry: './index.js',
   output: {
     path: path.resolve(__dirname, 'dist'),
-    filename: 'main.js',
     clean: true
   },
   module: {
@@ -44,7 +43,7 @@ module.exports = {
   plugins: [
     new HtmlWebpackPlugin({
       template: 'index.html',
-      inject: 'body',
+      inject: false,
       minify: {
         collapseWhitespace: true,
         removeComments: true,

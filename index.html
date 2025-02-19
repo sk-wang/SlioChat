@@ -139,7 +139,8 @@
         }
         
         .think-header-icon {
-            transition: transform 0.2s ease;
+            transform: rotate(0deg);
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
         
         .think-content.collapsed + .think-header .think-header-icon {
@@ -149,13 +150,19 @@
         .think-content {
             padding: 1rem;
             background-color: var(--bg-primary);
-            transition: max-height 0.3s ease;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            overflow: hidden;
         }
 
         .think-content.collapsed {
-            max-height: 0;
-            padding: 0;
-            overflow: hidden;
+            padding-top: 0;
+            padding-bottom: 0;
+            margin-top: 0;
+            margin-bottom: 0;
+            border-top: 0;
+            border-bottom: 0;
+            opacity: 0;
+            transform: translateY(-10px);
         }
 
         /* 光标动画 */
@@ -426,6 +433,28 @@
             width: 100%;
             overflow-x: auto;
             max-width: 100%;
+            border-spacing: 0;
+            border-collapse: collapse;
+        }
+        
+        .markdown-body table th,
+        .markdown-body table td {
+            padding: 0.75rem 1.5rem;
+            border: 1px solid var(--border-color);
+        }
+        
+        .markdown-body table tr {
+            background-color: var(--bg-primary);
+            border-top: 1px solid var(--border-color);
+        }
+        
+        .markdown-body table tr:nth-child(2n) {
+            background-color: var(--bg-secondary);
+        }
+        
+        .markdown-body table th {
+            font-weight: 600;
+            background-color: var(--bg-secondary);
         }
         
         /* 处理图片 */
@@ -459,12 +488,12 @@
             font-size: 0.75rem;
             transition: all 0.2s ease;
         }
-        
+
         .code-copy-btn:hover {
             opacity: 1;
             background-color: var(--hover-bg);
         }
-        
+
         /* 移动端样式优化 */
         @media (max-width: 768px) {
             .code-copy-btn {
@@ -472,59 +501,9 @@
                 padding: 0.25rem 0.5rem;
             }
         }
-        
+
         .code-copy-btn.copied {
             color: var(--button-primary-bg);
-        }
-
-        /* 深色模式覆盖 */
-        :root[data-theme="dark"] .markdown-body pre {
-            background-color: var(--bg-secondary);
-        }
-
-        :root[data-theme="dark"] .markdown-body pre code,
-        :root[data-theme="dark"] .markdown-body code {
-            color: var(--text-primary);
-        }
-
-        :root[data-theme="dark"] .markdown-body code {
-            background-color: var(--bg-secondary);
-        }
-
-        /* 代码块样式 */
-        .markdown-body pre {
-            background-color: var(--bg-secondary);
-            border-radius: 0.5rem;
-            padding: 1rem;
-            margin: 1rem 0;
-            overflow-x: auto;
-            border: 1px solid var(--border-color);
-            max-width: 100%;
-            white-space: pre-wrap;
-            word-wrap: break-word;
-            position: relative;
-            /* 日间模式下的代码块背景 */
-            background-color: #ffffff;
-        }
-
-        /* 代码块中的代码样式 */
-        .markdown-body pre code {
-            font-family: monaco, Consolas, "Lucida Console", monospace;
-            font-size: 0.9em;
-            background-color: transparent;
-            padding: 0;
-            border-radius: 0;
-            /* 日间模式下的代码文本颜色 */
-            color: #24292e;
-        }
-
-        /* 行内代码样式 */
-        .markdown-body code {
-            background-color: rgba(175, 184, 193, 0.2);
-            padding: 0.2em 0.4em;
-            border-radius: 3px;
-            font-size: 0.9em;
-            color: #24292e;
         }
 
         /* 深色模式覆盖 */
@@ -667,6 +646,31 @@
         :root[data-theme="dark"] .markdown-body a[href^="http"]::before {
             background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2360a5fa'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14'/%3E%3C/svg%3E");
         }
+
+        /* 加载动画样式 */
+        @keyframes dot-bounce {
+            0%, 80%, 100% { transform: translateY(0); }
+            40% { transform: translateY(-4px); }
+        }
+
+        .loading-dots {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            padding: 8px 0;
+        }
+
+        .loading-dots .dot {
+            width: 6px;
+            height: 6px;
+            background-color: var(--text-secondary);
+            border-radius: 50%;
+            animation: dot-bounce 1.4s infinite ease-in-out both;
+        }
+
+        .loading-dots .dot:nth-child(1) { animation-delay: -0.32s; }
+        .loading-dots .dot:nth-child(2) { animation-delay: -0.16s; }
+        .loading-dots .dot:nth-child(3) { animation-delay: 0s; }
     </style>
 </head>
 <body class="bg-[var(--bg-primary)] text-[var(--text-primary)] transition-colors duration-200">
@@ -687,18 +691,18 @@
     <!-- 主内容区 -->
     <div class="flex-1 flex flex-col">
         <!-- 顶部标题栏 -->
-        <div class="p-4 border-b border-[var(--border-color)] flex justify-between items-center">
-            <div class="flex-1 min-w-0 flex items-center space-x-4">
+        <div class="p-4 md:p-4 p-1 border-b border-[var(--border-color)] flex justify-between items-center">
+            <div class="flex-1 min-w-0 flex items-center space-x-2">
                 <!-- 移动端菜单按钮 -->
-                <button id="menu-toggle" class="md:hidden p-2 rounded-lg hover:bg-[var(--hover-bg)] z-20">
-                    <svg class="w-6 h-6 text-gray-600 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <button id="menu-toggle" class="md:hidden p-1 rounded-lg hover:bg-[var(--hover-bg)] z-20">
+                    <svg class="w-5 h-5 text-gray-600 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
                     </svg>
                 </button>
                 <!-- 对话标题 -->
                 <div class="flex-1 min-w-0 flex items-center">
                     <h2 id="current-conversation-title" 
-                        class="text-lg font-medium cursor-pointer truncate max-w-[180px] md:max-w-[320px] lg:max-w-[500px] hover:text-[var(--button-primary-bg)]"
+                        class="text-lg md:text-lg font-medium cursor-pointer truncate max-w-[180px] md:max-w-[320px] lg:max-w-[500px] hover:text-[var(--button-primary-bg)]"
                         onclick="startEditingTitle(this)"></h2>
                     <input type="text" 
                             id="title-input"
@@ -707,21 +711,21 @@
                             onkeypress="handleTitleKeyPress(event)">
                 </div>
             </div>
-            <div class="flex items-center space-x-2 flex-shrink-0">
+            <div class="flex items-center space-x-1 flex-shrink-0">
                 <!-- 主题切换按钮 -->
-                <button id="theme-toggle" class="p-2 rounded-lg hover:bg-[var(--hover-bg)] transition-colors">
+                <button id="theme-toggle" class="p-1 md:p-2 rounded-lg hover:bg-[var(--hover-bg)] transition-colors">
                     <!-- 暗色模式图标 -->
-                    <svg id="dark-icon" class="w-6 h-6 text-[var(--text-primary)]" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                    <svg id="dark-icon" class="w-5 h-5 md:w-6 md:h-6 text-[var(--text-primary)]" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
                         <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"></path>
                     </svg>
                     <!-- 亮色模式图标 -->
-                    <svg id="light-icon" class="w-6 h-6 text-[var(--text-primary)]" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                    <svg id="light-icon" class="w-5 h-5 md:w-6 md:h-6 text-[var(--text-primary)]" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
                         <path fill-rule="evenodd" d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" clip-rule="evenodd"></path>
                     </svg>
                 </button>
                 <!-- 设置按钮 -->
                 <button id="system-prompt-btn" 
-                        class="flex items-center space-x-1 px-3 py-1.5 rounded-md hover:bg-[var(--hover-bg)] transition-colors"
+                        class="flex items-center space-x-1 px-1.5 py-0.5 md:px-3 md:py-1.5 rounded-md hover:bg-[var(--hover-bg)] transition-colors"
                         onclick="openSystemPromptModal()">
                     <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
@@ -1489,6 +1493,21 @@ A small dog that misses home, with a sad look on its face and its tail tucked be
         editButton.title = '编辑消息';
         editButton.onclick = () => openEditModal(index);
 
+        // 重新生成按钮（仅对最后一条助手消息显示）
+        if (role === 'assistant' && index === conversations[currentConversationId].messages.length - 1) {
+            const regenerateButton = document.createElement('button');
+            regenerateButton.className = 'p-1 text-[var(--text-secondary)] hover:bg-[var(--hover-bg)] rounded';
+            regenerateButton.innerHTML = `
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                          d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+            `;
+            regenerateButton.title = '重新生成';
+            regenerateButton.onclick = () => regenerateMessage(index);
+            actionsDiv.appendChild(regenerateButton);
+        }
+
         const deleteButton = document.createElement('button');
         deleteButton.className = 'p-1 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded';
         deleteButton.innerHTML = `
@@ -1536,12 +1555,12 @@ A small dog that misses home, with a sad look on its face and its tail tucked be
                             container.innerHTML = `
                                 <div class="think-container">
                                     <div class="think-header" onclick="toggleThinking(this)">
-                                        <svg class="think-header-icon w-4 h-4 text-[var(--text-secondary)]" viewBox="0 0 20 20" fill="currentColor">
+                                        <svg class="think-header-icon w-4 h-4 text-[var(--text-secondary)]" viewBox="0 0 20 20" fill="currentColor" style="transform: rotate(0deg);">
                                             <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
                                         </svg>
                                         <span class="text-[var(--text-secondary)]">🤔 思考过程</span>
                                     </div>
-                                    <div class="think-content">
+                                    <div class="think-content" style="display: block;">
                                         <div class="markdown-body text-[var(--text-primary)]"></div>
                                     </div>
                                 </div>
@@ -1653,75 +1672,22 @@ A small dog that misses home, with a sad look on its face and its tail tucked be
         }
     }
 
-    // 修改发送消息函数，添加搜索功能
-    async function sendMessage() {
-        const input = document.getElementById('user-input');
-        const message = input.value.trim();
-        
-        if (!message || isGenerating) return;
-        
-        input.value = '';
-        
-        // 创建用户消息元素
-        const userDiv = createMessageElement('user', conversations[currentConversationId].messages.length);
-        userDiv.style.marginLeft = "-2.2rem"
-        userDiv.style.marginTop = "1rem"
-        userDiv.innerHTML = marked.parse(message);
-        
-        // 如果启用了搜索功能，显示搜索加载状态
-        let searchResults = '';
-        if (API_CONFIG.search.enabled) {
-            const loadingDiv = document.createElement('div');
-            loadingDiv.className = 'search-loading';
-            loadingDiv.innerHTML = `
-                <span>正在搜索相关信息</span>
-                <div class="dots">
-                    <div class="dot"></div>
-                    <div class="dot"></div>
-                    <div class="dot"></div>
-                </div>
-            `;
-            userDiv.appendChild(loadingDiv);
-            
-            try {
-                const results = await performSearch(message);
-                loadingDiv.remove(); // 移除加载指示器
-                if (results.length > 0) {
-                    searchResults = formatSearchResults(results);
-                }
-            } catch (error) {
-                loadingDiv.remove(); // 确保在出错时也移除加载指示器
-                console.error('Search error:', error);
-            }
-        }
-        
-        // 初始化请求控制器
-        if (currentRequestController) {
-            currentRequestController.abort();
-        }
-        currentRequestController = new AbortController();
-        toggleSendStopButton(true);
-        
-        autoScroll = true;
-        scrollToBottom(true);
-
-        // 保存消息前的状态，以便出错时恢复
-        const previousMessages = [...conversations[currentConversationId].messages];
-
-        // 保存消息时包含搜索结果
-        conversations[currentConversationId].messages.push({
-            role: 'user',
-            content: message,
-            searchResults: searchResults // 添加搜索结果
-        });
-
-        const assistantDiv = createMessageElement('assistant', conversations[currentConversationId].messages.length);
+    // 提取生成消息的公共方法
+    async function generateAssistantMessage(messages, assistantDiv, previousMessages = null) {
         let finalContent = '';
         let isThinking = false;
         let thinkingContent = '';
+        let firstTokenReceived = false;
 
-        isGenerating = true;
-        refreshConversationList();
+        // 添加加载动画
+        assistantDiv.style.marginLeft = "-2.2rem";
+        assistantDiv.style.marginTop = "1rem";
+        assistantDiv.innerHTML = `
+            <div class="loading-dots">
+                <div class="dot"></div>
+                <div class="dot"></div>
+                <div class="dot"></div>
+            </div>`;
 
         try {
             const modelId = document.getElementById('model-select').value;
@@ -1736,12 +1702,11 @@ A small dog that misses home, with a sad look on its face and its tail tucked be
                 signal: currentRequestController.signal,
                 body: JSON.stringify({
                     model: modelId,
-                    messages: getMessagesWithContext(),
+                    messages: messages,
                     stream: true
                 })
             });
 
-            // 检查响应状态
             if (!response.ok) {
                 const errorText = await response.text();
                 throw new Error(`请求失败: ${response.status} ${errorText}`);
@@ -1757,12 +1722,11 @@ A small dog that misses home, with a sad look on its face and its tail tucked be
                 const chunk = decoder.decode(value);
                 const lines = chunk.split('\n');
 
-                // 如果暂停了，等待继续
                 if (isPaused) {
                     const waitForResume = async () => {
                         while (isPaused) {
-                            if (!currentRequestController) return false; // 如果请求被取消了，返回 false
-                            await new Promise(resolve => setTimeout(resolve, 10)); // 减少等待时间到 10ms
+                            if (!currentRequestController) return false;
+                            await new Promise(resolve => setTimeout(resolve, 10));
                         }
                         return true;
                     };
@@ -1782,33 +1746,44 @@ A small dog that misses home, with a sad look on its face and its tail tucked be
                             const data = JSON.parse(trimmedLine.slice(5));
                             if (data.choices && data.choices[0]) {
                                 const delta = data.choices[0].delta;
-                                // 兼容不同的返回格式
                                 const content = delta.content || delta.reasoning_content;
 
                                 if (content) {
+                                    // 移除加载动画
+                                    if (!firstTokenReceived) {
+                                        firstTokenReceived = true;
+                                        assistantDiv.innerHTML = '';
+                                    }
+
                                     if (delta.reasoning_content) {
                                         if (!isThinking) {
                                             isThinking = true;
                                             thinkingContent = '';
-                                            assistantDiv.style.marginLeft = "-2.2rem"
-                                            assistantDiv.style.marginTop = "1rem"
                                             assistantDiv.innerHTML = `
                                                     <div class="think-container">
                                                         <div class="think-header" onclick="toggleThinking(this)">
-                                                            <svg class="think-header-icon w-4 h-4 text-[var(--text-secondary)]" viewBox="0 0 20 20" fill="currentColor">
+                                                            <svg class="think-header-icon w-4 h-4 text-[var(--text-secondary)]" viewBox="0 0 20 20" fill="currentColor" style="transform: rotate(0deg);">
                                                                 <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
                                                             </svg>
                                                             <span class="text-[var(--text-secondary)]">🤔 思考过程</span>
                                                         </div>
-                                                        <div class="think-content">
+                                                        <div class="think-content" style="display: block;">
                                                             <div class="markdown-body text-[var(--text-primary)]"></div>
                                                         </div>
                                                     </div>
                                                     <div class="response-content markdown-body text-[var(--text-primary)] mt-4"></div>`;
                                         }
-                                            thinkingContent += content;
+                                        thinkingContent += content;
                                         const reasoningDiv = assistantDiv.querySelector('.think-content .markdown-body');
-                                            reasoningDiv.innerHTML = marked.parse(thinkingContent);
+                                        reasoningDiv.innerHTML = marked.parse(thinkingContent);
+                                        
+                                        // 确保在思考过程更新时也滚动到底部
+                                        if (autoScroll) {
+                                            const chatContainer = document.getElementById('chat-container');
+                                            requestAnimationFrame(() => {
+                                                chatContainer.scrollTop = chatContainer.scrollHeight;
+                                            });
+                                        }
                                     } else {
                                         if (!finalContent && !isThinking) {
                                             // 如果是第一条内容且没有思考过程，创建普通响应容器
@@ -1833,10 +1808,10 @@ A small dog that misses home, with a sad look on its face and its tail tucked be
                                                 addCopyButton(block);
                                             });
                                         }
-                                    }
 
-                                    if (autoScroll) {
-                                        scrollToBottom(true);
+                                        if (autoScroll) {
+                                        	scrollToBottom(true);
+                                        }
                                     }
                                 }
                             }
@@ -1860,29 +1835,164 @@ A small dog that misses home, with a sad look on its face and its tail tucked be
                 fullContent = finalContent;
             }
 
-            conversations[currentConversationId].messages.push({
+            return {
                 role: 'assistant',
                 type: thinkingContent ? 'thinking' : 'normal',
                 content: fullContent
-            });
-            
-            // 确保在保存之前完成所有内容的渲染
-            if (isThinking) {
-                const reasoningDiv = assistantDiv.querySelector('.think-content .markdown-body');
-                const contentDiv = assistantDiv.querySelector('.response-content');
-                reasoningDiv.innerHTML = marked.parse(thinkingContent);
-                contentDiv.innerHTML = marked.parse(finalContent);
-            } else {
-                const contentDiv = assistantDiv.querySelector('.markdown-body');
-                contentDiv.innerHTML = marked.parse(finalContent);
-            }
-            
-            assistantDiv.querySelectorAll('pre code').forEach((block) => {
-                hljs.highlightElement(block);
-                addCopyButton(block);
-            });
+            };
 
-            // 如果这是第一轮对话且标题还是默认的"新对话"，则自动生成标题
+        } catch (error) {
+            if (error.name === 'AbortError') {
+                console.log('请求被取消');
+                return null;
+            } else {
+                // 显示错误提示
+                const toast = document.createElement('div');
+                toast.className = 'fixed bottom-4 right-4 bg-red-500 text-white px-4 py-2 rounded-lg shadow-lg z-50';
+                toast.textContent = error.message || '请求失败，请稍后重试';
+                document.body.appendChild(toast);
+                
+                setTimeout(() => {
+                    toast.remove();
+                }, 3000);
+                
+                // 恢复到发送消息前的状态
+                if (previousMessages) {
+                    conversations[currentConversationId].messages = previousMessages;
+                    refreshMessages();
+                }
+                
+                return null;
+            }
+        }
+    }
+
+    // 重新生成消息
+    async function regenerateMessage(index) {
+        if (isGenerating) return;
+        
+        // 检查是否是最后一条消息
+        if (index !== conversations[currentConversationId].messages.length - 1) {
+            showAlert('只能重新生成最后一条消息');
+            return;
+        }
+        
+        // 获取用户消息
+        const userMessage = conversations[currentConversationId].messages[index - 1];
+        if (!userMessage || userMessage.role !== 'user') {
+            showAlert('无法重新生成此消息');
+            return;
+        }
+
+        // 保存当前状态
+        const previousMessages = [...conversations[currentConversationId].messages];
+        
+        // 删除当前的助手回复
+        conversations[currentConversationId].messages.splice(index, 1);
+        
+        // 初始化生成状态
+        if (currentRequestController) {
+            currentRequestController.abort();
+        }
+        currentRequestController = new AbortController();
+        toggleSendStopButton(true);
+        isGenerating = true;
+        refreshConversationList();
+        
+        // 刷新消息显示，删除原来的消息
+        refreshMessages();
+        
+        // 创建新的助手消息元素
+        const assistantDiv = createMessageElement('assistant', index);
+        
+        // 准备消息上下文
+        const messages = getMessagesWithContext();
+        
+        // 生成新的回复
+        const newMessage = await generateAssistantMessage(messages, assistantDiv, previousMessages);
+        
+        if (newMessage) {
+            conversations[currentConversationId].messages.push(newMessage);
+            saveConversations();
+        }
+        
+        // 重置状态
+        currentRequestController = null;
+        toggleSendStopButton(false);
+        isGenerating = false;
+        refreshConversationList();
+        refreshMessages(); 
+    }
+
+    // 修改 sendMessage 函数，使用新的 generateAssistantMessage 方法
+    async function sendMessage() {
+        const input = document.getElementById('user-input');
+        const message = input.value.trim();
+        
+        if (!message || isGenerating) return;
+        
+        input.value = '';
+        
+        // 创建用户消息元素
+        const userDiv = createMessageElement('user', conversations[currentConversationId].messages.length);
+        userDiv.style.marginLeft = "-2.2rem"
+        userDiv.style.marginTop = "1rem"
+        userDiv.innerHTML = marked.parse(message);
+        
+        let searchResults = '';
+        if (API_CONFIG.search.enabled) {
+            const loadingDiv = document.createElement('div');
+            loadingDiv.className = 'search-loading';
+            loadingDiv.innerHTML = `
+                <span>正在搜索相关信息</span>
+                <div class="dots">
+                    <div class="dot"></div>
+                    <div class="dot"></div>
+                    <div class="dot"></div>
+                </div>
+            `;
+            userDiv.appendChild(loadingDiv);
+            
+            try {
+                const results = await performSearch(message);
+                loadingDiv.remove();
+                if (results.length > 0) {
+                    searchResults = formatSearchResults(results);
+                }
+            } catch (error) {
+                loadingDiv.remove();
+                console.error('Search error:', error);
+            }
+        }
+        
+        if (currentRequestController) {
+            currentRequestController.abort();
+        }
+        currentRequestController = new AbortController();
+        toggleSendStopButton(true);
+        
+        autoScroll = true;
+        scrollToBottom(true);
+
+        const previousMessages = [...conversations[currentConversationId].messages];
+
+        conversations[currentConversationId].messages.push({
+            role: 'user',
+            content: message,
+            searchResults: searchResults
+        });
+
+        const assistantDiv = createMessageElement('assistant', conversations[currentConversationId].messages.length);
+        
+        isGenerating = true;
+        refreshConversationList();
+
+        const newMessage = await generateAssistantMessage(getMessagesWithContext(), assistantDiv, previousMessages);
+        
+        if (newMessage) {
+            conversations[currentConversationId].messages.push(newMessage);
+            
+            // 如果这是第一轮对话且标题还是默认的，则自动生成标题
             if (conversations[currentConversationId].messages.length === 2) {
                 try {
                     const titleResponse = await fetch(API_CONFIG.defaultUrl, {
@@ -1900,7 +2010,7 @@ A small dog that misses home, with a sad look on its face and its tail tucked be
                                 },
                                 {
                                     role: 'user',
-                                    content: `用户问题：${message}\nAI回复：${finalContent}`
+                                    content: `用户问题：${message}\nAI回复：${newMessage.content}`
                                 }
                             ]
                         })
@@ -1918,39 +2028,14 @@ A small dog that misses home, with a sad look on its face and its tail tucked be
                 }
             }
             
-            saveConversations();
-
-        } catch (error) {
-            // 处理错误
-            if (error.name === 'AbortError') {
-                console.log('请求被取消');
-            } else {
-                // 显示错误提示
-                const toast = document.createElement('div');
-                toast.className = 'fixed bottom-4 right-4 bg-red-500 text-white px-4 py-2 rounded-lg shadow-lg z-50';
-                toast.textContent = error.message || '请求失败，请稍后重试';
-                document.body.appendChild(toast);
-                
-                setTimeout(() => {
-                    toast.remove();
-                }, 3000);
-                
-                // 恢复到发送消息前的状态
-                conversations[currentConversationId].messages = previousMessages;
-                refreshMessages();
-                
-                // 重置状态
-                isGenerating = false;
-                toggleSendStopButton(false);
-                refreshConversationList();
-                return;  // 直接返回，不继续执行
-            }
-        } finally {
-            currentRequestController = null;
-            toggleSendStopButton(false);
-            isGenerating = false;
-            refreshConversationList();  // 结束生成时更新列表
+            saveConversations(); 
         }
+        
+        currentRequestController = null;
+        toggleSendStopButton(false);
+        isGenerating = false;
+        refreshConversationList();
+        refreshMessages(); 
     }
 
     function getMessagesWithContext() {
@@ -2039,18 +2124,18 @@ A small dog that misses home, with a sad look on its face and its tail tucked be
         const scrollButton = document.getElementById('scroll-to-bottom-btn');
 
         if (lastMessage) {
-            // 在生成时使用固定滚动
-            if (isGenerating && autoScroll) {
+            requestAnimationFrame(() => {
                 chatContainer.scrollTop = chatContainer.scrollHeight;
-            } 
-            // 其他情况使用平滑滚动
-            else if (force && autoScroll) {
-                lastMessage.scrollIntoView({ behavior: 'smooth', block: 'end' });
-            }
 
-            // 更新按钮可见性
-            const isNearBottom = chatContainer.scrollHeight - chatContainer.scrollTop - chatContainer.clientHeight < 100;
-            scrollButton.classList.toggle('visible', !isNearBottom);
+                // 更新按钮可见性
+                const isNearBottom = chatContainer.scrollHeight - chatContainer.scrollTop - chatContainer.clientHeight < 100;
+                scrollButton.classList.toggle('visible', !isNearBottom);
+                
+                // 当滚动到底部时，重新启用自动滚动
+                if (isNearBottom) {
+                    autoScroll = true;
+                }
+            });
         }
     }
 
@@ -2272,7 +2357,28 @@ A small dog that misses home, with a sad look on its face and its tail tucked be
 
     function toggleThinking(header) {
         const content = header.nextElementSibling;
-        content.classList.toggle('collapsed');
+        const icon = header.querySelector('.think-header-icon');
+        const isCollapsed = content.classList.contains('collapsed');
+        
+        // 如果要展开
+        if (isCollapsed) {
+            content.style.display = 'block';
+            // 使用 requestAnimationFrame 确保 display 更改已应用
+            requestAnimationFrame(() => {
+                content.classList.remove('collapsed');
+                icon.style.transform = 'rotate(0deg)';
+            });
+        } else {
+            // 如果要收起
+            content.classList.add('collapsed');
+            icon.style.transform = 'rotate(-90deg)';
+            // 等待动画完成后隐藏元素
+            content.addEventListener('transitionend', function handler() {
+                if (!content.classList.contains('collapsed')) return;
+                content.style.display = 'none';
+                content.removeEventListener('transitionend', handler);
+            });
+        }
     }
 
 

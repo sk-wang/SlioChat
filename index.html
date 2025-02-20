@@ -1018,6 +1018,19 @@ A small dog that misses home, with a sad look on its face and its tail tucked be
     // 主题管理
     const themeToggle = document.getElementById('theme-toggle');
     const html = document.documentElement;
+    const thinkingHtml = `
+                                <div class="think-container">
+                                    <div class="think-header" onclick="toggleThinking(this)">
+                                        <svg class="think-header-icon w-4 h-4 text-[var(--text-secondary)]" viewBox="0 0 20 20" fill="currentColor" style="transform: rotate(0deg);">
+                                            <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+                                        </svg>
+                                        <span class="text-[var(--text-secondary)]">🤔 思考过程</span>
+                                    </div>
+                                    <div class="think-content" style="display: block;">
+                                        <div class="markdown-body text-[var(--text-primary)]"></div>
+                                    </div>
+                                </div>
+                                <div class="response-content markdown-body text-[var(--text-primary)] mt-4"></div>`;
 
     function initializeTheme() {
         html.classList.remove('no-transition');
@@ -1552,19 +1565,7 @@ A small dog that misses home, with a sad look on its face and its tail tucked be
                             const container = document.createElement('div');
                             container.style.marginLeft = "-2.2rem"
                             container.style.marginTop = "1rem"
-                            container.innerHTML = `
-                                <div class="think-container">
-                                    <div class="think-header" onclick="toggleThinking(this)">
-                                        <svg class="think-header-icon w-4 h-4 text-[var(--text-secondary)]" viewBox="0 0 20 20" fill="currentColor" style="transform: rotate(0deg);">
-                                            <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
-                                        </svg>
-                                        <span class="text-[var(--text-secondary)]">🤔 思考过程</span>
-                                    </div>
-                                    <div class="think-content" style="display: block;">
-                                        <div class="markdown-body text-[var(--text-primary)]"></div>
-                                    </div>
-                                </div>
-                                <div class="response-content markdown-body text-[var(--text-primary)] mt-4"></div>`;
+                            container.innerHTML = thinkingHtml;
                             
                             textDiv.appendChild(container);
                             const reasoningDiv = container.querySelector('.think-content .markdown-body');
@@ -1759,19 +1760,7 @@ A small dog that misses home, with a sad look on its face and its tail tucked be
                                         if (!isThinking) {
                                             isThinking = true;
                                             thinkingContent = '';
-                                            assistantDiv.innerHTML = `
-                                                    <div class="think-container">
-                                                        <div class="think-header" onclick="toggleThinking(this)">
-                                                            <svg class="think-header-icon w-4 h-4 text-[var(--text-secondary)]" viewBox="0 0 20 20" fill="currentColor" style="transform: rotate(0deg);">
-                                                                <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
-                                                            </svg>
-                                                            <span class="text-[var(--text-secondary)]">🤔 思考过程</span>
-                                                        </div>
-                                                        <div class="think-content" style="display: block;">
-                                                            <div class="markdown-body text-[var(--text-primary)]"></div>
-                                                        </div>
-                                                    </div>
-                                                    <div class="response-content markdown-body text-[var(--text-primary)] mt-4"></div>`;
+                                            assistantDiv.innerHTML = thinkingHtml;
                                         }
                                         thinkingContent += content;
                                         const reasoningDiv = assistantDiv.querySelector('.think-content .markdown-body');

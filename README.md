@@ -1,7 +1,8 @@
 # SlioChat
 
-SlioChat 是一个现代化的、功能丰富的单文件大模型AI聊天网页UI，支持多种大语言模型的对话。它的所有功能都集成在一个 HTML 文件中，可以在各种环境下方便部署。[English Version](readme_en.md)
-
+SlioChat 是一个现代化的、功能丰富的单文件大模型AI聊天网页UI，支持多种大语言模型的对话。它的所有功能都集成在一个 HTML 文件中，可以在各种环境下方便部署。
+[English Version](readme_en.md)
+[体验站点]（https://slio-chat.pages.dev/）
 ## ✨ 主要特性
 
 - 🎨 优雅的用户界面

@@ -1,7 +1,7 @@
 # SlioChat
 
 SlioChat is a modern, feature-rich, single-file AI chat web UI designed for large language model interactions. All functionalities are encapsulated within a single HTML file, enabling seamless deployment across various environments.
-[try it now]（https://slio-chat.pages.dev/）
+[try it now](https://slio-chat.pages.dev/)
 
 ## ✨ Key Features
 

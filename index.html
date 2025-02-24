@@ -1938,8 +1938,8 @@ A small dog that misses home, with a sad look on its face and its tail tucked be
             scrollToBottom(true);
             
             try {
-                // 使用默认小模型生成搜索请求
-                const searchRequest = await fetch(API_CONFIG.defaultUrl, {
+                // 使用默认小模型判断是否需要搜索
+                const searchCheckRequest = await fetch(API_CONFIG.defaultUrl, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -1950,7 +1950,7 @@ A small dog that misses home, with a sad look on its face and its tail tucked be
                         messages: [
                             {
                                 role: 'system',
-                                content: '你是一个搜索请求生成器。请根据用户的消息生成一个适合搜索的简洁查询语句，直接返回查询语句，不要任何多余的话。'
+                                content: '你是一个搜索判断器。请根据用户的消息判断是否需要联网搜索。如果需要搜索，请直接返回"true"，否则返回"false"。不要任何多余的话。'
                             },
                             {
                                 role: 'user',
@@ -1960,11 +1960,40 @@ A small dog that misses home, with a sad look on its face and its tail tucked be
                     })
                 });
                 
-                const searchQuery = await searchRequest.json();
-                const results = await performSearch(searchQuery.choices[0].message.content);
-                loadingDiv.remove();
-                if (results.length > 0) {
-                    searchResults = formatSearchResults(results);
+                const searchCheckResponse = await searchCheckRequest.json();
+                const needsSearch = searchCheckResponse.choices[0].message.content === 'true';
+                
+                if (needsSearch) {
+                    // 如果需要搜索，生成搜索请求
+                    const searchRequest = await fetch(API_CONFIG.defaultUrl, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${API_CONFIG.defaultKey}`
+                        },
+                        body: JSON.stringify({
+                            model: API_CONFIG.defaultModel,
+                            messages: [
+                                {
+                                    role: 'system',
+                                    content: '你是一个搜索请求生成器。请根据用户的消息生成一个适合搜索的简洁查询语句，直接返回查询语句，不要任何多余的话。'
+                                },
+                                {
+                                    role: 'user',
+                                    content: message
+                                }
+                            ]
+                        })
+                    });
+                    
+                    const searchQuery = await searchRequest.json();
+                    const results = await performSearch(searchQuery.choices[0].message.content);
+                    loadingDiv.remove();
+                    if (results.length > 0) {
+                        searchResults = formatSearchResults(results);
+                    }
+                } else {
+                    loadingDiv.remove();
                 }
             } catch (error) {
                 loadingDiv.remove();
@@ -2480,7 +2509,7 @@ A small dog that misses home, with a sad look on its face and its tail tucked be
                 <input type="checkbox" id="search-toggle" 
                        class="rounded border-[var(--border-color)]"
                        ${API_CONFIG.search.enabled ? 'checked' : ''}>
-                <span class="text-sm font-medium">启用联网搜索（Alpha）</span>
+                <span class="text-sm font-medium">启用联网搜索（Beta）</span>
             </label>
         `;
         

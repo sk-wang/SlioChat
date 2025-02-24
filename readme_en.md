@@ -24,7 +24,9 @@ SlioChat is a modern, feature-rich, single-file AI chat web UI designed for larg
   - Local storage for conversation history
   - Import/Export of conversation logs
 
-- 🔍 Web Search Integration (Alpha)
+- 🔍 Web Search Integration (Bata)
+  - Automatically determine whether internet search is needed
+  - Automatically generate query for internet search
   - Online information retrieval
   - Automatic citation of search results
   - Source link references
@@ -91,8 +93,9 @@ SlioChat is a modern, feature-rich, single-file AI chat web UI designed for larg
 Currently supported APIs for direct use:
 
 - GLM - Free Model
+- DeepSeek-R1-Qwen-32B
 
-- OPENAI-compatible model APIs (e.g., GPT, Claude, Deepseek, GLM, Qwen).
+OPENAI-compatible model APIs (e.g., GPT, Claude, Deepseek, GLM, Qwen).
 
 ## 📸 Screenshots
 

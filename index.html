@@ -1935,9 +1935,33 @@ A small dog that misses home, with a sad look on its face and its tail tucked be
                 </div>
             `;
             userDiv.appendChild(loadingDiv);
+            scrollToBottom(true);
             
             try {
-                const results = await performSearch(message);
+                // 使用默认小模型生成搜索请求
+                const searchRequest = await fetch(API_CONFIG.defaultUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${API_CONFIG.defaultKey}`
+                    },
+                    body: JSON.stringify({
+                        model: API_CONFIG.defaultModel,
+                        messages: [
+                            {
+                                role: 'system',
+                                content: '你是一个搜索请求生成器。请根据用户的消息生成一个适合搜索的简洁查询语句，直接返回查询语句，不要任何多余的话。'
+                            },
+                            {
+                                role: 'user',
+                                content: message
+                            }
+                        ]
+                    })
+                });
+                
+                const searchQuery = await searchRequest.json();
+                const results = await performSearch(searchQuery.choices[0].message.content);
                 loadingDiv.remove();
                 if (results.length > 0) {
                     searchResults = formatSearchResults(results);

@@ -1476,10 +1476,10 @@ A small dog that misses home, with a sad look on its face and its tail tucked be
 
     function createMessageElement(role, index) {
         const messageDiv = document.createElement('div');
-        messageDiv.className = `message-container p-4 md:p-4 p-2 rounded-lg ${
+        messageDiv.className = `message-container rounded-lg ${
             role === 'user'
-                ? 'bg-[var(--message-bg-user)] ml-0 md:ml-12'
-                : 'bg-[var(--message-bg-assistant)] mr-0 md:mr-12'
+                ? 'bg-[var(--message-bg-user)] ml-0 md:ml-12 py-3 px-4' // 用户消息使用更紧凑的垂直内边距
+                : 'bg-[var(--message-bg-assistant)] mr-0 md:mr-12 p-4'  // 助手消息保持原有内边距
         }`;
         messageDiv.dataset.index = index;
 
@@ -1488,9 +1488,14 @@ A small dog that misses home, with a sad look on its face and its tail tucked be
 
         const avatar = document.createElement('div');
         avatar.className = `w-8 h-8 rounded-full flex items-center justify-center ${
-            role === 'user' ? 'bg-blue-500' : 'bg-green-500'
+            role === 'user' ? 'bg-gray-500' : 'bg-blue-600'
         }`;
-        avatar.innerHTML = role === 'user' ? '👤' : '🤖';
+        
+        if (role === 'user') {
+            avatar.innerHTML = `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' class="w-5 h-5"><path d='M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2'/><circle cx='12' cy='7' r='4'/></svg>`;
+        } else {
+            avatar.innerHTML = `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' class="w-5 h-5"><path d='M12 2C6.5 2 2 6.5 2 12s4.5 10 10 11c.9 0 1.8-.1 2.6-.4'/><path d='M17.6 14.2c-.8.8-1.3 2-1.1 3.2.2 1.2 1.1 2.2 2.3 2.4 1.2.2 2.4-.3 3.2-1.1.8-.8 1.3-2 1.1-3.2-.2-1.2-1.1-2.2-2.3-2.4-1.2-.2-2.4.3-3.2 1.1z'/><path d='M9.4 9.8c.8-.8 1.3-2 1.1-3.2-.2-1.2-1.1-2.2-2.3-2.4-1.2-.2-2.4.3-3.2 1.1-.8.8-1.3 2-1.1 3.2.2 1.2 1.1 2.2 2.3 2.4 1.2.2 2.4-.3 3.2-1.1z'/><path d='M14.5 8.5l-5 7'/></svg>`;
+        }
 
         const contentContainer = document.createElement('div');
         contentContainer.className = 'flex-1 min-w-0';

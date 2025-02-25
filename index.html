@@ -747,7 +747,7 @@
                 <div class="relative">
                     <textarea id="user-input" rows="3"
                               class="resize-none w-full px-4 py-2 pr-36 border border-[var(--border-color)] rounded-md bg-[var(--bg-primary)] text-[var(--text-primary)] focus:ring-2 focus:ring-[var(--button-primary-bg)]"
-                              placeholder="输入消息..."></textarea>
+                              placeholder="输入消息... (Ctrl+Enter 发送)"></textarea>
                     <div class="absolute top-1 right-2">
                         <div class="flex items-center justify-between">
                             <select id="model-select" 
@@ -1163,8 +1163,8 @@ A small dog that misses home, with a sad look on its face and its tail tucked be
         });
 
         // 监听输入框回车事件
-        document.getElementById('user-input').addEventListener('keypress', function(e) {
-            if (e.key === 'Enter' && !e.shiftKey) {
+        document.getElementById('user-input').addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && e.ctrlKey) {
                 e.preventDefault();
                 sendMessage();
             }

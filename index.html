@@ -671,6 +671,49 @@
         .loading-dots .dot:nth-child(1) { animation-delay: -0.32s; }
         .loading-dots .dot:nth-child(2) { animation-delay: -0.16s; }
         .loading-dots .dot:nth-child(3) { animation-delay: 0s; }
+
+        /* 修复输入框右边框问题 */
+        #user-input {
+            outline: none !important;
+            box-shadow: none !important;
+        }
+        
+        #user-input:focus {
+            border-color: var(--button-primary-bg);
+            box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
+            outline: none;
+        }
+        
+        /* 确保输入框在所有状态下都有一致的边框 */
+        #user-input:focus-visible {
+            outline: none;
+        }
+        
+        /* 移除任何可能的浏览器默认样式 */
+        textarea {
+            appearance: none;
+            -webkit-appearance: none;
+        }
+        
+        /* 确保在所有浏览器中一致的行为 */
+        textarea:focus {
+            outline: none;
+        }
+        
+        /* 修复可能的 Chrome 特定问题 */
+        @supports (-webkit-appearance: none) {
+            #user-input:focus {
+                outline: none !important;
+            }
+        }
+        
+        /* 修复可能的 Firefox 特定问题 */
+        @-moz-document url-prefix() {
+            #user-input:focus {
+                box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
+                border-color: var(--button-primary-bg);
+            }
+        }
     </style>
 </head>
 <body class="bg-[var(--bg-primary)] text-[var(--text-primary)] transition-colors duration-200">

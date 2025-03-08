@@ -14,6 +14,11 @@
     <script src="https://s4.zstatic.net/npm/marked/marked.min.js"></script>
     <link rel="stylesheet" href="https://lf26-cdn-tos.bytecdntp.com/cdn/expire-1-M/highlight.js/11.4.0/styles/github-dark.min.css">
     <script src="https://lf26-cdn-tos.bytecdntp.com/cdn/expire-1-M/highlight.js/11.4.0/highlight.min.js"></script>
+    <script src="https://lf26-cdn-tos.bytecdntp.com/cdn/expire-1-M/jschardet/3.0.0/jschardet.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
     <style>
         /* 主题变量 */
         :root {
@@ -714,6 +719,19 @@
                 border-color: var(--button-primary-bg);
             }
         }
+
+        /* 文件预览关闭按钮样式 */
+        .file-preview {
+            position: relative;
+        }
+        
+        .file-close-btn {
+            transition: all 0.2s ease;
+        }
+        
+        .file-close-btn:hover {
+            transform: scale(1.1);
+        }
     </style>
 </head>
 <body class="bg-[var(--bg-primary)] text-[var(--text-primary)] transition-colors duration-200">
@@ -788,8 +806,20 @@
         <div class="input-area">
             <div class="max-w-3xl mx-auto flex flex-col space-y-4">
                 <div class="relative">
+                    <!-- 添加文件上传按钮 -->
+                    <div class="absolute top-1 left-2">
+                        <input type="file" id="file-upload" accept=".txt,.pdf,.docx,.doc,.xlsx,.xls" class="hidden" onchange="handleFileUpload(this)" multiple>
+                        <button onclick="document.getElementById('file-upload').click()"
+                                class="p-2.5 text-[var(--text-secondary)] hover:bg-[var(--hover-bg)] rounded-md transition-colors duration-200"
+                                title="上传一个或多个文件">
+                            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                      d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                            </svg>
+                        </button>
+                    </div>
                     <textarea id="user-input" rows="3"
-                              class="resize-none w-full px-4 py-2 pr-36 border border-[var(--border-color)] rounded-md bg-[var(--bg-primary)] text-[var(--text-primary)] focus:ring-2 focus:ring-[var(--button-primary-bg)]"
+                              class="resize-none w-full px-12 py-2 pr-36 border border-[var(--border-color)] rounded-md bg-[var(--bg-primary)] text-[var(--text-primary)] focus:ring-2 focus:ring-[var(--button-primary-bg)]"
                               placeholder="输入消息... (Ctrl+Enter 发送)"></textarea>
                     <div class="absolute top-1 right-2">
                         <div class="flex items-center justify-between">
@@ -962,6 +992,10 @@
 <input type="file" id="chat-import" accept=".json" style="display: none;" onchange="handleFileImport(this)">
 
 <script>
+    // 设置 PDF.js worker 路径
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+</script>
+<script>
     // API配置
     const API_CONFIG = {
         defaultUrl: 'https://open.bigmodel.cn/api/paas/v4/chat/completions', //用来生成标题的 key
@@ -1041,6 +1075,11 @@ A small dog that misses home, with a sad look on its face and its tail tucked be
         },
         langPrefix: 'hljs language-'
     });
+
+    function processMathJax(element) {
+        //TODO
+        return;
+    }
 
     // 状态变量
     let currentEditingMessage = null;
@@ -1614,6 +1653,10 @@ A small dog that misses home, with a sad look on its face and its tail tucked be
                             const contentDiv = container.querySelector('.response-content');
                             reasoningDiv.innerHTML = marked.parse(thinkingContent);
                             contentDiv.innerHTML = marked.parse(finalContent);
+                            
+                            // 处理数学公式
+                            processMathJax(reasoningDiv);
+                            processMathJax(contentDiv);
                         }
                     } catch (error) {
                         // 如果解析失败，作为普通消息显示
@@ -1623,6 +1666,9 @@ A small dog that misses home, with a sad look on its face and its tail tucked be
                         container.className = 'markdown-body text-[var(--text-primary)]';
                         container.innerHTML = marked.parse(msg.content);
                         textDiv.appendChild(container);
+                        
+                        // 处理数学公式
+                        processMathJax(container);
                     }
                 } else {
                     const container = document.createElement('div');
@@ -1631,6 +1677,9 @@ A small dog that misses home, with a sad look on its face and its tail tucked be
                     container.className = 'markdown-body text-[var(--text-primary)]';
                     container.innerHTML = marked.parse(msg.content || '');
                     textDiv.appendChild(container);
+                    
+                    // 处理数学公式
+                    processMathJax(container);
                 }
 
                 textDiv.querySelectorAll('pre code').forEach((block) => {
@@ -1956,20 +2005,51 @@ A small dog that misses home, with a sad look on its face and its tail tucked be
     }
 
     // 修改 sendMessage 函数，使用新的 generateAssistantMessage 方法
-    async function sendMessage() {
+    async function sendMessage(autoSend = false) {
         const input = document.getElementById('user-input');
         const message = input.value.trim();
+        const pendingFiles = window.pendingFiles;
         
-        if (!message || isGenerating) return;
+        // 如果既没有消息也没有待发送的文件，则返回
+        if ((!message && (!pendingFiles || pendingFiles.length === 0)) || isGenerating) return;
         
-        input.value = '';
+        if (!autoSend) {
+            input.value = '';
+        }
+        
+        // 移除文件预览
+        const filePreviews = document.querySelectorAll('.file-preview');
+        filePreviews.forEach(preview => preview.remove());
+
+        // 构建完整的用户消息
+        let fullMessage = '';
+        if (pendingFiles && pendingFiles.length > 0) {
+            if (pendingFiles.length === 1) {
+                fullMessage = `我上传了一个文件：${pendingFiles[0].fileName}\n\n\`\`\`\n${pendingFiles[0].content}\n\`\`\``;
+            } else {
+                fullMessage = `我上传了 ${pendingFiles.length} 个文件：\n\n`;
+                pendingFiles.forEach((file, index) => {
+                    fullMessage += `### 文件 ${index + 1}：${file.fileName}\n\n\`\`\`\n${file.content}\n\`\`\`\n\n`;
+                });
+            }
+            
+            if (message) {
+                fullMessage += '\n\n' + message;
+            }
+            
+            // 清除待发送的文件
+            window.pendingFiles = [];
+        } else {
+            fullMessage = message;
+        }
         
         // 创建用户消息元素
         const userDiv = createMessageElement('user', conversations[currentConversationId].messages.length);
-        userDiv.style.marginLeft = "-2.2rem"
-        userDiv.style.marginTop = "1rem"
-        userDiv.innerHTML = marked.parse(message);
+        userDiv.style.marginLeft = "-2.2rem";
+        userDiv.style.marginTop = "1rem";
+        userDiv.innerHTML = marked.parse(fullMessage);
         
+
         let searchResults = '';
         if (API_CONFIG.search.enabled) {
             const loadingDiv = document.createElement('div');
@@ -2002,7 +2082,7 @@ A small dog that misses home, with a sad look on its face and its tail tucked be
                             },
                             {
                                 role: 'user',
-                                content: message
+                                content: fullMessage
                             }
                         ]
                     })
@@ -2028,7 +2108,7 @@ A small dog that misses home, with a sad look on its face and its tail tucked be
                                 },
                                 {
                                     role: 'user',
-                                    content: message
+                                    content: fullMessage
                                 }
                             ]
                         })
@@ -2063,7 +2143,15 @@ A small dog that misses home, with a sad look on its face and its tail tucked be
         conversations[currentConversationId].messages.push({
             role: 'user',
             content: message,
-            searchResults: searchResults
+            searchResults: searchResults,
+            metadata: pendingFiles && pendingFiles.length > 0 ? {
+                type: 'files',
+                files: pendingFiles.map(file => ({
+                    fileName: file.fileName,
+                    fileType: file.type,
+                    fileSize: file.size
+                }))
+            } : undefined
         });
 
         const assistantDiv = createMessageElement('assistant', conversations[currentConversationId].messages.length);
@@ -2094,7 +2182,7 @@ A small dog that misses home, with a sad look on its face and its tail tucked be
                                 },
                                 {
                                     role: 'user',
-                                    content: `用户问题：${message}\nAI回复：${newMessage.content}`
+                                    content: `用户问题：${fullMessage}\nAI回复：${newMessage.content}`
                                 }
                             ]
                         })
@@ -2327,7 +2415,7 @@ A small dog that misses home, with a sad look on its face and its tail tucked be
             if (modelType !== currentModelType) {
                 showAlert('不能在同一个对话中混用深度思考模型和普通模型');
                 // 恢复之前的选择
-                modelSelect.value = localStorage.getItem('preferred-model') || API_CONFIG.defaultModel;
+                modelSelect.value = localStorage.getItem('preferred-model') || 'deepseek-r1';
                 return;
             }
         }
@@ -2663,6 +2751,335 @@ A small dog that misses home, with a sad look on its face and its tail tucked be
         // 清理
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
+    }
+
+    // 修改文件处理函数
+    async function handleFileUpload(input) {
+        const files = input.files;
+        if (!files || files.length === 0) return;
+        
+        // 检查文件总大小（限制为50MB）
+        let totalSize = 0;
+        for (let i = 0; i < files.length; i++) {
+            totalSize += files[i].size;
+        }
+        
+        if (totalSize > 50 * 1024 * 1024) {
+            showAlert('文件总大小不能超过50MB');
+            input.value = '';
+            return;
+        }
+        
+        // 显示加载中提示
+        const loadingToast = document.createElement('div');
+        loadingToast.className = 'copy-toast';
+        loadingToast.innerHTML = `
+            <svg class="w-5 h-5 text-blue-500 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <span>正在处理文件...</span>
+        `;
+        document.body.appendChild(loadingToast);
+
+        try {
+            // 处理每个文件
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+                
+                // 检查单个文件大小（限制为20MB）
+                if (file.size > 20 * 1024 * 1024) {
+                    showAlert(`文件 ${file.name} 大小不能超过20MB`);
+                    continue;
+                }
+                
+                let content = '';
+                let fileType = file.type;
+                let fileIcon = '';
+                let encoding = '';
+                
+                // 根据文件类型处理
+                const fileName = file.name.toLowerCase();
+                
+                if (fileName.endsWith('.xlsx') || fileName.endsWith('.xls')) {
+                    // 处理 Excel 文件
+                    fileType = fileName.endsWith('.xlsx') ? 'XLSX' : 'XLS';
+                    fileIcon = `
+                        <svg class="w-8 h-8 text-green-600" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                  d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                  d="M10 8h4m-4 4h4m-4 4h4" />
+                        </svg>
+                    `;
+                    
+                    // 读取 Excel 文件
+                    const arrayBuffer = await file.arrayBuffer();
+                    const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+                    
+                    // 提取所有工作表的内容
+                    let extractedText = '';
+                    
+                    // 遍历所有工作表
+                    for (const sheetName of workbook.SheetNames) {
+                        const worksheet = workbook.Sheets[sheetName];
+                        
+                        // 将工作表转换为JSON
+                        const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+                        
+                        // 添加工作表名称
+                        extractedText += `--- 工作表: ${sheetName} ---\n\n`;
+                        
+                        // 格式化数据为表格形式
+                        if (jsonData.length > 0) {
+                            // 获取最大列数
+                            const maxCols = Math.max(...jsonData.map(row => row.length));
+                            
+                            // 生成表头行（A, B, C...）
+                            let headerRow = '    ';
+                            for (let i = 0; i < maxCols; i++) {
+                                const colLetter = XLSX.utils.encode_col(i);
+                                headerRow += colLetter.padEnd(15, ' ');
+                            }
+                            extractedText += headerRow + '\n';
+                            
+                            // 生成分隔行
+                            extractedText += '    ' + '-'.repeat(maxCols * 15) + '\n';
+                            
+                            // 生成数据行
+                            jsonData.forEach((row, rowIndex) => {
+                                let rowText = `${(rowIndex + 1).toString().padStart(3, ' ')}|`;
+                                
+                                for (let i = 0; i < maxCols; i++) {
+                                    const cellValue = row[i] !== undefined ? row[i].toString() : '';
+                                    // 限制单元格内容长度，防止过长
+                                    const truncatedValue = cellValue.length > 14 
+                                        ? cellValue.substring(0, 11) + '...' 
+                                        : cellValue;
+                                    rowText += truncatedValue.padEnd(15, ' ');
+                                }
+                                
+                                extractedText += rowText + '\n';
+                            });
+                        } else {
+                            extractedText += '(空工作表)\n';
+                        }
+                        
+                        extractedText += '\n\n';
+                    }
+                    
+                    content = extractedText;
+                } else if (fileName.endsWith('.docx')) {
+                    // 处理 DOCX 文件
+                    fileType = 'DOCX';
+                    fileIcon = `
+                        <svg class="w-8 h-8 text-blue-600" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                  d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                  d="M10 10.5h4m-4 3h4m-4 3h4" />
+                        </svg>
+                    `;
+                    
+                    // 读取 DOCX 文件
+                    const arrayBuffer = await file.arrayBuffer();
+                    const result = await mammoth.extractRawText({ arrayBuffer });
+                    content = result.value || '';
+                    
+                    // 如果内容为空，尝试提取 HTML 并转换为纯文本
+                    if (!content.trim()) {
+                        const htmlResult = await mammoth.convertToHtml({ arrayBuffer });
+                        const tempDiv = document.createElement('div');
+                        tempDiv.innerHTML = htmlResult.value;
+                        content = tempDiv.textContent || '';
+                    }
+                } else if (fileName.endsWith('.doc')) {
+                    // 处理 DOC 文件
+                    fileType = 'DOC';
+                    fileIcon = `
+                        <svg class="w-8 h-8 text-blue-600" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                  d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                  d="M10 10.5h4m-4 3h4m-4 3h4" />
+                        </svg>
+                    `;
+                    
+                    // 读取 DOC 文件
+                    const arrayBuffer = await file.arrayBuffer();
+                    const result = await mammoth.extractRawText({ arrayBuffer });
+                    content = result.value || '';
+                    
+                    // 如果内容为空，尝试提取 HTML 并转换为纯文本
+                    if (!content.trim()) {
+                        const htmlResult = await mammoth.convertToHtml({ arrayBuffer });
+                        const tempDiv = document.createElement('div');
+                        tempDiv.innerHTML = htmlResult.value;
+                        content = tempDiv.textContent || '';
+                    }
+                } else if (file.type === 'application/pdf' || fileName.endsWith('.pdf')) {
+                    // 处理 PDF 文件
+                    fileType = 'PDF';
+                    fileIcon = `
+                        <svg class="w-8 h-8 text-red-500" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                  d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                  d="M12 11v6m-3-3h6" />
+                        </svg>
+                    `;
+                    
+                    // 读取 PDF 文件
+                    const arrayBuffer = await file.arrayBuffer();
+                    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+                    
+                    // 提取文本内容
+                    const numPages = pdf.numPages;
+                    let extractedText = '';
+                    
+                    for (let i = 1; i <= numPages; i++) {
+                        const page = await pdf.getPage(i);
+                        const textContent = await page.getTextContent();
+                        const pageText = textContent.items.map(item => item.str).join(' ');
+                        extractedText += `--- 第 ${i} 页 ---\n${pageText}\n\n`;
+                    }
+                    
+                    content = extractedText;
+                } else {
+                    // 处理文本文件
+                    fileType = 'TXT';
+                    fileIcon = `
+                        <svg class="w-8 h-8 text-[var(--text-secondary)]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                  d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                    `;
+                    
+                    // 读取文件为 ArrayBuffer
+                    const buffer = await file.arrayBuffer();
+                    const uint8Array = new Uint8Array(buffer);
+                    
+                    // 尝试检测编码
+                    const result = jschardet.detect(uint8Array);
+                    encoding = result.encoding || 'GBK';  // 默认使用 GBK
+                    
+                    // 解码文件内容
+                    try {
+                        if (encoding.toUpperCase() === 'UTF-8') {
+                            const decoder = new TextDecoder(encoding.toLowerCase());
+                            content = decoder.decode(uint8Array);
+                        } else {
+                            // 对于非 UTF-8 编码，使用 TextDecoding polyfill
+                            const gbkDecoder = new TextDecoder('gbk');
+                            content = gbkDecoder.decode(uint8Array);
+                        }
+
+                        // 检查解码结果是否包含乱码（超过50%的字符是乱码）
+                        const invalidChars = content.match(/\ufffd/g);
+                        if (invalidChars && invalidChars.length > content.length * 0.5) {
+                            throw new Error('检测到大量乱码字符');
+                        }
+                    } catch (e) {
+                        console.warn('Failed to decode with detected encoding:', encoding);
+                        // 强制使用 GBK 解码
+                        const gbkDecoder = new TextDecoder('gbk');
+                        content = gbkDecoder.decode(uint8Array);
+                    }
+
+                    // 检查是否有 BOM
+                    if (content.charCodeAt(0) === 0xFEFF) {
+                        content = content.slice(1);
+                    }
+                }
+
+                // 如果内容为空，显示警告
+                if (!content.trim()) {
+                    showAlert(`文件 ${file.name} 内容为空或无法提取文本`);
+                    continue;
+                }
+                
+                // 创建文件预览元素
+                const previewDiv = document.createElement('div');
+                previewDiv.className = 'file-preview mb-2 p-3 bg-[var(--bg-secondary)] rounded-lg flex flex-col gap-2';
+                previewDiv.innerHTML = `
+                    <div class="flex items-center gap-3">
+                        <div class="flex-shrink-0">
+                            ${fileIcon}
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <p class="text-sm font-medium text-[var(--text-primary)] truncate">${file.name}</p>
+                            <p class="text-xs text-[var(--text-secondary)]">${fileType} ${(file.size / 1024).toFixed(1)}KB${encoding ? ' · ' + encoding : ''}</p>
+                        </div>
+                        <button class="file-close-btn p-1 text-[var(--text-secondary)] hover:text-[var(--button-primary-bg)] rounded-full hover:bg-[var(--hover-bg)] transition-colors" title="取消上传">
+                            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
+                    </div>
+                `;
+
+                // 为每个文件预览添加唯一ID
+                const fileId = Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+                previewDiv.dataset.fileId = fileId;
+
+                // 添加关闭按钮的点击事件
+                const closeBtn = previewDiv.querySelector('.file-close-btn');
+                closeBtn.addEventListener('click', function() {
+                    // 移除文件预览
+                    previewDiv.remove();
+                    // 从待发送文件列表中移除
+                    window.pendingFiles = window.pendingFiles.filter(f => f.id !== fileId);
+                });
+
+                // 将预览添加到消息区域
+                const messagesDiv = document.getElementById('messages');
+                messagesDiv.appendChild(previewDiv);
+
+                // 存储文件内容到临时变量，等待发送
+                // 确保 window.pendingFiles 已初始化
+                if (!window.pendingFiles) {
+                    window.pendingFiles = [];
+                }
+                
+                window.pendingFiles.push({
+                    id: fileId,
+                    fileName: file.name || '未命名文件',
+                    content: content || '',
+                    size: file.size || 0,
+                    type: fileType || '未知类型'
+                });
+            }
+
+            // 自动滚动到底部
+            scrollToBottom(true);
+            
+            // 移除加载提示
+            loadingToast.remove();
+            
+            // 显示成功提示
+            const toast = document.createElement('div');
+            toast.className = 'copy-toast';
+            toast.innerHTML = `
+                <svg class="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                <span>${files.length > 1 ? `${files.length} 个文件已上传` : '文件已上传'}</span>
+            `;
+            document.body.appendChild(toast);
+            
+            // 2秒后移除提示
+            setTimeout(() => {
+                toast.remove();
+            }, 2000);
+        } catch (error) {
+            // 移除加载提示
+            loadingToast.remove();
+            
+            showAlert('读取文件失败：' + (error.message || '文件格式不支持'));
+        }
+
+        // 清除文件输入，允许重复上传相同文件
+        input.value = '';
     }
 
     initialize();

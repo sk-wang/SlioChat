@@ -12,6 +12,7 @@ SlioChat is a modern, feature-rich, single-file AI chat web UI designed for larg
 
 - 💬 Comprehensive Conversation Capabilities
   - Automatic conversation title generation
+  - Support parse PDF/Word/Excel File
   - Markdown formatting support
   - Syntax highlighting for code blocks
   - One-click code copying
@@ -76,6 +77,7 @@ SlioChat is a modern, feature-rich, single-file AI chat web UI designed for larg
         token: 'xxxxxxxxx'  // BochaAI API key
     }
    ```
+   Acquire apikey：https://open.bochaai.com/
 
 2. Launching the Application
    - For intranet deployment, run `yarn && yarn build` and use the packaged `index.html` from the `dist` directory.

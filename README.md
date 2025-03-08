@@ -12,6 +12,7 @@ SlioChat 是一个现代化的、功能丰富的单文件大模型AI聊天网页
 
 - 💬 完整的对话功能
   - 自动生成对话标题
+  - 支持根据PDF、Excel、Word文件对话
   - Markdown 格式支持
   - 代码块语法高亮
   - 一键复制代码
@@ -76,6 +77,7 @@ SlioChat 是一个现代化的、功能丰富的单文件大模型AI聊天网页
         token: 'xxxxxxxxx'  // bochaai的api key
     }
    ```
+   获取apikey：https://open.bochaai.com/
    
 
 2. 启动应用

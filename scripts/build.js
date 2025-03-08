@@ -2,8 +2,8 @@ const fs = require('fs');
 const path = require('path');
 const fetch = require('node-fetch');
 const cheerio = require('cheerio');
-const { minify } = require('terser');
 const CleanCSS = require('clean-css');
+const https = require('https');
 
 async function downloadResource(url) {
     try {
@@ -12,19 +12,6 @@ async function downloadResource(url) {
     } catch (error) {
         console.error(`Error downloading ${url}:`, error);
         throw error;
-    }
-}
-
-async function minifyJS(code) {
-    try {
-        const result = await minify(code, {
-            compress: true,
-            mangle: true
-        });
-        return result.code;
-    } catch (error) {
-        console.error('Error minifying JavaScript:', error);
-        return code;
     }
 }
 
@@ -67,8 +54,7 @@ async function inlineResources() {
 
     // 压缩并插入合并后的JavaScript
     if (allJsContent) {
-        const minifiedJs = await minifyJS(allJsContent);
-        $('head').append(`<script>${minifiedJs}</script>`);
+        $('head').append(`<script>${allJsContent}</script>`);
     }
 
     // 压缩并插入合并后的CSS
@@ -82,5 +68,93 @@ async function inlineResources() {
     console.log('Successfully inlined and bundled all CDN resources');
 }
 
+// 下载 PDF.js worker 脚本并将其转换为 base64 编码的 data URI
+async function processPdfWorker() {
+    console.log('正在处理 PDF.js worker 脚本...');
+    
+    // PDF.js worker 脚本的 URL
+    const WORKER_URL = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    
+    try {
+        // 下载 worker 脚本
+        const workerScript = await new Promise((resolve, reject) => {
+            https.get(WORKER_URL, (response) => {
+                if (response.statusCode !== 200) {
+                    reject(new Error(`下载失败，状态码: ${response.statusCode}`));
+                    return;
+                }
+
+                let data = '';
+                response.on('data', (chunk) => {
+                    data += chunk;
+                });
+
+                response.on('end', () => {
+                    console.log('PDF.js worker 脚本下载完成');
+                    resolve(data);
+                });
+            }).on('error', (err) => {
+                reject(err);
+            });
+        });
+
+        // 将脚本转换为 base64 编码的 data URI
+        const base64Script = Buffer.from(workerScript).toString('base64');
+        const dataURI = `data:application/javascript;base64,${base64Script}`;
+        
+        console.log('PDF.js worker 脚本已转换为 data URI');
+        return dataURI;
+    } catch (error) {
+        console.error('处理 PDF.js worker 脚本失败:', error.message);
+        // 如果失败，返回原始 CDN URL
+        return WORKER_URL;
+    }
+}
+
+// 主函数
+async function main() {
+    try {
+        // 读取 HTML 文件
+        const htmlPath = path.resolve(__dirname, '../slio-chat.html');
+        let htmlContent = fs.readFileSync(htmlPath, 'utf8');
+        
+        // 下载并处理 PDF.js worker 脚本
+        const pdfWorkerDataURI = await processPdfWorker();
+        
+        // 使用 cheerio 解析 HTML
+        const $ = cheerio.load(htmlContent);
+        
+        // 替换 PDF.js worker 脚本路径
+        const scriptContent = $('script').filter(function() {
+            return $(this).text().includes('pdfjsLib.GlobalWorkerOptions.workerSrc');
+        }).text();
+        
+        if (scriptContent) {
+            const updatedScript = scriptContent.replace(
+                /pdfjsLib\.GlobalWorkerOptions\.workerSrc\s*=\s*['"]https:\/\/cdnjs\.cloudflare\.com\/ajax\/libs\/pdf\.js\/[^'"]+['"]/,
+                `pdfjsLib.GlobalWorkerOptions.workerSrc = '${pdfWorkerDataURI}'`
+            );
+            
+            $('script').filter(function() {
+                return $(this).text().includes('pdfjsLib.GlobalWorkerOptions.workerSrc');
+            }).text(updatedScript);
+            
+            // 保存修改后的 HTML
+            fs.writeFileSync(htmlPath, $.html(), 'utf8');
+            console.log('HTML 文件已更新，PDF.js worker 脚本已内联');
+        } else {
+            console.warn('未找到 PDF.js worker 配置脚本，跳过更新');
+        }
+        
+        // 这里可以添加其他构建步骤...
+        
+    } catch (error) {
+        console.error('构建过程失败:', error.message);
+        process.exit(1);
+    }
+}
+
 // 执行内联过程
-inlineResources().catch(console.error); 
+inlineResources().catch(console.error);
+
+main(); 

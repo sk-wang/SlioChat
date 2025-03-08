@@ -1315,6 +1315,9 @@ A small dog that misses home, with a sad look on its face and its tail tucked be
         const type = await showChatTypeDialog();
         if (!type) return; // 用户取消了选择
 
+        // 保存当前的待上传文件
+        const currentPendingFiles = [...(window.pendingFiles || [])];
+
         const conversationId = 'conv_' + Date.now();
         // 根据对话类型设置标题
         const typeName = API_CONFIG.chatTypes[type].name;
@@ -1332,6 +1335,15 @@ A small dog that misses home, with a sad look on its face and its tail tucked be
         refreshConversationList();
         updateModelButtonsVisibility();
 
+        // 恢复待上传文件的显示
+        if (currentPendingFiles.length > 0) {
+            displayPendingFiles(currentPendingFiles);
+        } else {
+            // 如果没有待上传文件，清除所有文件预览
+            const filePreviews = document.querySelectorAll('.file-preview');
+            filePreviews.forEach(preview => preview.remove());
+        }
+
         // 在手机端自动收起侧边栏
         if (window.innerWidth < 768) {
             const sidebar = document.getElementById('sidebar');
@@ -1346,6 +1358,9 @@ A small dog that misses home, with a sad look on its face and its tail tucked be
         if (isGenerating) {
             return;
         }
+
+        // 保存当前的待上传文件
+        const currentPendingFiles = [...(window.pendingFiles || [])];
 
         // 移除之前的选中状态
         const previousActive = document.querySelector('.conversation-item.active');
@@ -1362,6 +1377,15 @@ A small dog that misses home, with a sad look on its face and its tail tucked be
         document.getElementById('title-input').classList.add('hidden');
         document.getElementById('current-conversation-title').classList.remove('hidden');
         refreshMessages();
+        
+        // 恢复待上传文件的显示
+        if (currentPendingFiles.length > 0) {
+            displayPendingFiles(currentPendingFiles);
+        } else {
+            // 如果没有待上传文件，清除所有文件预览
+            const filePreviews = document.querySelectorAll('.file-preview');
+            filePreviews.forEach(preview => preview.remove());
+        }
         
         // 检查是否在微信浏览器中
         scrollWhenReady();
@@ -1633,6 +1657,9 @@ A small dog that misses home, with a sad look on its face and its tail tucked be
     function refreshMessages() {
         const messagesDiv = document.getElementById('messages');
         messagesDiv.innerHTML = '';
+
+        // 不在这里清除文件预览，因为我们需要保留它们
+        // 文件预览会在切换对话或创建新对话时通过displayPendingFiles函数处理
 
         if (currentConversationId && conversations[currentConversationId]) {
             conversations[currentConversationId].messages.forEach((msg, index) => {
@@ -2783,7 +2810,14 @@ A small dog that misses home, with a sad look on its face and its tail tucked be
         document.body.appendChild(loadingToast);
 
         try {
+            // 确保 window.pendingFiles 已初始化
+            if (!window.pendingFiles) {
+                window.pendingFiles = [];
+            }
+            
             // 处理每个文件
+            const newPendingFiles = [];
+            
             for (let i = 0; i < files.length; i++) {
                 const file = files[i];
                 
@@ -2795,7 +2829,6 @@ A small dog that misses home, with a sad look on its face and its tail tucked be
                 
                 let content = '';
                 let fileType = file.type;
-                let fileIcon = '';
                 let encoding = '';
                 
                 // 根据文件类型处理
@@ -2804,14 +2837,6 @@ A small dog that misses home, with a sad look on its face and its tail tucked be
                 if (fileName.endsWith('.xlsx') || fileName.endsWith('.xls')) {
                     // 处理 Excel 文件
                     fileType = fileName.endsWith('.xlsx') ? 'XLSX' : 'XLS';
-                    fileIcon = `
-                        <svg class="w-8 h-8 text-green-600" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                                  d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                                  d="M10 8h4m-4 4h4m-4 4h4" />
-                        </svg>
-                    `;
                     
                     // 读取 Excel 文件
                     const arrayBuffer = await file.arrayBuffer();
@@ -2872,14 +2897,6 @@ A small dog that misses home, with a sad look on its face and its tail tucked be
                 } else if (fileName.endsWith('.docx')) {
                     // 处理 DOCX 文件
                     fileType = 'DOCX';
-                    fileIcon = `
-                        <svg class="w-8 h-8 text-blue-600" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                                  d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                                  d="M10 10.5h4m-4 3h4m-4 3h4" />
-                        </svg>
-                    `;
                     
                     // 读取 DOCX 文件
                     const arrayBuffer = await file.arrayBuffer();
@@ -2896,14 +2913,6 @@ A small dog that misses home, with a sad look on its face and its tail tucked be
                 } else if (fileName.endsWith('.doc')) {
                     // 处理 DOC 文件
                     fileType = 'DOC';
-                    fileIcon = `
-                        <svg class="w-8 h-8 text-blue-600" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                                  d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                                  d="M10 10.5h4m-4 3h4m-4 3h4" />
-                        </svg>
-                    `;
                     
                     // 读取 DOC 文件
                     const arrayBuffer = await file.arrayBuffer();
@@ -2920,14 +2929,6 @@ A small dog that misses home, with a sad look on its face and its tail tucked be
                 } else if (file.type === 'application/pdf' || fileName.endsWith('.pdf')) {
                     // 处理 PDF 文件
                     fileType = 'PDF';
-                    fileIcon = `
-                        <svg class="w-8 h-8 text-red-500" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                                  d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                                  d="M12 11v6m-3-3h6" />
-                        </svg>
-                    `;
                     
                     // 读取 PDF 文件
                     const arrayBuffer = await file.arrayBuffer();
@@ -2948,12 +2949,6 @@ A small dog that misses home, with a sad look on its face and its tail tucked be
                 } else {
                     // 处理文本文件
                     fileType = 'TXT';
-                    fileIcon = `
-                        <svg class="w-8 h-8 text-[var(--text-secondary)]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                                  d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                        </svg>
-                    `;
                     
                     // 读取文件为 ArrayBuffer
                     const buffer = await file.arrayBuffer();
@@ -2998,88 +2993,141 @@ A small dog that misses home, with a sad look on its face and its tail tucked be
                     continue;
                 }
                 
-                // 创建文件预览元素
-                const previewDiv = document.createElement('div');
-                previewDiv.className = 'file-preview mb-2 p-3 bg-[var(--bg-secondary)] rounded-lg flex flex-col gap-2';
-                previewDiv.innerHTML = `
-                    <div class="flex items-center gap-3">
-                        <div class="flex-shrink-0">
-                            ${fileIcon}
-                        </div>
-                        <div class="flex-1 min-w-0">
-                            <p class="text-sm font-medium text-[var(--text-primary)] truncate">${file.name}</p>
-                            <p class="text-xs text-[var(--text-secondary)]">${fileType} ${(file.size / 1024).toFixed(1)}KB${encoding ? ' · ' + encoding : ''}</p>
-                        </div>
-                        <button class="file-close-btn p-1 text-[var(--text-secondary)] hover:text-[var(--button-primary-bg)] rounded-full hover:bg-[var(--hover-bg)] transition-colors" title="取消上传">
-                            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                            </svg>
-                        </button>
-                    </div>
-                `;
-
-                // 为每个文件预览添加唯一ID
+                // 为每个文件添加唯一ID
                 const fileId = Date.now() + '-' + Math.random().toString(36).substr(2, 9);
-                previewDiv.dataset.fileId = fileId;
-
-                // 添加关闭按钮的点击事件
-                const closeBtn = previewDiv.querySelector('.file-close-btn');
-                closeBtn.addEventListener('click', function() {
-                    // 移除文件预览
-                    previewDiv.remove();
-                    // 从待发送文件列表中移除
-                    window.pendingFiles = window.pendingFiles.filter(f => f.id !== fileId);
-                });
-
-                // 将预览添加到消息区域
-                const messagesDiv = document.getElementById('messages');
-                messagesDiv.appendChild(previewDiv);
-
-                // 存储文件内容到临时变量，等待发送
-                // 确保 window.pendingFiles 已初始化
-                if (!window.pendingFiles) {
-                    window.pendingFiles = [];
-                }
                 
-                window.pendingFiles.push({
+                // 添加到新处理的文件列表
+                newPendingFiles.push({
                     id: fileId,
                     fileName: file.name || '未命名文件',
                     content: content || '',
                     size: file.size || 0,
-                    type: fileType || '未知类型'
+                    type: fileType || '未知类型',
+                    encoding: encoding || ''
                 });
             }
-
-            // 自动滚动到底部
-            scrollToBottom(true);
+            
+            // 清除现有的文件预览
+            const filePreviews = document.querySelectorAll('.file-preview');
+            filePreviews.forEach(preview => preview.remove());
+            
+            // 添加新处理的文件到待发送文件列表
+            window.pendingFiles = [...window.pendingFiles, ...newPendingFiles];
+            
+            // 显示文件预览
+            displayPendingFiles(window.pendingFiles);
             
             // 移除加载提示
             loadingToast.remove();
             
             // 显示成功提示
-            const toast = document.createElement('div');
-            toast.className = 'copy-toast';
-            toast.innerHTML = `
-                <svg class="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                </svg>
-                <span>${files.length > 1 ? `${files.length} 个文件已上传` : '文件已上传'}</span>
-            `;
-            document.body.appendChild(toast);
-            
-            // 2秒后移除提示
-            setTimeout(() => {
-                toast.remove();
-            }, 2000);
+            showAlert('文件处理完成', 'success');
         } catch (error) {
-            // 移除加载提示
+            console.error('文件处理错误:', error);
+            showAlert('文件处理失败: ' + error.message);
             loadingToast.remove();
-            
-            showAlert('读取文件失败：' + (error.message || '文件格式不支持'));
         }
-
-        // 清除文件输入，允许重复上传相同文件
+        
+        // 清空文件输入，以便可以再次选择相同的文件
         input.value = '';
+    }
+
+    // 显示待上传文件
+    function displayPendingFiles(files) {
+        if (!files || files.length === 0) return;
+        
+        // 确保 window.pendingFiles 已初始化
+        window.pendingFiles = files;
+        
+        // 清除现有的文件预览
+        const filePreviews = document.querySelectorAll('.file-preview');
+        filePreviews.forEach(preview => preview.remove());
+        
+        const messagesDiv = document.getElementById('messages');
+        
+        // 为每个文件创建预览元素
+        files.forEach(file => {
+            // 根据文件类型设置图标
+            let fileIcon = '';
+            
+            switch(file.type) {
+                case 'PDF':
+                    fileIcon = `
+                        <svg class="w-8 h-8 text-red-500" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                  d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                  d="M12 11v6m-3-3h6" />
+                        </svg>
+                    `;
+                    break;
+                case 'DOCX':
+                case 'DOC':
+                    fileIcon = `
+                        <svg class="w-8 h-8 text-blue-600" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                  d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                  d="M10 10.5h4m-4 3h4m-4 3h4" />
+                        </svg>
+                    `;
+                    break;
+                case 'XLSX':
+                case 'XLS':
+                    fileIcon = `
+                        <svg class="w-8 h-8 text-green-600" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                  d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                  d="M10 8h4m-4 4h4m-4 4h4" />
+                        </svg>
+                    `;
+                    break;
+                default:
+                    fileIcon = `
+                        <svg class="w-8 h-8 text-[var(--text-secondary)]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                  d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                    `;
+            }
+            
+            // 创建文件预览元素
+            const previewDiv = document.createElement('div');
+            previewDiv.className = 'file-preview mb-2 p-3 bg-[var(--bg-secondary)] rounded-lg flex flex-col gap-2';
+            previewDiv.dataset.fileId = file.id;
+            previewDiv.innerHTML = `
+                <div class="flex items-center gap-3">
+                    <div class="flex-shrink-0">
+                        ${fileIcon}
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <p class="text-sm font-medium text-[var(--text-primary)] truncate">${file.fileName}</p>
+                        <p class="text-xs text-[var(--text-secondary)]">${file.type} ${(file.size / 1024).toFixed(1)}KB${file.encoding ? ' · ' + file.encoding : ''}</p>
+                    </div>
+                    <button class="file-close-btn p-1 text-[var(--text-secondary)] hover:text-[var(--button-primary-bg)] rounded-full hover:bg-[var(--hover-bg)] transition-colors" title="取消上传">
+                        <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+            `;
+            
+            // 添加关闭按钮的点击事件
+            const closeBtn = previewDiv.querySelector('.file-close-btn');
+            closeBtn.addEventListener('click', function() {
+                // 移除文件预览
+                previewDiv.remove();
+                // 从待发送文件列表中移除
+                window.pendingFiles = window.pendingFiles.filter(f => f.id !== file.id);
+            });
+            
+            // 将预览添加到消息区域
+            messagesDiv.appendChild(previewDiv);
+        });
+        
+        // 自动滚动到底部
+        scrollToBottom(true);
     }
 
     initialize();

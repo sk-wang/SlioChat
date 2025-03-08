@@ -115,7 +115,7 @@ async function processPdfWorker() {
 async function main() {
     try {
         // 读取 HTML 文件
-        const htmlPath = path.resolve(__dirname, '../slio-chat.html');
+        const htmlPath = path.resolve(__dirname, '../index.html');
         let htmlContent = fs.readFileSync(htmlPath, 'utf8');
         
         // 下载并处理 PDF.js worker 脚本

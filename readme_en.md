@@ -12,7 +12,7 @@ SlioChat is a modern, feature-rich, single-file AI chat web UI designed for larg
 
 - 💬 Comprehensive Conversation Capabilities
   - Automatic conversation title generation
-  - Support parse PDF/Word/Excel File
+  - Support parse Image/PDF/Word/Excel File
   - Markdown formatting support
   - Syntax highlighting for code blocks
   - One-click code copying

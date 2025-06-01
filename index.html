@@ -242,6 +242,38 @@
             }
         }
 
+        /* PC端侧边栏收起功能 */
+        @media (min-width: 769px) {
+            .sidebar {
+                transition: width 0.3s ease-in-out, transform 0.3s ease-in-out;
+            }
+            
+            .sidebar.collapsed {
+                width: 0;
+                min-width: 0;
+                overflow: hidden;
+            }
+            
+            .main-content {
+                transition: margin-left 0.3s ease-in-out;
+            }
+            
+            .main-content.sidebar-collapsed {
+                margin-left: 0;
+            }
+            
+            /* PC端侧边栏切换按钮 */
+            #pc-sidebar-toggle {
+                display: block;
+            }
+        }
+
+        @media (max-width: 768px) {
+            #pc-sidebar-toggle {
+                display: none;
+            }
+        }
+
         /* 主题切换按钮 */
         #theme-toggle {
             position: relative;
@@ -750,10 +782,16 @@
     </div>
 
     <!-- 主内容区 -->
-    <div class="flex-1 flex flex-col">
+    <div class="main-content flex-1 flex flex-col">
         <!-- 顶部标题栏 -->
         <div class="p-4 md:p-4 p-1 border-b border-[var(--border-color)] flex justify-between items-center">
             <div class="flex-1 min-w-0 flex items-center space-x-2">
+                <!-- PC端侧边栏切换按钮 -->
+                <button id="pc-sidebar-toggle" class="hidden p-1 rounded-lg hover:bg-[var(--hover-bg)] z-20" onclick="togglePCSidebar()">
+                    <svg class="w-5 h-5 text-gray-600 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+                    </svg>
+                </button>
                 <!-- 移动端菜单按钮 -->
                 <button id="menu-toggle" class="md:hidden p-1 rounded-lg hover:bg-[var(--hover-bg)] z-20">
                     <svg class="w-5 h-5 text-gray-600 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -808,7 +846,7 @@
                 <div class="relative">
                     <!-- 添加文件上传按钮 -->
                     <div class="absolute top-1 left-2">
-                        <input type="file" id="file-upload" accept=".txt,.pdf,.docx,.doc,.xlsx,.xls" class="hidden" onchange="handleFileUpload(this)" multiple>
+                        <input type="file" id="file-upload" accept=".txt,.pdf,.docx,.doc,.xlsx,.xls,.jpg,.jpeg,.png,.gif,.bmp,.webp,.svg" class="hidden" onchange="handleFileUpload(this)" multiple>
                         <button onclick="document.getElementById('file-upload').click()"
                                 class="p-2.5 text-[var(--text-secondary)] hover:bg-[var(--hover-bg)] rounded-md transition-colors duration-200"
                                 title="上传一个或多个文件">
@@ -998,24 +1036,25 @@
 <script>
     // API配置
     const API_CONFIG = {
-        defaultUrl: 'https://open.bigmodel.cn/api/paas/v4/chat/completions', //用来生成标题的 key
-        defaultKey: '4343afe401f046afa592b4fa4f33cdab.zRzWA4Thv2FYZ2ba',  // 用来生成标题的 key
-        defaultModel: 'glm-4v-plus', // 用来生成标题的模型
+        defaultUrl: 'https://0f68edf33a3a4219a5ab9d9ae6b3034c-cn-hangzhou.alicloudapi.com/compatible-mode/v1/chat/completions', //用来生成标题的 key
+        defaultKey: 'none',  // 用来生成标题的 key
+        defaultModel: 'qwen2-57b-a14b-instruct', // 用来生成标题的模型
+        defaultVlm: 'qwen2.5-vl-3b-instruct', // 用来理解图片的模型
         defaultSystemPrompt: '你是一位专业、友善且富有同理心的AI助手。你会根据问题的复杂程度调整回答方式：对于复杂问题，你会条理清晰地展示思考过程并给出详细解释；对于简单问题，你会直接给出准确简洁的答案。你善于倾听用户的需求，用平易近人的语气进行交流，在必要时会主动询问以更好地理解用户意图。你的回答始终保持客观专业，并在适当时候提供有见地的建议。',
         models: {
             //deepseek蒸馏模型
             'deepseek-r1-distill-qwen-32b': {
                 name: 'r1-fast',
                 type: 'thinking',
-                url: 'https://0f68edf33a3a4219a5ab9d9ae6b3034c-cn-hangzhou.alicloudapi.com/compatible-mode/v1/chat/completions ',
+                url: 'https://0f68edf33a3a4219a5ab9d9ae6b3034c-cn-hangzhou.alicloudapi.com/compatible-mode/v1/chat/completions',
                 key: 'none',
             },
             //免费的大模型
-            "glm-4v-plus": {
-                name: '智谱flash',
+            "qwen2-57b-a14b-instruct": {
+                name: 'qwen2-57b',
                 type: 'normal',
-                url: 'https://open.bigmodel.cn/api/paas/v4/chat/completions',
-                key: '4343afe401f046afa592b4fa4f33cdab.zRzWA4Thv2FYZ2ba',  // 智谱的免费模型
+                url: 'https://0f68edf33a3a4219a5ab9d9ae6b3034c-cn-hangzhou.alicloudapi.com/compatible-mode/v1/chat/completions',
+                key: 'none',  // 智谱的免费模型
             },
             //可以新增更多的模型
         },
@@ -1048,10 +1087,6 @@ A homesick little dog.
 A small dog that misses home, with a sad look on its face and its tail tucked between its legs. It might be standing in front of a closed door or a gate, gazing longingly into the distance, as if hoping to catch a glimpse of its beloved home.
 如果你明白了，请回复"我准备好了"，当我输入中文内容后，请以"/imagine prompt:"作为开头，翻译我需要的英文内容。
                 `
-            },
-            pal: {
-                name: '仙剑奇侠传文字游戏',
-                systemPrompt: `可以和我玩仙剑奇侠传的游戏吗，你利用markdown语法生成游戏地图，回合制，我扮演李逍遥，要求分为战斗模式和走格子模式，走格子时利用投骰子移动和触发相关事件，要求附带UI，UI内包含游戏所必须的信息，你要扮演其它NPC，游戏系统，旁白等`
             }
         },
         search: {
@@ -1180,6 +1215,19 @@ A small dog that misses home, with a sad look on its face and its tail tucked be
         overlay.classList.toggle('active');
     }
 
+    // PC端侧边栏控制
+    function togglePCSidebar() {
+        const sidebar = document.getElementById('sidebar');
+        const mainContent = document.querySelector('.main-content');
+        
+        sidebar.classList.toggle('collapsed');
+        mainContent.classList.toggle('sidebar-collapsed');
+        
+        // 保存侧边栏状态到本地存储
+        const isCollapsed = sidebar.classList.contains('collapsed');
+        localStorage.setItem('pc-sidebar-collapsed', isCollapsed);
+    }
+
     // 初始化应用
     function initialize() {
         initializeTheme();
@@ -1278,6 +1326,15 @@ A small dog that misses home, with a sad look on its face and its tail tucked be
 
         // 初始化时更新模型按钮可见性
         updateModelButtonsVisibility();
+        
+        // 恢复PC端侧边栏状态
+        const isPCSidebarCollapsed = localStorage.getItem('pc-sidebar-collapsed') === 'true';
+        if (isPCSidebarCollapsed) {
+            const sidebar = document.getElementById('sidebar');
+            const mainContent = document.querySelector('.main-content');
+            sidebar.classList.add('collapsed');
+            mainContent.classList.add('sidebar-collapsed');
+        }
     }
 
     // 添加新的滚动函数
@@ -1515,11 +1572,10 @@ A small dog that misses home, with a sad look on its face and its tail tucked be
                     };
 
                     const deleteButton = document.createElement('button');
-                    deleteButton.className = 'p-1 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded';
+                    deleteButton.className = 'p-1 text-[var(--text-secondary)] hover:text-red-500 hover:bg-[var(--hover-bg)] rounded transition-colors';
                     deleteButton.innerHTML = `
                         <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                                  d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                         </svg>
                     `;
                     deleteButton.title = '删除对话';
@@ -1627,11 +1683,10 @@ A small dog that misses home, with a sad look on its face and its tail tucked be
         }
 
         const deleteButton = document.createElement('button');
-        deleteButton.className = 'p-1 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded';
+        deleteButton.className = 'p-1 text-[var(--text-secondary)] hover:text-red-500 hover:bg-[var(--hover-bg)] rounded transition-colors';
         deleteButton.innerHTML = `
             <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                      d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
             </svg>
         `;
         deleteButton.title = '删除消息';
@@ -2946,6 +3001,64 @@ A small dog that misses home, with a sad look on its face and its tail tucked be
                     }
                     
                     content = extractedText;
+                } else if (file.type.startsWith('image/') || fileName.match(/\.(jpg|jpeg|png|gif|bmp|webp|svg)$/i)) {
+                    // 处理图片文件
+                    fileType = 'IMAGE';
+                    
+                    try {
+                        // 将图片转换为base64
+                        const reader = new FileReader();
+                        const base64Promise = new Promise((resolve, reject) => {
+                            reader.onload = () => resolve(reader.result);
+                            reader.onerror = reject;
+                            reader.readAsDataURL(file);
+                        });
+                        
+                        const base64Data = await base64Promise;
+                        
+                        // 调用VLM模型解析图片
+                        const response = await fetch(API_CONFIG.defaultUrl, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${API_CONFIG.defaultKey}`
+                            },
+                            body: JSON.stringify({
+                                model: API_CONFIG.defaultVlm,
+                                messages: [
+                                    {
+                                        role: 'user',
+                                        content: [
+                                            {
+                                                type: 'text',
+                                                text: '请详细描述这张图片的内容，包括图片中的文字、物体、场景、颜色等所有可见元素。如果图片包含文字，请准确识别并提取出来。'
+                                            },
+                                            {
+                                                type: 'image_url',
+                                                image_url: {
+                                                    url: base64Data
+                                                }
+                                            }
+                                        ]
+                                    }
+                                ]
+                            })
+                        });
+                        
+                        if (!response.ok) {
+                            throw new Error(`图片解析失败: ${response.status}`);
+                        }
+                        
+                        const data = await response.json();
+                        content = data.choices[0].message.content || '无法解析图片内容';
+                        
+                        // 在内容前添加图片信息说明
+                        content = `[图片解析结果]\n文件名: ${file.name}\n图片类型: ${file.type}\n文件大小: ${(file.size / 1024).toFixed(1)}KB\n\n图片内容描述:\n${content}`;
+                        
+                    } catch (error) {
+                        console.error('图片处理错误:', error);
+                        content = `[图片解析失败]\n文件名: ${file.name}\n错误信息: ${error.message}\n\n请尝试重新上传或使用其他图片格式。`;
+                    }
                 } else {
                     // 处理文本文件
                     fileType = 'TXT';
@@ -3080,6 +3193,14 @@ A small dog that misses home, with a sad look on its face and its tail tucked be
                                   d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
                                   d="M10 8h4m-4 4h4m-4 4h4" />
+                        </svg>
+                    `;
+                    break;
+                case 'IMAGE':
+                    fileIcon = `
+                        <svg class="w-8 h-8 text-purple-600" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                  d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                         </svg>
                     `;
                     break;

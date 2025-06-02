@@ -205,6 +205,102 @@
             }
         }
 
+        /* HTML预览相关样式 */
+        .html-preview-btn {
+            position: absolute;
+            top: 0.55rem;
+            right: 3rem;
+            padding: 0.25rem 0.5rem;
+            font-size: 0.75rem;
+            background-color: var(--button-primary-bg);
+            color: var(--button-primary-text);
+            border: none;
+            border-radius: 0.25rem;
+            cursor: pointer;
+            opacity: 0.8;
+            transition: all 0.2s ease;
+            z-index: 2;
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        .html-preview-btn:hover {
+            opacity: 1;
+            background-color: var(--button-primary-hover);
+            transform: translateY(-1px);
+        }
+
+        .html-preview-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            padding: 1rem;
+        }
+
+        .html-preview-container {
+            background-color: var(--bg-primary);
+            border-radius: 0.75rem;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            width: 90vw;
+            max-width: 1200px;
+            height: 80vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .html-preview-header {
+            display: flex;
+            align-items: center;
+            justify-content: between;
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+            background-color: var(--bg-secondary);
+        }
+
+        .html-preview-title {
+            color: var(--text-primary);
+            font-weight: 600;
+            flex: 1;
+        }
+
+        .html-preview-close {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            padding: 0.5rem;
+            border-radius: 0.25rem;
+            transition: all 0.2s ease;
+        }
+
+        .html-preview-close:hover {
+            background-color: var(--hover-bg);
+            color: var(--text-primary);
+        }
+
+        .html-preview-iframe {
+            flex: 1;
+            border: none;
+            background-color: white;
+        }
+
+        .html-preview-loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex: 1;
+            color: var(--text-secondary);
+        }
+
         /* 对话列表项样式 */
         .conversation-item {
             transition: all 0.2s ease-in-out;
@@ -1781,6 +1877,31 @@ A small dog that misses home, with a sad look on its face and its tail tucked be
     function addCopyButton(block) {
         // 添加复制按钮到代码块
         const pre = block.parentElement;
+        
+        // 检查是否为HTML代码块
+        const isHtmlCode = block.classList.contains('language-html') || 
+                          block.classList.contains('hljs-html') ||
+                          block.parentElement.querySelector('code[class*="language-html"]') ||
+                          /^<!DOCTYPE html|<html|<\!DOCTYPE/i.test(block.textContent.trim());
+        
+        // 添加HTML预览按钮
+        if (isHtmlCode) {
+            const previewButton = document.createElement('button');
+            previewButton.className = 'html-preview-btn';
+            previewButton.innerHTML = `
+                <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                </svg>
+            `;
+            previewButton.title = '预览HTML';
+            previewButton.onclick = (e) => {
+                e.stopPropagation();
+                showHtmlPreview(block.textContent);
+            };
+            pre.appendChild(previewButton);
+        }
+        
         const copyButton = document.createElement('button');
         copyButton.className = 'code-copy-btn';
         copyButton.innerHTML = `
@@ -3252,6 +3373,147 @@ A small dog that misses home, with a sad look on its face and its tail tucked be
     }
 
     initialize();
+
+    // HTML预览功能
+    function showHtmlPreview(htmlContent) {
+        // 创建模态框
+        const modal = document.createElement('div');
+        modal.className = 'html-preview-modal';
+        modal.innerHTML = `
+            <div class="html-preview-container">
+                <div class="html-preview-header">
+                    <div class="html-preview-title">HTML 预览</div>
+                    <button class="html-preview-close" onclick="closeHtmlPreview(this)">
+                        <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+                <div class="html-preview-loading">
+                    <div class="loading-dots">
+                        <div class="dot"></div>
+                        <div class="dot"></div>
+                        <div class="dot"></div>
+                    </div>
+                    <span style="margin-left: 0.5rem;">正在加载预览...</span>
+                </div>
+            </div>
+        `;
+
+        // 点击背景关闭模态框
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                closeHtmlPreview(modal.querySelector('.html-preview-close'));
+            }
+        });
+
+        // ESC键关闭模态框
+        const escHandler = (e) => {
+            if (e.key === 'Escape') {
+                closeHtmlPreview(modal.querySelector('.html-preview-close'));
+                document.removeEventListener('keydown', escHandler);
+            }
+        };
+        document.addEventListener('keydown', escHandler);
+
+        document.body.appendChild(modal);
+
+        // 使用blob URL方式创建iframe来安全地渲染HTML
+        setTimeout(() => {
+            const container = modal.querySelector('.html-preview-container');
+            const loadingDiv = container.querySelector('.html-preview-loading');
+            
+            try {
+                // 如果HTML内容不包含完整的HTML结构，为其添加基础结构
+                let processedHtml = htmlContent;
+                if (!htmlContent.includes('<!DOCTYPE') && !htmlContent.includes('<html')) {
+                    processedHtml = `
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HTML预览</title>
+    <style>
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
+            margin: 20px; 
+            line-height: 1.6; 
+            color: #333;
+        }
+        * {
+            box-sizing: border-box;
+        }
+    </style>
+</head>
+<body>
+${htmlContent}
+</body>
+</html>`;
+                }
+                
+                // 创建blob URL
+                const blob = new Blob([processedHtml], { type: 'text/html' });
+                const blobUrl = URL.createObjectURL(blob);
+                
+                // 创建iframe
+                const iframe = document.createElement('iframe');
+                iframe.className = 'html-preview-iframe';
+                iframe.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-forms allow-popups');
+                iframe.src = blobUrl;
+                
+                // 当iframe加载完成后移除loading
+                iframe.onload = () => {
+                    loadingDiv.style.display = 'none';
+                    iframe.style.display = 'block';
+                    
+                    // 清理blob URL以释放内存
+                    setTimeout(() => {
+                        URL.revokeObjectURL(blobUrl);
+                    }, 1000);
+                };
+                
+                // 处理加载错误
+                iframe.onerror = () => {
+                    loadingDiv.innerHTML = `
+                        <svg class="w-8 h-8 text-red-500" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <circle cx="12" cy="12" r="10"/>
+                            <line x1="15" y1="9" x2="9" y2="15"/>
+                            <line x1="9" y1="9" x2="15" y2="15"/>
+                        </svg>
+                        <span style="margin-left: 0.5rem; color: var(--text-primary);">预览加载失败</span>
+                    `;
+                    URL.revokeObjectURL(blobUrl);
+                };
+                
+                // 初始隐藏iframe
+                iframe.style.display = 'none';
+                container.appendChild(iframe);
+                
+            } catch (error) {
+                console.error('HTML预览创建失败:', error);
+                loadingDiv.innerHTML = `
+                    <svg class="w-8 h-8 text-red-500" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <circle cx="12" cy="12" r="10"/>
+                        <line x1="15" y1="9" x2="9" y2="15"/>
+                        <line x1="9" y1="9" x2="15" y2="15"/>
+                    </svg>
+                    <span style="margin-left: 0.5rem; color: var(--text-primary);">预览创建失败: ${error.message}</span>
+                `;
+            }
+        }, 100);
+    }
+
+    function closeHtmlPreview(closeButton) {
+        const modal = closeButton.closest('.html-preview-modal');
+        if (modal) {
+            // 添加淡出动画
+            modal.style.opacity = '0';
+            setTimeout(() => {
+                modal.remove();
+            }, 200);
+        }
+    }
 </script>
 </body>
 </html>

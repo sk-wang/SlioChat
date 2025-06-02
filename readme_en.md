@@ -19,6 +19,7 @@ SlioChat is a modern, feature-rich, single-file AI chat web UI designed for larg
   - Streaming responses
   - Pause/Resume response generation
   - Visualized reasoning process
+  - Support preview HTML code
 
 - 📝 Message Management
   - Edit and delete message functionality
@@ -67,6 +68,8 @@ SlioChat is a modern, feature-rich, single-file AI chat web UI designed for larg
             },
             // Additional models can be added here
         },
+        // Set the default vision language model (model with visual capabilities)
+        defaultVlm: 'qwen2.5-vl-3b-instruct', // Specify the default vision model ID
    };
    ```
    - Search API configuration is located in the `search` object:

@@ -19,7 +19,7 @@ SlioChat 是一个现代化的、功能丰富的单文件大模型AI聊天网页
   - 流式响应
   - 支持暂停/继续生成
   - 思考过程可视化
-  - 支持预览生成html代码
+  - 支持预览生成的html代码
 
 - 📝 消息管理
   - 支持编辑和删除消息
@@ -108,6 +108,7 @@ SlioChat 是一个现代化的、功能丰富的单文件大模型AI聊天网页
 
 ![1](https://skwang-static.oss-cn-hongkong.aliyuncs.com/img/1.png)
 ![2](https://skwang-static.oss-cn-hongkong.aliyuncs.com/img/2.png)
+![3](https://skwang-static.oss-cn-hongkong.aliyuncs.com/img/3.png)
 
 ## 📝 License
 

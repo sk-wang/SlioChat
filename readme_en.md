@@ -106,6 +106,7 @@ OPENAI-compatible model APIs (e.g., GPT, Claude, Deepseek, GLM, Qwen).
 
 ![1](https://skwang-static.oss-cn-hongkong.aliyuncs.com/img/1.png)
 ![2](https://skwang-static.oss-cn-hongkong.aliyuncs.com/img/2.png)
+![3](https://skwang-static.oss-cn-hongkong.aliyuncs.com/img/3.png)
 
 ## 📝 License
 

@@ -38,11 +38,31 @@ SlioChat is a modern, feature-rich, single-file AI chat web UI designed for larg
   - Multi-model switching
   - Categorized conversation management
 
+## 📁 Project Structure
+
+```
+slio-chat/
+├── index.html          # Main HTML file
+├── css/
+│   └── main.css        # Stylesheet
+├── js/
+│   ├── config.js       # Configuration file
+│   └── main.js         # Main functionality code
+├── scripts/
+│   └── build.js        # Build script
+├── dist/               # Build output directory
+│   └── index.html      # Packaged single file
+├── package.json        # Project configuration
+└── README.md
+```
+
 ## 🚀 Getting Started
 
+### Development Mode
+
 1. API Configuration
-   - Set your API key in `index.html`
-   - Large model configurations are defined in the `models` object:
+   - Set your API key in `js/config.js`
+   - Large model configurations are defined in the `API_CONFIG.models` object:
    ```javascript
    const API_CONFIG = {
         models: {
@@ -82,25 +102,61 @@ SlioChat is a modern, feature-rich, single-file AI chat web UI designed for larg
    ```
    Acquire apikey：https://open.bochaai.com/
 
-2. Launching the Application
-   - For intranet deployment, run `yarn && yarn build` and use the packaged `index.html` from the `dist` directory.
-   - Alternatively, directly use the existing `index.html`.
-   - Host the project files using any web server.
-   - Open `index.html` locally for standalone use.
+2. Development Environment
+   - Open `index.html` directly in your browser
+   - Or host the project files using any web server
+
+### Production Deployment
+
+1. Install Dependencies
+   ```bash
+   npm install
+   ```
+
+2. Build Single-File Version
+   ```bash
+   npm run build
+   ```
+
+3. Deploy
+   - After building, `dist/index.html` is a complete single-file application
+   - Contains all CSS, JavaScript, and external dependencies
+   - File size approximately 3.9MB, can be deployed directly to any web server
+   - Supports offline usage (except for API calls)
+
+### Build Features
+
+- ✅ **Automatic Inlining**: Local CSS and JS files are automatically inlined into HTML
+- ✅ **CDN Resource Inlining**: External libraries (TailwindCSS, Marked.js, etc.) are automatically downloaded and inlined
+- ✅ **Code Compression**: JavaScript, CSS, and HTML are automatically compressed and optimized
+- ✅ **Dependency Order**: Ensures external libraries load before local code, preventing dependency errors
+- ✅ **PDF.js Optimization**: Worker scripts converted to Data URI for complete offline support
 
 ## 🛠️ Tech Stack
 
 - Pure Native JavaScript
 - TailwindCSS for styling
+- Marked.js for Markdown parsing
+- Highlight.js for code highlighting
+- PDF.js for PDF file parsing
+- Other utility libraries: XLSX, Mammoth, jschardet
 
 ## 🔑 API Support
 
-Currently supported APIs for direct use:
+Currently available free APIs for direct experience:
 
-- GLM - Free Model
-- DeepSeek-R1-Qwen-32B
+- **Qwen2-57B** - Qwen2 model (general conversation)
+- **DeepSeek-R1-Distill-Qwen-32B** - DeepSeek distilled model (reasoning & thinking)
 
-OPENAI-compatible model APIs (e.g., GPT, Claude, Deepseek, GLM, Qwen).
+These models are pre-configured and can be used directly without API keys.
+
+Supports custom addition of OpenAI-compatible model APIs, including:
+- GPT series models
+- Claude series models
+- DeepSeek series models
+- Zhipu GLM series models
+- Qwen series models
+- Other APIs compatible with OpenAI format
 
 ## 📸 Screenshots
 

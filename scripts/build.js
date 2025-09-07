@@ -192,28 +192,38 @@ async function inlineResources() {
   
   console.log('开始处理外部资源...');
   
-  // 1. 收集所有外部脚本
+  // 1. 收集所有外部脚本（包括CDN和本地文件）
   const externalScripts = [];
+  const localScripts = [];
   $('script[src]').each((_, element) => {
     const url = $(element).attr('src');
     if (url && url.startsWith('http')) {
       externalScripts.push({ element, url });
+    } else if (url) {
+      // 本地JS文件
+      localScripts.push({ element, url });
     }
   });
   
-  // 2. 收集所有外部样式
+  // 2. 收集所有外部样式（包括CDN和本地文件）
   const externalStyles = [];
+  const localStyles = [];
   $('link[rel="stylesheet"]').each((_, element) => {
     const url = $(element).attr('href');
     if (url && url.startsWith('http')) {
       externalStyles.push({ element, url });
+    } else if (url) {
+      // 本地CSS文件
+      localStyles.push({ element, url });
     }
   });
   
-  console.log(`发现 ${externalScripts.length} 个外部JS文件, ${externalStyles.length} 个外部CSS文件`);
+  console.log(`发现 ${externalScripts.length} 个外部JS文件, ${localScripts.length} 个本地JS文件, ${externalStyles.length} 个外部CSS文件, ${localStyles.length} 个本地CSS文件`);
   
-  // 3. 按顺序下载所有JS文件（避免竞争条件）
+  // 3. 按顺序处理所有JS文件，先外部库，再本地代码
   let allJsContent = '';
+  
+  // 4. 先下载所有外部JS文件（外部库依赖）
   for (const { element, url } of externalScripts) {
     try {
       const content = await downloadResource(url);
@@ -226,8 +236,46 @@ async function inlineResources() {
     }
   }
   
-  // 4. 按顺序下载所有CSS文件（避免竞争条件）
+  // 5. 再读取本地JS文件（依赖外部库）
+  for (const { element, url } of localScripts) {
+    try {
+      const localPath = path.resolve(__dirname, '..', url);
+      if (fs.existsSync(localPath)) {
+        const content = fs.readFileSync(localPath, 'utf8');
+        // 添加源文件路径作为注释，便于调试
+        allJsContent += `\n/* === 本地文件: ${url} === */\n${content}\n`;
+        $(element).remove(); // 移除原始脚本标签
+        console.log(`✅ 内联本地JS文件: ${url}`);
+      } else {
+        console.error(`❌ 本地JS文件不存在: ${localPath}`);
+      }
+    } catch (error) {
+      console.error(`处理本地JS文件失败 ${url}: ${error.message}`);
+    }
+  }
+  
+  // 6. 读取本地CSS文件并按顺序下载外部CSS文件
   let allCssContent = '';
+  
+  // 先处理本地CSS文件
+  for (const { element, url } of localStyles) {
+    try {
+      const localPath = path.resolve(__dirname, '..', url);
+      if (fs.existsSync(localPath)) {
+        const content = fs.readFileSync(localPath, 'utf8');
+        // 添加源文件路径作为注释，便于调试
+        allCssContent += `\n/* === 本地文件: ${url} === */\n${content}\n`;
+        $(element).remove(); // 移除原始样式标签
+        console.log(`✅ 内联本地CSS文件: ${url}`);
+      } else {
+        console.error(`❌ 本地CSS文件不存在: ${localPath}`);
+      }
+    } catch (error) {
+      console.error(`处理本地CSS文件失败 ${url}: ${error.message}`);
+    }
+  }
+  
+  // 再处理外部CSS文件
   for (const { element, url } of externalStyles) {
     try {
       const content = await downloadResource(url);
@@ -240,7 +288,7 @@ async function inlineResources() {
     }
   }
   
-  // 5. 压缩并插入合并后的JS内容
+  // 7. 压缩并插入合并后的JS内容
   if (allJsContent) {
     const originalSize = allJsContent.length;
     // 检查minifyJS是否返回Promise
@@ -254,11 +302,11 @@ async function inlineResources() {
     const compressedSize = compressedJs.length;
     const savings = ((originalSize - compressedSize) / originalSize * 100).toFixed(2);
     
-    $('head').append(`<script>${compressedJs}</script>`);
-    console.log(`✅ 合并了 ${externalScripts.length} 个JS文件 (${(originalSize / 1024).toFixed(2)} KB → ${(compressedSize / 1024).toFixed(2)} KB, 节省 ${savings}%)`);
+    $('body').append(`<script>${compressedJs}</script>`);
+    console.log(`✅ 合并了 ${localScripts.length + externalScripts.length} 个JS文件 (本地${localScripts.length}个 + CDN${externalScripts.length}个) (${(originalSize / 1024).toFixed(2)} KB → ${(compressedSize / 1024).toFixed(2)} KB, 节省 ${savings}%)`);
   }
   
-  // 6. 压缩并插入合并后的CSS内容
+  // 8. 压缩并插入合并后的CSS内容
   if (allCssContent) {
     try {
       const originalSize = allCssContent.length;
@@ -274,7 +322,7 @@ async function inlineResources() {
       const savings = ((originalSize - compressedSize) / originalSize * 100).toFixed(2);
       
       $('head').append(`<style>${compressedCss}</style>`);
-      console.log(`✅ 合并了 ${externalStyles.length} 个CSS文件 (${(originalSize / 1024).toFixed(2)} KB → ${(compressedSize / 1024).toFixed(2)} KB, 节省 ${savings}%)`);
+      console.log(`✅ 合并了 ${localStyles.length + externalStyles.length} 个CSS文件 (本地${localStyles.length}个 + CDN${externalStyles.length}个) (${(originalSize / 1024).toFixed(2)} KB → ${(compressedSize / 1024).toFixed(2)} KB, 节省 ${savings}%)`);
     } catch (error) {
       // CSS压缩失败，使用未压缩的CSS
       console.error('CSS压缩失败，使用未压缩版本:', error.message);
@@ -282,7 +330,7 @@ async function inlineResources() {
     }
   }
   
-  // 7. 压缩页面上的行内JS脚本
+  // 9. 压缩页面上的行内JS脚本
   if (CONFIG.minify.js) {
     const promises = [];
     $('script').each((_, element) => {
@@ -310,7 +358,7 @@ async function inlineResources() {
     console.log('✅ 压缩了页面上的行内JS脚本');
   }
   
-  // 8. 压缩页面上的行内CSS样式
+  // 10. 压缩页面上的行内CSS样式
   if (CONFIG.minify.css) {
     const promises = [];
     $('style').each((_, element) => {
@@ -334,11 +382,11 @@ async function inlineResources() {
     console.log('✅ 压缩了页面上的行内CSS样式');
   }
   
-  // 9. 保存修改后的HTML
+  // 11. 保存修改后的HTML
   let finalHtml = $.html();
   const originalHtmlSize = finalHtml.length;
   
-  // 10. 压缩整个HTML
+  // 12. 压缩整个HTML
   if (CONFIG.minify.html) {
     try {
       finalHtml = await minifyHTML(finalHtml);
@@ -350,8 +398,16 @@ async function inlineResources() {
     }
   }
   
-  fs.writeFileSync(htmlPath, finalHtml);
+  // 输出到dist目录
+  const distDir = path.resolve(__dirname, '../dist');
+  if (!fs.existsSync(distDir)) {
+    fs.mkdirSync(distDir, { recursive: true });
+  }
+  
+  const outputPath = path.resolve(distDir, 'index.html');
+  fs.writeFileSync(outputPath, finalHtml);
   console.log(`✅ HTML处理完成，最终文件大小: ${(finalHtml.length / 1024).toFixed(2)} KB`);
+  console.log(`✅ 已输出到 dist/index.html`);
 }
 
 // 处理 PDF.js worker 脚本
@@ -387,10 +443,16 @@ async function main() {
     await inlineResources();
     
     // 2. 处理 PDF.js worker
-    const htmlPath = path.resolve(__dirname, '../index.html');
-    let htmlContent = fs.readFileSync(htmlPath, 'utf8');
-    
     const pdfWorkerDataURI = await processPdfWorker();
+    
+    // 读取dist目录中的HTML文件
+    const distOutputPath = path.resolve(__dirname, '../dist/index.html');
+    if (!fs.existsSync(distOutputPath)) {
+      console.error('❌ dist/index.html 文件不存在');
+      return;
+    }
+    
+    let htmlContent = fs.readFileSync(distOutputPath, 'utf8');
     const $ = cheerio.load(htmlContent, { decodeEntities: false });
     
     // 替换 PDF.js worker 脚本路径
@@ -408,16 +470,20 @@ async function main() {
         return $(this).text().includes('pdfjsLib.GlobalWorkerOptions.workerSrc');
       }).text(updatedScript);
       
-      // 保存修改后的 HTML
-      fs.writeFileSync(htmlPath, $.html());
+      // 更新dist目录中的HTML文件
+      const distOutputPath = path.resolve(__dirname, '../dist/index.html');
+      if (fs.existsSync(distOutputPath)) {
+        fs.writeFileSync(distOutputPath, $.html());
+      }
       console.log('✅ PDF.js worker 脚本配置已更新');
     } else {
       console.warn('⚠️ 未找到 PDF.js worker 配置脚本，跳过更新');
     }
     
     // 最终文件大小统计
-    const finalSize = fs.statSync(htmlPath).size;
+    const finalSize = fs.statSync(distOutputPath).size;
     console.log(`🎉 构建成功! 最终文件大小: ${(finalSize / 1024 / 1024).toFixed(2)} MB`);
+    console.log(`📦 最终文件位置: dist/index.html`);
     
   } catch (error) {
     console.error('❌ 构建失败:', error);

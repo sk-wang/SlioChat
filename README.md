@@ -38,11 +38,31 @@ SlioChat 是一个现代化的、功能丰富的单文件大模型AI聊天网页
   - 多种模型切换
   - 对话分类管理
 
+## 📁 项目结构
+
+```
+slio-chat/
+├── index.html          # 主HTML文件
+├── css/
+│   └── main.css        # 样式文件
+├── js/
+│   ├── config.js       # 配置文件
+│   └── main.js         # 主要功能代码
+├── scripts/
+│   └── build.js        # 构建脚本
+├── dist/               # 构建输出目录
+│   └── index.html      # 打包后的单文件
+├── package.json        # 项目配置
+└── README.md
+```
+
 ## 🚀 快速开始
 
+### 开发模式
+
 1. 配置 API
-   - 在 `index.html` 中配置你的 API 密钥
-   - 大模型的配置在 `models` 对象中
+   - 在 `js/config.js` 中配置你的 API 密钥
+   - 大模型的配置在 `API_CONFIG.models` 对象中
    ```javascript
    const API_CONFIG = {
         models: {
@@ -83,25 +103,61 @@ SlioChat 是一个现代化的、功能丰富的单文件大模型AI聊天网页
    获取apikey：https://open.bochaai.com/
    
 
-2. 启动应用
-   - 如果需要更方便的在内网部署，可以执行`yarn && yarn build`，使用dist目录中打包后的`index.html`
-   - 否则可以直接用当前的`index.html`
-   - 使用任意 Web 服务器托管项目文件
-   - 直接打开 `index.html` 文件（本地使用）
+2. 开发环境运行
+   - 直接用浏览器打开 `index.html` 文件
+   - 或使用任意 Web 服务器托管项目文件
+
+### 生产部署
+
+1. 安装依赖
+   ```bash
+   npm install
+   ```
+
+2. 构建单文件版本
+   ```bash
+   npm run build
+   ```
+
+3. 部署
+   - 构建完成后，`dist/index.html` 是一个完整的单文件应用
+   - 包含了所有 CSS、JavaScript 和外部依赖
+   - 文件大小约 3.9MB，可直接部署到任何 Web 服务器
+   - 支持离线使用（除了 API 调用）
+
+### 构建特性
+
+- ✅ **自动内联**：本地 CSS 和 JS 文件自动内联到 HTML 中
+- ✅ **CDN 资源内联**：外部库（TailwindCSS、Marked.js 等）自动下载并内联
+- ✅ **代码压缩**：JavaScript、CSS 和 HTML 自动压缩优化
+- ✅ **依赖顺序**：确保外部库在本地代码之前加载，避免依赖错误
+- ✅ **PDF.js 优化**：Worker 脚本转换为 Data URI，支持完全离线使用
 
 ## 🛠️ 技术栈
 
 - 纯原生 JavaScript
 - TailwindCSS 用于样式
+- Marked.js 用于 Markdown 解析
+- Highlight.js 用于代码高亮
+- PDF.js 用于 PDF 文件解析
+- 其他工具库：XLSX、Mammoth、jschardet
 
 ## 🔑 API 支持
 
-目前可以直接体验的 API：
+目前可以直接体验的免费 API：
 
-- 智谱 GLM - 免费模型
-- DeepSeek-R1-Qwen-32B
+- **Qwen2-57B** - 阿里云Qwen2模型（普通对话）
+- **DeepSeek-R1-Distill-Qwen-32B** - DeepSeek 蒸馏模型（思考推理）
 
-支持自定义添加OPENAI兼容的模型API（gpt,claude,deepseek,glm,qwen）
+这些模型已预配置，无需 API Key 即可直接使用。
+
+支持自定义添加 OpenAI 兼容的模型 API，包括：
+- GPT 系列模型
+- Claude 系列模型  
+- DeepSeek 系列模型
+- 智谱 GLM 系列模型
+- 通义千问系列模型
+- 其他兼容 OpenAI 格式的 API
 
 
 ## 📸 截图展示

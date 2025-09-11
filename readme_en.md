@@ -35,7 +35,8 @@ SlioChat is a modern, feature-rich, single-file AI chat web UI designed for larg
 
 - ⚙️ Customizable Settings
   - Customizable system prompts
-  - Multi-model switching
+  - Online model addition and management (multi-API support)
+  - Multi-model switching (instant effect)
   - Categorized conversation management
 
 ## 📁 Project Structure
@@ -58,7 +59,44 @@ slio-chat/
 
 ## 🚀 Getting Started
 
-### Development Mode
+### Online Model Configuration (Recommended)
+
+SlioChat supports direct configuration and management of models through the web interface without modifying code files:
+
+1. **Open Settings Panel**
+   - Click the settings icon (⚙️) in the top right corner of the page
+   - Or use keyboard shortcut to open the settings panel
+
+2. **Add New Model**
+   - Click the "Add Model" button in the "Model Settings" section
+   - Fill in the model information:
+     - **Model ID**: Unique identifier (e.g., qwen2-72b-instruct)
+     - **Display Name**: Name shown in the interface (e.g., Qwen 72B)
+     - **Type**: Choose "Normal" or "Deep Thinking" type
+     - **API URL**: Model's API endpoint address
+     - **API Key**: Your API key
+
+3. **Save Settings**
+   - After configuration, click the "Save" button at the bottom
+   - The system automatically saves all settings to browser local storage
+
+4. **Switch Models**
+   - Select configured models from the dropdown above the input box
+   - The system intelligently matches conversation types based on model type
+
+**Advantages**:
+- ✅ No need to restart the application, configurations take effect immediately
+- ✅ Support for configuring multiple models simultaneously
+- ✅ Configuration information stored locally for privacy and security
+- ✅ Support for dynamic addition, deletion, and modification of models
+
+### Development Mode (Advanced Users)
+
+#### Method 1: Online Configuration (Recommended)
+
+As described above, configure models directly in the web interface.
+
+#### Method 2: Code Configuration
 
 1. API Configuration
    - Set your API key in `js/config.js`

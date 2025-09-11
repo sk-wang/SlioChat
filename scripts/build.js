@@ -222,14 +222,22 @@ async function inlineResources() {
   
   // 3. 按顺序处理所有JS文件，先外部库，再本地代码
   let allJsContent = '';
+  let headCriticalJs = '';
   
   // 4. 先下载所有外部JS文件（外部库依赖）
   for (const { element, url } of externalScripts) {
     try {
       const content = await downloadResource(url);
-      // 添加源URL作为注释，便于调试
-      allJsContent += `\n/* === ${url} === */\n${content}\n`;
-      $(element).remove(); // 移除原始脚本标签
+      // 如果是 tailwind CDN，提前内联到 <head>，避免 FOUC
+      if (/cdn\.tailwindcss\.com/i.test(url)) {
+        headCriticalJs += `\n/* === ${url} (inlined to <head>) === */\n${content}\n`;
+        $(element).remove();
+        console.log(`✅ 将 Tailwind CDN 脚本内联到 <head>: ${url}`);
+      } else {
+        // 其他脚本合并到页面底部
+        allJsContent += `\n/* === ${url} === */\n${content}\n`;
+        $(element).remove(); // 移除原始脚本标签
+      }
     } catch (error) {
       console.error(`跳过JS文件 ${url}: ${error.message}`);
       // 保留原始标签，不删除，确保降级使用外部资源
@@ -288,7 +296,18 @@ async function inlineResources() {
     }
   }
   
-  // 7. 压缩并插入合并后的JS内容
+  // 7. 压缩并插入脚本内容：先注入 head 关键脚本（如 Tailwind），再注入页面底部脚本
+  if (headCriticalJs) {
+    try {
+      const compressedHeadJs = CONFIG.minify.js ? await minifyJS(headCriticalJs) : headCriticalJs;
+      $('head').prepend(`<script>${compressedHeadJs}</script>`);
+      console.log(`✅ 已注入 head 关键脚本 (${(compressedHeadJs.length / 1024).toFixed(2)} KB)`);
+    } catch (error) {
+      console.error('head 关键脚本注入失败，使用未压缩版本:', error.message);
+      $('head').prepend(`<script>${headCriticalJs}</script>`);
+    }
+  }
+
   if (allJsContent) {
     const originalSize = allJsContent.length;
     // 检查minifyJS是否返回Promise
@@ -408,6 +427,8 @@ async function inlineResources() {
   fs.writeFileSync(outputPath, finalHtml);
   console.log(`✅ HTML处理完成，最终文件大小: ${(finalHtml.length / 1024).toFixed(2)} KB`);
   console.log(`✅ 已输出到 dist/index.html`);
+
+  // 严格单文件模式：不复制额外 PWA 文件
 }
 
 // 处理 PDF.js worker 脚本
@@ -456,20 +477,42 @@ async function main() {
     const $ = cheerio.load(htmlContent, { decodeEntities: false });
     
     // 替换 PDF.js worker 脚本路径
-    const scriptContent = $('script').filter(function() {
-      return $(this).text().includes('pdfjsLib.GlobalWorkerOptions.workerSrc');
-    }).text();
-    
-    if (scriptContent) {
-      const updatedScript = scriptContent.replace(
-        /pdfjsLib\.GlobalWorkerOptions\.workerSrc\s*=\s*['"]https:\/\/cdnjs\.cloudflare\.com\/ajax\/libs\/pdf\.js\/[^'"]+['"]/,
-        `pdfjsLib.GlobalWorkerOptions.workerSrc = '${pdfWorkerDataURI}'`
-      );
-      
-      $('script').filter(function() {
-        return $(this).text().includes('pdfjsLib.GlobalWorkerOptions.workerSrc');
-      }).text(updatedScript);
-      
+    let foundAndUpdated = false;
+
+    // 查找包含PDF.js worker配置的script标签
+    $('script').each(function() {
+      const scriptElement = $(this);
+      const scriptContent = scriptElement.html();
+
+      if (scriptContent && scriptContent.includes('pdfjsLib.GlobalWorkerOptions.workerSrc')) {
+        console.log('🔍 找到PDF.js worker配置脚本');
+
+        // 替换worker路径
+        const updatedScript = scriptContent.replace(
+          /pdfjsLib\.GlobalWorkerOptions\.workerSrc\s*=\s*['"](https?:\/\/[^'"]*pdf\.worker[^'"]*)['"]/,
+          `pdfjsLib.GlobalWorkerOptions.workerSrc = '${pdfWorkerDataURI}'`
+        );
+
+        // 如果没有找到匹配项，尝试更宽泛的匹配
+        if (updatedScript === scriptContent) {
+          const fallbackReplace = scriptContent.replace(
+            /pdfjsLib\.GlobalWorkerOptions\.workerSrc\s*=\s*['"][^'"]*['"]/,
+            `pdfjsLib.GlobalWorkerOptions.workerSrc = '${pdfWorkerDataURI}'`
+          );
+          if (fallbackReplace !== scriptContent) {
+            scriptElement.html(fallbackReplace);
+            foundAndUpdated = true;
+            console.log('✅ 使用备用匹配更新PDF.js worker配置');
+          }
+        } else {
+          scriptElement.html(updatedScript);
+          foundAndUpdated = true;
+          console.log('✅ 更新PDF.js worker配置');
+        }
+      }
+    });
+
+    if (foundAndUpdated) {
       // 更新dist目录中的HTML文件
       const distOutputPath = path.resolve(__dirname, '../dist/index.html');
       if (fs.existsSync(distOutputPath)) {
@@ -478,6 +521,21 @@ async function main() {
       console.log('✅ PDF.js worker 脚本配置已更新');
     } else {
       console.warn('⚠️ 未找到 PDF.js worker 配置脚本，跳过更新');
+
+      // 作为备用方案，在body末尾添加worker配置
+      console.log('🔧 作为备用方案，在body末尾添加PDF.js worker配置');
+      $('body').append(`<script>
+        // PDF.js worker 配置（打包时自动添加）
+        if (typeof pdfjsLib !== 'undefined') {
+          pdfjsLib.GlobalWorkerOptions.workerSrc = '${pdfWorkerDataURI}';
+        }
+      </script>`);
+
+      const distOutputPath = path.resolve(__dirname, '../dist/index.html');
+      if (fs.existsSync(distOutputPath)) {
+        fs.writeFileSync(distOutputPath, $.html());
+      }
+      console.log('✅ 已添加备用PDF.js worker配置');
     }
     
     // 最终文件大小统计

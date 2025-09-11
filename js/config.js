@@ -1,4 +1,4 @@
-const API_CONFIG = {
+let API_CONFIG = {
   defaultUrl:
     "https://0f68edf33a3a4219a5ab9d9ae6b3034c-cn-hangzhou.alicloudapi.com/compatible-mode/v1/chat/completions", //用来生成标题的 key
   defaultKey: "none", // 用来生成标题的 key
@@ -64,6 +64,21 @@ A small dog that misses home, with a sad look on its face and its tail tucked be
     token: "xxxxxxxxx", // bochaai的api key
   },
 };
+
+// 允许从本地存储覆盖/自定义模型列表
+(function applyModelsFromStorage() {
+  try {
+    const stored = localStorage.getItem("models");
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      if (parsed && typeof parsed === "object") {
+        API_CONFIG.models = parsed;
+      }
+    }
+  } catch (e) {
+    console.warn("加载自定义模型失败，使用默认模型集合", e);
+  }
+})();
 
 // Markdown 配置
 marked.setOptions({

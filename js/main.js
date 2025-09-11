@@ -70,6 +70,19 @@ function updateThemeIcons() {
   lightIcon.style.display = isDark ? "none" : "block";
 }
 
+// 确保在运行时已正确配置 PDF.js worker
+function ensurePdfWorkerConfigured() {
+  try {
+    if (typeof pdfjsLib !== 'undefined') {
+      const hasGlobal = pdfjsLib.GlobalWorkerOptions && pdfjsLib.GlobalWorkerOptions.workerSrc;
+      if (!hasGlobal) {
+        // 运行时兜底：设置为CDN地址。构建时会被替换为 data URI，离线可用
+        pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+      }
+    }
+  } catch (_) {}
+}
+
 // 移动端菜单控制
 function toggleSidebar() {
   const sidebar = document.getElementById("sidebar");
@@ -98,13 +111,7 @@ function initialize() {
   // 初始化模型选择下拉框
   const modelSelect = document.getElementById("model-select");
   if (modelSelect) {
-    Object.entries(API_CONFIG.models).forEach(([modelId, modelInfo]) => {
-      const option = document.createElement("option");
-      option.value = modelId;
-      option.id = `model-${modelId}`;
-      option.textContent = modelInfo.name;
-      modelSelect.appendChild(option);
-    });
+    refreshModelSelectOptions();
   } else {
     console.warn('模型选择下拉框元素未找到');
   }
@@ -220,6 +227,33 @@ function initialize() {
     const mainContent = document.querySelector(".main-content");
     sidebar.classList.add("collapsed");
     mainContent.classList.add("sidebar-collapsed");
+  }
+}
+
+function refreshModelSelectOptions() {
+  const modelSelect = document.getElementById("model-select");
+  if (!modelSelect) return;
+  modelSelect.innerHTML = "";
+  Object.entries(API_CONFIG.models).forEach(([modelId, modelInfo]) => {
+    const option = document.createElement("option");
+    option.value = modelId;
+    option.id = `model-${modelId}`;
+    option.textContent = modelInfo.name;
+    modelSelect.appendChild(option);
+  });
+  // 恢复选中
+  const savedModel = localStorage.getItem("preferred-model");
+  if (savedModel && API_CONFIG.models[savedModel]) {
+    modelSelect.value = savedModel;
+  } else if (API_CONFIG.defaultModel && API_CONFIG.models[API_CONFIG.defaultModel]) {
+    modelSelect.value = API_CONFIG.defaultModel;
+  } else {
+    const first = Object.keys(API_CONFIG.models)[0];
+    if (first) {
+      modelSelect.value = first;
+      localStorage.setItem("preferred-model", first);
+      API_CONFIG.defaultModel = first;
+    }
   }
 }
 
@@ -1648,6 +1682,9 @@ function openSystemPromptModal() {
   systemPrompt.value =
     currentChat?.systemPrompt || API_CONFIG.defaultSystemPrompt;
   modal.classList.remove("hidden");
+
+  // 渲染模型设置
+  renderModelSettings();
 }
 
 function closeSystemPromptModal() {
@@ -1663,8 +1700,151 @@ function saveSystemPrompt() {
     saveConversations();
   }
 
+  // 同时保存模型配置
+  saveModelsFromSettings();
+
   closeSystemPromptModal();
   showAlert("保存成功");
+}
+
+// 设置面板：模型设置渲染
+function renderModelSettings() {
+  const container = document.getElementById('model-settings');
+  if (!container) return;
+  container.innerHTML = '';
+  const entries = Object.entries(API_CONFIG.models);
+  if (entries.length === 0) {
+    container.innerHTML = '<div class="text-[var(--text-secondary)] text-sm]">暂无模型，点击"新增模型"添加</div>';
+    return;
+  }
+  entries.forEach(([id, info]) => {
+    const card = document.createElement('div');
+    card.className = 'rounded-lg border border-[var(--border-color)] bg-[var(--bg-primary)]';
+    card.innerHTML = `
+      <div class="p-3 border-b border-[var(--border-color)] flex items-center justify-between">
+        <div class="text-sm font-medium text-[var(--text-primary)] truncate">${info.name || id}</div>
+        <button class="p-1.5 rounded-md hover:bg-[var(--hover-bg)] text-red-500" title="删除" onclick="deleteModelCard(this)">
+          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <div class="p-3 grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div>
+          <label class="block text-xs mb-1 text-[var(--text-secondary)]">模型ID</label>
+          <input data-field="id" class="w-full px-2 py-1 rounded-md border border-[var(--border-color)] bg-[var(--bg-primary)]" placeholder="例如 qwen2-57b-a14b-instruct" value="${id}" />
+        </div>
+        <div>
+          <label class="block text-xs mb-1 text-[var(--text-secondary)]">显示名称</label>
+          <input data-field="name" class="w-full px-2 py-1 rounded-md border border-[var(--border-color)] bg-[var(--bg-primary)]" placeholder="例如 qwen2-57b" value="${info.name || ''}" />
+        </div>
+        <div>
+          <label class="block text-xs mb-1 text-[var(--text-secondary)]">类型</label>
+          <select data-field="type" class="w-full px-2 py-1 rounded-md border border-[var(--border-color)] bg-[var(--bg-primary)]">
+            <option value="normal" ${info.type === 'normal' ? 'selected' : ''}>普通</option>
+            <option value="thinking" ${info.type === 'thinking' ? 'selected' : ''}>深度思考</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs mb-1 text-[var(--text-secondary)]">API Key（可选）</label>
+          <input data-field="key" class="w-full px-2 py-1 rounded-md border border-[var(--border-color)] bg-[var(--bg-primary)]" placeholder="Bearer ..." value="${info.key || ''}" />
+        </div>
+        <div class="md:col-span-2">
+          <label class="block text-xs mb-1 text-[var(--text-secondary)]">API URL</label>
+          <input data-field="url" class="w-full px-2 py-1 rounded-md border border-[var(--border-color)] bg-[var(--bg-primary)]" placeholder="https://.../v1/chat/completions" value="${info.url || ''}" />
+        </div>
+      </div>
+    `;
+    container.appendChild(card);
+  });
+}
+
+function addModelRow() {
+  const container = document.getElementById('model-settings');
+  const card = document.createElement('div');
+  card.className = 'rounded-lg border border-[var(--border-color)] bg-[var(--bg-primary)]';
+  card.innerHTML = `
+    <div class="p-3 border-b border-[var(--border-color)] flex items-center justify-between">
+      <div class="text-sm font-medium text-[var(--text-primary)] truncate">新模型</div>
+      <button class="p-1.5 rounded-md hover:bg-[var(--hover-bg)] text-red-500" title="删除" onclick="deleteModelCard(this)">
+        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="p-3 grid grid-cols-1 md:grid-cols-2 gap-3">
+      <div>
+        <label class="block text-xs mb-1 text-[var(--text-secondary)]">模型ID</label>
+        <input data-field="id" class="w-full px-2 py-1 rounded-md border border-[var(--border-color)] bg-[var(--bg-primary)]" placeholder="例如 my-model-id" value="" />
+      </div>
+      <div>
+        <label class="block text-xs mb-1 text-[var(--text-secondary)]">显示名称</label>
+        <input data-field="name" class="w-full px-2 py-1 rounded-md border border-[var(--border-color)] bg-[var(--bg-primary)]" placeholder="例如 My Model" value="" />
+      </div>
+      <div>
+        <label class="block text-xs mb-1 text-[var(--text-secondary)]">类型</label>
+        <select data-field="type" class="w-full px-2 py-1 rounded-md border border-[var(--border-color)] bg-[var(--bg-primary)]">
+          <option value="normal">普通</option>
+          <option value="thinking">深度思考</option>
+        </select>
+      </div>
+      <div>
+        <label class="block text-xs mb-1 text-[var(--text-secondary)]">API Key（可选）</label>
+        <input data-field="key" class="w-full px-2 py-1 rounded-md border border-[var(--border-color)] bg-[var(--bg-primary)]" placeholder="Bearer ..." value="" />
+      </div>
+      <div class="md:col-span-2">
+        <label class="block text-xs mb-1 text-[var(--text-secondary)]">API URL</label>
+        <input data-field="url" class="w-full px-2 py-1 rounded-md border border-[var(--border-color)] bg-[var(--bg-primary)]" placeholder="https://.../v1/chat/completions" value="" />
+      </div>
+    </div>
+  `;
+  container.appendChild(card);
+}
+
+function deleteModelCard(btn) {
+  const card = btn.closest('.rounded-lg');
+  card.remove();
+}
+
+function saveModelsFromSettings() {
+  const container = document.getElementById('model-settings');
+  if (!container) return;
+  const cards = Array.from(container.children);
+  const nextModels = {};
+  for (const card of cards) {
+    const id = card.querySelector('[data-field="id"]').value.trim();
+    const name = card.querySelector('[data-field="name"]').value.trim();
+    const type = card.querySelector('[data-field="type"]').value === 'thinking' ? 'thinking' : 'normal';
+    const url = card.querySelector('[data-field="url"]').value.trim();
+    const key = card.querySelector('[data-field="key"]').value.trim();
+    if (!id || !name || !url) continue;
+    nextModels[id] = { name, type, url, key };
+  }
+  if (Object.keys(nextModels).length === 0) {
+    showAlert('请至少配置一个有效模型（含 ID、名称、URL）');
+    return;
+  }
+  // 保持引用不变，原位更新 models，避免潜在引用失效
+  Object.keys(API_CONFIG.models).forEach((k) => delete API_CONFIG.models[k]);
+  Object.entries(nextModels).forEach(([k, v]) => (API_CONFIG.models[k] = v));
+  localStorage.setItem('models', JSON.stringify(nextModels));
+  // 处理选中模型
+  const prevSelected = localStorage.getItem('preferred-model');
+  let nextSelected = prevSelected && nextModels[prevSelected] ? prevSelected : Object.keys(nextModels)[0];
+  if (nextSelected) {
+    localStorage.setItem('preferred-model', nextSelected);
+    API_CONFIG.defaultModel = nextSelected;
+  }
+  refreshModelSelectOptions();
+  if (nextSelected) {
+    try {
+      const currentType = getConversationType(conversations[currentConversationId]?.messages);
+      const newModelType = nextModels[nextSelected].type;
+      const currentModelType = currentType === 'deepseek' ? 'thinking' : (currentType === 'normal' ? 'normal' : 'none');
+      if (currentModelType !== 'none' && newModelType !== currentModelType) {
+        showAlert('当前对话类型与所选模型不兼容，请新建对话后再切换该模型');
+      } else {
+        switchModel(nextSelected);
+      }
+    } catch (_) {}
+  }
+  updateModelButtonsVisibility();
 }
 
 // 添加对话类型选择对话框
@@ -2003,6 +2183,7 @@ async function handleFileUpload(input) {
         fileType = "PDF";
 
         // 读取 PDF 文件
+        ensurePdfWorkerConfigured();
         const arrayBuffer = await file.arrayBuffer();
         const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
 

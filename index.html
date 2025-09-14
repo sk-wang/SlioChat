@@ -252,13 +252,11 @@
                                 placeholder="输入消息... (Ctrl+Enter 发送)"
                             ></textarea>
                             <div class="absolute top-1 right-2">
-                                <div class="flex items-center justify-between">
-                                    <select
-                                        id="model-select"
-                                        onchange="switchModel(this.value)"
-                                        class="pl-2 pr-2 p-2.5 text-sm rounded-md bg-[var(--bg-primary)] text-[var(--text-primary)] focus:ring-2 focus:ring-[var(--button-primary-bg)] cursor-pointer hover:bg-[var(--hover-bg)] transition-colors"
-                                    ></select>
-                                </div>
+                                <select
+                                    id="model-select"
+                                    onchange="switchModel(this.value)"
+                                    class="pl-2 pr-2 p-2.5 text-sm rounded-md bg-[var(--bg-primary)] text-[var(--text-primary)] focus:ring-2 focus:ring-[var(--button-primary-bg)] cursor-pointer hover:bg-[var(--hover-bg)] transition-colors w-32"
+                                ></select>
                             </div>
                             <div
                                 class="absolute bottom-2 right-2 flex items-center space-x-1.5"
@@ -527,6 +525,45 @@
                         </div>
                         <p class="text-xs text-[var(--text-secondary)] mb-2">支持自定义多个模型；保存后将写入本地存储并即时生效。</p>
                         <div id="model-settings" class="space-y-3"></div>
+                    </div>
+                    <div class="mt-4">
+                        <label class="block text-sm font-medium mb-2">标题生成模型</label>
+                        <select
+                            id="title-model-select-settings"
+                            class="w-full p-2 border rounded-md bg-[var(--bg-primary)] text-[var(--text-primary)] border-[var(--border-color)] focus:ring-2 focus:ring-[var(--button-primary-bg)]"
+                        ></select>
+                        <p class="text-xs text-[var(--text-secondary)] mt-1">选择用于生成对话标题的模型，可选择任意已配置的模型</p>
+                    </div>
+                    <div class="mt-4">
+                        <label class="block text-sm font-medium mb-2">搜索判断器模型</label>
+                        <select
+                            id="search-judger-model-select-settings"
+                            class="w-full p-2 border rounded-md bg-[var(--bg-primary)] text-[var(--text-primary)] border-[var(--border-color)] focus:ring-2 focus:ring-[var(--button-primary-bg)]"
+                        ></select>
+                        <p class="text-xs text-[var(--text-secondary)] mt-1">选择用于判断是否需要联网搜索的模型，可选择任意已配置的模型</p>
+                    </div>
+                    
+                    <div class="mt-4">
+                        <label class="block text-sm font-medium mb-2">博查搜索 API 配置</label>
+                        <div class="space-y-3">
+                            <div>
+                                <label class="block text-xs mb-1 text-[var(--text-secondary)]">API Key</label>
+                                <input 
+                                    id="bocha-api-key-settings" 
+                                    class="w-full p-2 border rounded-md bg-[var(--bg-primary)] text-[var(--text-primary)] border-[var(--border-color)] focus:ring-2 focus:ring-[var(--button-primary-bg)]"
+                                    placeholder="输入博查API密钥"
+                                />
+                            </div>
+                            <div class="flex items-center space-x-2">
+                                <input 
+                                    type="checkbox" 
+                                    id="bocha-search-enabled" 
+                                    class="rounded border-[var(--border-color)] text-[var(--button-primary-bg)] focus:ring-[var(--button-primary-bg)]"
+                                />
+                                <label for="bocha-search-enabled" class="text-sm text-[var(--text-primary)]">启用博查联网搜索功能</label>
+                            </div>
+                        </div>
+                        <p class="text-xs text-[var(--text-secondary)] mt-1">配置博查API密钥以启用联网搜索功能，密钥将被安全保存在本地存储中</p>
                     </div>
                 </div>
                 <div

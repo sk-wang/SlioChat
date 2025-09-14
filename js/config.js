@@ -4,6 +4,8 @@ let API_CONFIG = {
   defaultKey: "none", // 用来生成标题的 key
   defaultModel: "qwen2-57b-a14b-instruct", // 用来生成标题的模型
   defaultVlm: "qwen2.5-vl-3b-instruct", // 用来理解图片的模型
+  titleGenerationModel: "qwen2-57b-a14b-instruct", // 新增：专门用于生成标题的模型，可配置为models中的任意一个
+  searchJudgerModel: "qwen2-57b-a14b-instruct", // 新增：专门用于搜索判断的模型，可配置为models中的任意一个
   defaultSystemPrompt:
     "你是一位专业、友善且富有同理心的AI助手。你会根据问题的复杂程度调整回答方式：对于复杂问题，你会条理清晰地展示思考过程并给出详细解释；对于简单问题，你会直接给出准确简洁的答案。你善于倾听用户的需求，用平易近人的语气进行交流，在必要时会主动询问以更好地理解用户意图。你的回答始终保持客观专业，并在适当时候提供有见地的建议。",
   models: {

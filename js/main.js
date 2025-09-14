@@ -116,6 +116,29 @@ function initialize() {
     console.warn('模型选择下拉框元素未找到');
   }
 
+  // 从localStorage恢复标题生成模型设置
+  const savedTitleModel = localStorage.getItem('titleGenerationModel');
+  if (savedTitleModel && API_CONFIG.models[savedTitleModel]) {
+    API_CONFIG.titleGenerationModel = savedTitleModel;
+  }
+
+  // 从localStorage恢复搜索判断器模型设置
+  const savedSearchJudgerModel = localStorage.getItem('searchJudgerModel');
+  if (savedSearchJudgerModel && API_CONFIG.models[savedSearchJudgerModel]) {
+    API_CONFIG.searchJudgerModel = savedSearchJudgerModel;
+  }
+
+  // 从localStorage恢复博查API配置
+  const savedBochaApiKey = localStorage.getItem('bochaApiKey');
+  if (savedBochaApiKey) {
+    API_CONFIG.search.token = savedBochaApiKey;
+  }
+  
+  const savedBochaSearchEnabled = localStorage.getItem('bochaSearchEnabled');
+  if (savedBochaSearchEnabled !== null) {
+    API_CONFIG.search.enabled = savedBochaSearchEnabled === 'true';
+  }
+
   // 如果没有对话，创建一个新对话
   if (Object.keys(conversations).length === 0) {
     const conversationId = "conv_" + Date.now();
@@ -256,6 +279,8 @@ function refreshModelSelectOptions() {
     }
   }
 }
+
+
 
 // 添加新的滚动函数
 function scrollWhenReady() {
@@ -1149,15 +1174,21 @@ async function sendMessage(autoSend = false) {
     scrollToBottom(true);
 
     try {
-      // 使用默认小模型判断是否需要搜索
-      const searchCheckRequest = await fetch(API_CONFIG.defaultUrl, {
+      // 获取配置的搜索判断器模型
+      const searchJudgerModelId = API_CONFIG.searchJudgerModel;
+      const searchJudgerConfig = API_CONFIG.models[searchJudgerModelId];
+      const searchJudgerUrl = searchJudgerConfig?.url || API_CONFIG.defaultUrl;
+      const searchJudgerKey = searchJudgerConfig?.key || API_CONFIG.defaultKey;
+
+      // 使用配置的搜索判断器模型判断是否需要搜索
+      const searchCheckRequest = await fetch(searchJudgerUrl, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${API_CONFIG.defaultKey}`,
+          Authorization: `Bearer ${searchJudgerKey}`,
         },
         body: JSON.stringify({
-          model: API_CONFIG.defaultModel,
+          model: searchJudgerModelId,
           messages: [
             {
               role: "system",
@@ -1177,20 +1208,19 @@ async function sendMessage(autoSend = false) {
         searchCheckResponse.choices[0].message.content === "true";
 
       if (needsSearch) {
-        // 如果需要搜索，生成搜索请求
-        const searchRequest = await fetch(API_CONFIG.defaultUrl, {
+        // 如果需要搜索，生成搜索请求（使用同样的搜索判断器模型）
+        const searchRequest = await fetch(searchJudgerUrl, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${API_CONFIG.defaultKey}`,
+            Authorization: `Bearer ${searchJudgerKey}`,
           },
           body: JSON.stringify({
-            model: API_CONFIG.defaultModel,
+            model: searchJudgerModelId,
             messages: [
               {
                 role: "system",
-                content:
-                  "你是一个搜索请求生成器。请根据用户的消息生成一个适合搜索的简洁查询语句，直接返回查询语句，不要任何多余的话。",
+                content: "你是一个搜索请求生成器。请根据用户的消息生成一个适合搜索的简洁查询语句，直接返回查询语句，不要任何多余的话。",
               },
               {
                 role: "user",
@@ -1265,14 +1295,16 @@ async function sendMessage(autoSend = false) {
     // 如果这是第一轮对话且标题还是默认的，则自动生成标题
     if (conversations[currentConversationId].messages.length === 2) {
       try {
-        const titleResponse = await fetch(API_CONFIG.defaultUrl, {
+        const titleModelId = API_CONFIG.titleGenerationModel;
+        const titleModelConfig = API_CONFIG.models[titleModelId];
+        const titleResponse = await fetch(titleModelConfig?.url || API_CONFIG.defaultUrl, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${API_CONFIG.defaultKey}`,
+            Authorization: `Bearer ${titleModelConfig?.key || API_CONFIG.defaultKey}`,
           },
           body: JSON.stringify({
-            model: API_CONFIG.defaultModel,
+            model: titleModelId,
             messages: [
               {
                 role: "system",
@@ -1543,6 +1575,8 @@ function switchModel(modelId) {
   modelSelect.value = modelId;
 }
 
+
+
 async function showDialog(title, message) {
   return new Promise((resolve) => {
     const dialog = document.getElementById("custom-dialog");
@@ -1677,6 +1711,7 @@ function toggleThinking(header) {
 function openSystemPromptModal() {
   const modal = document.getElementById("system-prompt-modal");
   const systemPrompt = document.getElementById("system-prompt");
+  const titleModelSelect = document.getElementById("title-model-select-settings");
   const currentChat = conversations[currentConversationId];
 
   systemPrompt.value =
@@ -1685,6 +1720,57 @@ function openSystemPromptModal() {
 
   // 渲染模型设置
   renderModelSettings();
+
+  // 初始化标题模型选择框
+  if (titleModelSelect) {
+    titleModelSelect.innerHTML = '';
+    
+    // 添加默认选项
+    const defaultOption = document.createElement('option');
+    defaultOption.value = API_CONFIG.defaultModel;
+    defaultOption.textContent = `默认 (${API_CONFIG.models[API_CONFIG.defaultModel]?.name || API_CONFIG.defaultModel})`;
+    titleModelSelect.appendChild(defaultOption);
+
+    // 添加所有可用模型
+    Object.entries(API_CONFIG.models).forEach(([id, model]) => {
+      const option = document.createElement('option');
+      option.value = id;
+      option.textContent = model.name || id;
+      titleModelSelect.appendChild(option);
+    });
+
+    // 设置当前选择的标题模型
+    titleModelSelect.value = API_CONFIG.titleGenerationModel || API_CONFIG.defaultModel;
+
+    // 初始化搜索判断器模型选择
+    const searchJudgerModelSelect = document.getElementById("search-judger-model-select-settings");
+    if (searchJudgerModelSelect) {
+      searchJudgerModelSelect.innerHTML = "";
+      
+      // 添加所有可用模型
+      Object.entries(API_CONFIG.models).forEach(([modelId, modelInfo]) => {
+        const option = document.createElement("option");
+        option.value = modelId;
+        option.textContent = modelInfo.name || modelId;
+        searchJudgerModelSelect.appendChild(option);
+      });
+
+      // 设置当前选择的搜索判断器模型
+      searchJudgerModelSelect.value = API_CONFIG.searchJudgerModel || API_CONFIG.defaultModel;
+    }
+
+    // 初始化博查API配置
+    const bochaApiKeyInput = document.getElementById("bocha-api-key-settings");
+    const bochaSearchEnabled = document.getElementById("bocha-search-enabled");
+    
+    if (bochaApiKeyInput) {
+      bochaApiKeyInput.value = API_CONFIG.search.token || "";
+    }
+    
+    if (bochaSearchEnabled) {
+      bochaSearchEnabled.checked = API_CONFIG.search.enabled || false;
+    }
+  }
 }
 
 function closeSystemPromptModal() {
@@ -1693,11 +1779,43 @@ function closeSystemPromptModal() {
 
 function saveSystemPrompt() {
   const systemPrompt = document.getElementById("system-prompt").value.trim();
+  const titleModelSelect = document.getElementById("title-model-select-settings");
 
   // 保存到当前对话
   if (currentConversationId && conversations[currentConversationId]) {
     conversations[currentConversationId].systemPrompt = systemPrompt;
     saveConversations();
+  }
+
+  // 保存标题生成模型
+  if (titleModelSelect) {
+    const selectedTitleModel = titleModelSelect.value;
+    API_CONFIG.titleGenerationModel = selectedTitleModel;
+    localStorage.setItem('titleGenerationModel', selectedTitleModel);
+  }
+
+  // 保存搜索判断器模型
+  const searchJudgerModelSelect = document.getElementById("search-judger-model-select-settings");
+  if (searchJudgerModelSelect) {
+    const selectedSearchJudgerModel = searchJudgerModelSelect.value;
+    API_CONFIG.searchJudgerModel = selectedSearchJudgerModel;
+    localStorage.setItem('searchJudgerModel', selectedSearchJudgerModel);
+  }
+
+  // 保存博查API配置
+  const bochaApiKeyInput = document.getElementById("bocha-api-key-settings");
+  const bochaSearchEnabled = document.getElementById("bocha-search-enabled");
+  
+  if (bochaApiKeyInput) {
+    const apiKey = bochaApiKeyInput.value.trim();
+    API_CONFIG.search.token = apiKey;
+    localStorage.setItem('bochaApiKey', apiKey);
+  }
+  
+  if (bochaSearchEnabled) {
+    const enabled = bochaSearchEnabled.checked;
+    API_CONFIG.search.enabled = enabled;
+    localStorage.setItem('bochaSearchEnabled', enabled);
   }
 
   // 同时保存模型配置
@@ -1912,39 +2030,12 @@ function formatSearchResults(results) {
 }
 
 // 添加搜索开关按钮到设置面板
-function addSearchToggleToSettings() {
-  const settingsDiv = document.querySelector("#system-prompt-modal .p-4");
-  const searchToggle = document.createElement("div");
-  searchToggle.className = "space-y-2 mt-4";
-  searchToggle.innerHTML = `
-        <label class="flex items-center space-x-2">
-            <input type="checkbox" id="search-toggle"
-                    class="rounded border-[var(--border-color)]"
-                    ${API_CONFIG.search.enabled ? "checked" : ""}>
-            <span class="text-sm font-medium">启用联网搜索（Beta）</span>
-        </label>
-    `;
 
-  settingsDiv.appendChild(searchToggle);
-
-  // 添加切换事件
-  document.getElementById("search-toggle").addEventListener("change", (e) => {
-    API_CONFIG.search.enabled = e.target.checked;
-    // 可以选择将设置保存到localStorage
-    localStorage.setItem("search_enabled", e.target.checked);
-  });
-}
 
 // 在页面加载时初始化搜索设置
 document.addEventListener("DOMContentLoaded", () => {
-  // 从localStorage加载搜索设置
-  const searchEnabled = localStorage.getItem("search_enabled");
-  if (searchEnabled !== null) {
-    API_CONFIG.search.enabled = searchEnabled === "true";
-  }
-
-  // 添加搜索开关到设置面板
-  addSearchToggleToSettings();
+  // 搜索设置现在统一由博查配置区域管理
+  // 无需额外的初始化
 });
 
 // 导入对话功能

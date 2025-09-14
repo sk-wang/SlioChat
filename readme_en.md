@@ -26,12 +26,13 @@ SlioChat is a modern, feature-rich, single-file AI chat web UI designed for larg
   - Local storage for conversation history
   - Import/Export of conversation logs
 
-- 🔍 Web Search Integration (Bata)
+- 🔍 Bocha Web Search Integration (Beta)
   - Automatically determine whether internet search is needed
   - Automatically generate query for internet search
-  - Online information retrieval
+  - Integrated BochaAI search API
   - Automatic citation of search results
   - Source link references
+  - Support configuring Bocha API key in settings
 
 - ⚙️ Customizable Settings
   - Customizable system prompts
@@ -76,11 +77,16 @@ SlioChat supports direct configuration and management of models through the web 
      - **API URL**: Model's API endpoint address
      - **API Key**: Your API key
 
-3. **Save Settings**
+3. **Configure Bocha Search API (Optional)**
+   - In the "Bocha Search API Configuration" section:
+     - **API Key**: Enter your BochaAI API key
+     - **Enable Toggle**: Check to enable web search functionality
+
+4. **Save Settings**
    - After configuration, click the "Save" button at the bottom
    - The system automatically saves all settings to browser local storage
 
-4. **Switch Models**
+5. **Switch Models**
    - Select configured models from the dropdown above the input box
    - The system intelligently matches conversation types based on model type
 
@@ -89,6 +95,7 @@ SlioChat supports direct configuration and management of models through the web 
 - ✅ Support for configuring multiple models simultaneously
 - ✅ Configuration information stored locally for privacy and security
 - ✅ Support for dynamic addition, deletion, and modification of models
+- ✅ Visual Bocha search configuration without code modification
 
 ### Development Mode (Advanced Users)
 
@@ -139,6 +146,8 @@ As described above, configure models directly in the web interface.
     }
    ```
    Acquire apikey：https://open.bochaai.com/
+   
+   **Note**: Bocha search API can now also be configured visually through the "Bocha Search API Configuration" section in the settings panel without modifying code files
 
 2. Development Environment
    - Open `index.html` directly in your browser

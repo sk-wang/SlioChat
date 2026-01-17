@@ -43,7 +43,7 @@ export async function streamChatCompletion(
       },
       signal: streamingStore.getSignal(),
       body: JSON.stringify({
-        model: modelId,
+        model: modelConfig.name,
         messages: requestMessages,
         stream: true,
       }),
@@ -153,7 +153,7 @@ export async function generateTitle(
         Authorization: 'Bearer ' + (modelConfig.key || settingsStore.config.defaultKey),
       },
       body: JSON.stringify({
-        model: titleModel,
+        model: modelConfig.name,
         messages: [
           {
             role: 'system',

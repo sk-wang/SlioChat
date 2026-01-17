@@ -83,6 +83,11 @@ function ensurePdfWorkerConfigured() {
   } catch (_) {}
 }
 
+// 判断是否为移动设备
+function isMobile() {
+  return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+}
+
 // 移动端菜单控制
 function toggleSidebar() {
   const sidebar = document.getElementById("sidebar");
@@ -109,12 +114,7 @@ function initialize() {
   initializeTheme();
 
   // 初始化模型选择下拉框
-  const modelSelect = document.getElementById("model-select");
-  if (modelSelect) {
-    refreshModelSelectOptions();
-  } else {
-    console.warn('模型选择下拉框元素未找到');
-  }
+  refreshModelSelectOptions();
 
   // 从localStorage恢复标题生成模型设置
   const savedTitleModel = localStorage.getItem('titleGenerationModel');
@@ -202,10 +202,25 @@ function initialize() {
   // 监听输入框回车事件
   const userInput = document.getElementById("user-input");
   if (userInput) {
+    // 自动调整高度
+    userInput.addEventListener("input", function() {
+        this.style.height = 'auto';
+        this.style.height = (this.scrollHeight) + 'px';
+        
+        // 如果内容为空，重置为最小高度
+        if (!this.value) {
+            this.style.height = '';
+        }
+    });
+
     userInput.addEventListener("keydown", function (e) {
-      if (e.key === "Enter" && e.ctrlKey) {
+      if (e.key === "Enter" && !e.shiftKey) { // 修改为回车发送，Shift+Enter换行
         e.preventDefault();
-        sendMessage();
+        if (!isMobile() || e.ctrlKey || e.metaKey || !e.shiftKey) { // 简单的防误触判断
+            sendMessage();
+            // 发送后重置高度
+            this.style.height = ''; 
+        }
       }
     });
   }
@@ -231,14 +246,6 @@ function initialize() {
     });
   }
 
-  // 恢复上次选择的模型
-  const savedModel = localStorage.getItem("preferred-model");
-  if (savedModel && API_CONFIG.models[savedModel]) {
-    modelSelect.value = savedModel;
-  } else {
-    modelSelect.value = API_CONFIG.defaultModel;
-  }
-
   // 初始化时更新模型按钮可见性
   updateModelButtonsVisibility();
 
@@ -254,31 +261,117 @@ function initialize() {
 }
 
 function refreshModelSelectOptions() {
-  const modelSelect = document.getElementById("model-select");
-  if (!modelSelect) return;
-  modelSelect.innerHTML = "";
+  const dropdown = document.getElementById("model-dropdown");
+  const hiddenInput = document.getElementById("model-select-value");
+  if (!dropdown || !hiddenInput) return;
+  
+  dropdown.innerHTML = "";
+  
+  // 获取当前选中的值
+  const currentValue = hiddenInput.value;
+
   Object.entries(API_CONFIG.models).forEach(([modelId, modelInfo]) => {
-    const option = document.createElement("option");
-    option.value = modelId;
-    option.id = `model-${modelId}`;
-    option.textContent = modelInfo.name;
-    modelSelect.appendChild(option);
+    const item = document.createElement("button");
+    item.className = `w-full text-left px-4 py-3 hover:bg-[var(--hover-bg)] flex items-start space-x-3 transition-colors group border-b border-[var(--border-color)] last:border-0`;
+    item.onclick = (e) => {
+        e.stopPropagation();
+        switchModel(modelId);
+    };
+    
+    // 设置图标
+    const iconSvg = modelInfo.type === 'thinking' 
+        ? '<svg class="w-5 h-5 mt-0.5 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /></svg>'
+        : '<svg class="w-5 h-5 mt-0.5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>';
+
+    // 检查是否选中
+    const isSelected = modelId === currentValue;
+    
+    item.innerHTML = `
+        <div class="flex-shrink-0">${iconSvg}</div>
+        <div class="flex-1 min-w-0">
+            <div class="font-medium text-[var(--text-primary)] text-sm flex items-center justify-between">
+                <span class="truncate">${modelInfo.name}</span>
+                ${isSelected ? '<svg class="w-4 h-4 text-[var(--button-primary-bg)]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>' : ''}
+            </div>
+            <div class="text-xs text-[var(--text-secondary)] mt-0.5 truncate">${modelInfo.type === 'thinking' ? '深度思考模型' : '通用对话模型'}</div>
+        </div>
+    `;
+    
+    // 添加到下拉列表
+    item.dataset.value = modelId;
+    item.dataset.type = modelInfo.type;
+    dropdown.appendChild(item);
   });
-  // 恢复选中
+
+  // 恢复选中状态的显示逻辑
   const savedModel = localStorage.getItem("preferred-model");
-  if (savedModel && API_CONFIG.models[savedModel]) {
-    modelSelect.value = savedModel;
-  } else if (API_CONFIG.defaultModel && API_CONFIG.models[API_CONFIG.defaultModel]) {
-    modelSelect.value = API_CONFIG.defaultModel;
-  } else {
-    const first = Object.keys(API_CONFIG.models)[0];
-    if (first) {
-      modelSelect.value = first;
-      localStorage.setItem("preferred-model", first);
-      API_CONFIG.defaultModel = first;
-    }
+  if (!hiddenInput.value) {
+      if (savedModel && API_CONFIG.models[savedModel]) {
+        hiddenInput.value = savedModel;
+      } else if (API_CONFIG.defaultModel && API_CONFIG.models[API_CONFIG.defaultModel]) {
+        hiddenInput.value = API_CONFIG.defaultModel;
+      } else {
+        const first = Object.keys(API_CONFIG.models)[0];
+        if (first) {
+          hiddenInput.value = first;
+          localStorage.setItem("preferred-model", first);
+          API_CONFIG.defaultModel = first;
+        }
+      }
   }
+  
+  // 更新显示标签
+  updateModelLabel(hiddenInput.value);
 }
+
+function updateModelLabel(modelId) {
+    const label = document.getElementById("model-select-label");
+    if (label && API_CONFIG.models[modelId]) {
+        label.textContent = API_CONFIG.models[modelId].name;
+    }
+}
+
+// Dropdown control
+function toggleModelDropdown(event) {
+    if (event) event.stopPropagation();
+    const dropdown = document.getElementById("model-dropdown");
+    const arrow = document.getElementById("model-select-arrow");
+    const isHidden = dropdown.classList.contains("hidden");
+    
+    if (isHidden) {
+        dropdown.classList.remove("hidden");
+        // Small delay to allow transition
+        requestAnimationFrame(() => {
+            dropdown.classList.remove("opacity-0", "scale-95");
+            dropdown.classList.add("opacity-100", "scale-100");
+            if(arrow) arrow.style.transform = "rotate(180deg)";
+        });
+    } else {
+        closeModelDropdown();
+    }
+}
+
+function closeModelDropdown() {
+    const dropdown = document.getElementById("model-dropdown");
+    const arrow = document.getElementById("model-select-arrow");
+    
+    dropdown.classList.remove("opacity-100", "scale-100");
+    dropdown.classList.add("opacity-0", "scale-95");
+    if(arrow) arrow.style.transform = "rotate(0deg)";
+    
+    setTimeout(() => {
+        dropdown.classList.add("hidden");
+    }, 200);
+}
+
+// Add click outside listener
+document.addEventListener('click', (e) => {
+    const dropdown = document.getElementById("model-dropdown");
+    const btn = document.getElementById("model-select-btn");
+    if (dropdown && !dropdown.classList.contains("hidden") && !dropdown.contains(e.target) && (!btn || !btn.contains(e.target))) {
+        closeModelDropdown();
+    }
+});
 
 
 
@@ -369,7 +462,7 @@ function switchConversation(conversationId) {
   // 移除之前的选中状态
   const previousActive = document.querySelector(".conversation-item.active");
   if (previousActive) {
-    previousActive.classList.remove("active");
+    previousActive.classList.remove("active", "bg-[var(--hover-bg)]");
   }
 
   currentConversationId = conversationId;
@@ -400,8 +493,8 @@ function switchConversation(conversationId) {
   const newActive = document.querySelector(
     `.conversation-item[data-id="${conversationId}"]`,
   );
-  if (newActive) {
-    newActive.classList.add("active");
+        if (newActive) {
+    newActive.classList.add("active", "bg-[var(--hover-bg)]");
   }
 
   // 检查当前选中的模型是否与对话类型匹配
@@ -522,16 +615,16 @@ function refreshConversationList() {
       group.items.forEach(({ id, conv }) => {
         const item = document.createElement("div");
         item.setAttribute("data-id", id);
-        item.className = `conversation-item p-4 flex justify-between items-center ${
+        item.className = `conversation-item p-3 flex justify-between items-center rounded-lg cursor-pointer group ${
           isGenerating && id === currentConversationId
-            ? "cursor-pointer"
+            ? ""
             : isGenerating
               ? "opacity-50 cursor-not-allowed"
-              : "cursor-pointer"
-        } ${currentConversationId === id ? "active" : ""}`;
+              : ""
+        } ${currentConversationId === id ? "active bg-[var(--hover-bg)]" : "hover:bg-[var(--hover-bg)]"}`;
 
         const titleDiv = document.createElement("div");
-        titleDiv.className = "flex-1 truncate mr-2";
+        titleDiv.className = "flex-1 truncate mr-2 text-sm text-[var(--text-primary)]";
         titleDiv.textContent = conv.title;
         item.onclick = (e) => {
           if (!e.target.closest("button") && !isGenerating) {
@@ -541,7 +634,7 @@ function refreshConversationList() {
 
         const deleteButton = document.createElement("button");
         deleteButton.className =
-          "p-1 text-[var(--text-secondary)] hover:text-red-500 hover:bg-[var(--hover-bg)] rounded transition-colors";
+          "p-1 text-[var(--text-secondary)] hover:text-red-500 rounded opacity-0 group-hover:opacity-100 transition-opacity";
         deleteButton.innerHTML = `
                     <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
@@ -564,39 +657,44 @@ function saveConversations() {
 
 function createMessageElement(role, index) {
   const messageDiv = document.createElement("div");
-  messageDiv.className = `message-container rounded-lg ${
-    role === "user"
-      ? "bg-[var(--message-bg-user)] ml-0 md:ml-12 py-3 px-4" // 用户消息使用更紧凑的垂直内边距
-      : "bg-[var(--message-bg-assistant)] mr-0 md:mr-12 p-4" // 助手消息保持原有内边距
-  }`;
+  messageDiv.className = `message-container w-full flex ${
+    role === "user" ? "justify-end" : "justify-start"
+  } mb-6`;
   messageDiv.dataset.index = index;
+  messageDiv.dataset.role = role;
 
   const containerDiv = document.createElement("div");
-  containerDiv.className = "flex items-start space-x-4";
+  containerDiv.className = `flex max-w-[85%] md:max-w-[80%] ${
+    role === "user" ? "flex-row-reverse" : "flex-row"
+  } gap-4`;
 
+  // 头像
   const avatar = document.createElement("div");
-  avatar.className = `w-8 h-8 rounded-full flex items-center justify-center ${
-    role === "user" ? "bg-gray-500" : "bg-blue-600"
+  avatar.className = `flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
+    role === "user" ? "hidden" : "bg-[var(--button-primary-bg)]" // 用户头像隐藏，助手头像显示
   }`;
 
-  if (role === "user") {
-    avatar.innerHTML = `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' class="w-5 h-5"><path d='M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2'/><circle cx='12' cy='7' r='4'/></svg>`;
-  } else {
+  if (role === "assistant") {
     avatar.innerHTML = `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' class="w-5 h-5"><path d='M12 2C6.5 2 2 6.5 2 12s4.5 10 10 11c.9 0 1.8-.1 2.6-.4'/><path d='M17.6 14.2c-.8.8-1.3 2-1.1 3.2.2 1.2 1.1 2.2 2.3 2.4 1.2.2 2.4-.3 3.2-1.1.8-.8 1.3-2 1.1-3.2-.2-1.2-1.1-2.2-2.3-2.4-1.2-.2-2.4.3-3.2 1.1z'/><path d='M9.4 9.8c.8-.8 1.3-2 1.1-3.2-.2-1.2-1.1-2.2-2.3-2.4-1.2-.2-2.4.3-3.2 1.1-.8.8-1.3 2-1.1 3.2.2 1.2 1.1 2.2 2.3 2.4 1.2.2 2.4-.3 3.2-1.1z'/><path d='M14.5 8.5l-5 7'/></svg>`;
   }
 
+  const contentWrapper = document.createElement("div");
+  contentWrapper.className = "message-content-wrapper min-w-0 flex-1";
+
   const contentContainer = document.createElement("div");
-  contentContainer.className = "flex-1 min-w-0";
+  contentContainer.className = "flex flex-col";
 
   const actionsDiv = document.createElement("div");
-  actionsDiv.className = "message-actions flex space-x-2";
+  actionsDiv.className = `message-actions flex items-center gap-1 mt-1 ${
+    role === "user" ? "justify-end" : "justify-start"
+  }`;
 
   // 添加复制按钮
   const copyButton = document.createElement("button");
   copyButton.className =
-    "p-1 text-[var(--text-secondary)] hover:bg-[var(--hover-bg)] rounded";
+    "p-1 text-[var(--text-secondary)] hover:bg-[var(--hover-bg)] rounded transition-colors";
   copyButton.innerHTML = `
-        <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                   d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
         </svg>
@@ -629,7 +727,7 @@ function createMessageElement(role, index) {
   // 编辑按钮
   const editButton = document.createElement("button");
   editButton.className =
-    "p-1 text-[var(--text-secondary)] hover:bg-[var(--hover-bg)] rounded";
+    "p-1 text-[var(--text-secondary)] hover:bg-[var(--hover-bg)] rounded transition-colors";
   editButton.innerHTML = `
         <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -646,7 +744,7 @@ function createMessageElement(role, index) {
   ) {
     const regenerateButton = document.createElement("button");
     regenerateButton.className =
-      "p-1 text-[var(--text-secondary)] hover:bg-[var(--hover-bg)] rounded";
+      "p-1 text-[var(--text-secondary)] hover:bg-[var(--hover-bg)] rounded transition-colors";
     regenerateButton.innerHTML = `
             <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -675,11 +773,18 @@ function createMessageElement(role, index) {
   const textDiv = document.createElement("div");
   textDiv.className = "markdown-body text-[var(--text-primary)]";
 
-  contentContainer.appendChild(actionsDiv);
   contentContainer.appendChild(textDiv);
+  contentContainer.appendChild(actionsDiv);
+  
+  contentWrapper.appendChild(contentContainer);
 
-  containerDiv.appendChild(avatar);
-  containerDiv.appendChild(contentContainer);
+  if (role === "assistant") {
+    containerDiv.appendChild(avatar);
+    containerDiv.appendChild(contentWrapper);
+  } else {
+    containerDiv.appendChild(contentWrapper);
+  }
+  
   messageDiv.appendChild(containerDiv);
 
   document.getElementById("messages").appendChild(messageDiv);
@@ -704,8 +809,7 @@ function refreshMessages() {
           if (thinkingContent) {
             // 如果有思考过程，显示完整的思考+回答结构
             const container = document.createElement("div");
-            container.style.marginLeft = "-2.2rem";
-            container.style.marginTop = "1rem";
+            container.style.marginTop = "0.5rem";
             container.innerHTML = thinkingHtml;
 
             textDiv.appendChild(container);
@@ -723,8 +827,7 @@ function refreshMessages() {
         } catch (error) {
           // 如果解析失败，作为普通消息显示
           const container = document.createElement("div");
-          container.style.marginLeft = "-2.2rem";
-          container.style.marginTop = "1rem";
+          container.style.marginTop = "0.5rem";
           container.className = "markdown-body text-[var(--text-primary)]";
           container.innerHTML = marked.parse(msg.content);
           textDiv.appendChild(container);
@@ -734,8 +837,7 @@ function refreshMessages() {
         }
       } else {
         const container = document.createElement("div");
-        container.style.marginLeft = "-2.2rem";
-        container.style.marginTop = "1rem";
+        container.style.marginTop = "0.5rem";
         container.className = "markdown-body text-[var(--text-primary)]";
         container.innerHTML = marked.parse(msg.content || "");
         textDiv.appendChild(container);
@@ -865,8 +967,8 @@ async function generateAssistantMessage(
   let firstTokenReceived = false;
 
   // 添加加载动画
-  assistantDiv.style.marginLeft = "-2.2rem";
-  assistantDiv.style.marginTop = "1rem";
+  // assistantDiv.style.marginLeft = "-2.2rem"; // Removed manual margin
+  // assistantDiv.style.marginTop = "1rem"; // Removed manual margin
   assistantDiv.innerHTML = `
         <div class="loading-dots">
             <div class="dot"></div>
@@ -875,7 +977,7 @@ async function generateAssistantMessage(
         </div>`;
 
   try {
-    const modelId = document.getElementById("model-select").value;
+    const modelId = document.getElementById("model-select-value").value;
     const modelConfig = API_CONFIG.models[modelId];
     const response = await fetch(modelConfig.url, {
       method: "POST",
@@ -963,8 +1065,8 @@ async function generateAssistantMessage(
                 } else {
                   if (!finalContent && !isThinking) {
                     // 如果是第一条内容且没有思考过程，创建普通响应容器
-                    assistantDiv.style.marginLeft = "-2.2rem";
-                    assistantDiv.style.marginTop = "1rem";
+                    // assistantDiv.style.marginLeft = "-2.2rem"; // Removed
+                    // assistantDiv.style.marginTop = "1rem"; // Removed
                     assistantDiv.innerHTML = `<div class="markdown-body text-[var(--text-primary)]"></div>`;
                   }
                   finalContent += content;
@@ -1121,6 +1223,7 @@ async function sendMessage(autoSend = false) {
 
   if (!autoSend) {
     input.value = "";
+    input.style.height = ''; // 重置高度
   }
 
   // 移除文件预览
@@ -1154,8 +1257,8 @@ async function sendMessage(autoSend = false) {
     "user",
     conversations[currentConversationId].messages.length,
   );
-  userDiv.style.marginLeft = "-2.2rem";
-  userDiv.style.marginTop = "1rem";
+  // userDiv.style.marginLeft = "-2.2rem"; // Removed manual margin
+  // userDiv.style.marginTop = "1rem"; // Removed manual margin
   userDiv.innerHTML = marked.parse(fullMessage);
 
   let searchResults = "";
@@ -1548,7 +1651,7 @@ function togglePause() {
 }
 
 function switchModel(modelId) {
-  const modelSelect = document.getElementById("model-select");
+  const hiddenInput = document.getElementById("model-select-value");
 
   // 检查当前对话类型
   const currentType = getConversationType(
@@ -1562,17 +1665,22 @@ function switchModel(modelId) {
 
     if (modelType !== currentModelType) {
       showAlert("不能在同一个对话中混用深度思考模型和普通模型");
-      // 恢复之前的选择
-      modelSelect.value =
-        localStorage.getItem("preferred-model") || "deepseek-r1";
       return;
     }
   }
 
   // 保存选择的模型
   localStorage.setItem("preferred-model", modelId);
-  // 更新下拉框的值
-  modelSelect.value = modelId;
+  
+  // 更新值
+  hiddenInput.value = modelId;
+  
+  // 更新UI
+  updateModelLabel(modelId);
+  closeModelDropdown();
+  
+  // 重新渲染列表以更新勾选状态
+  refreshModelSelectOptions();
 }
 
 
@@ -1648,35 +1756,32 @@ function updateModelButtonsVisibility() {
   const currentType = getConversationType(
     conversations[currentConversationId]?.messages,
   );
-  const modelSelect = document.getElementById("model-select");
-
-  // 获取所有选项
-  const options = Array.from(modelSelect.options);
-
+  const dropdown = document.getElementById("model-dropdown");
+  if (!dropdown) return;
+  
+  const buttons = dropdown.querySelectorAll("button");
+  
   if (currentType === "none") {
     // 新对话，显示所有选项
-    options.forEach((opt) => {
-      opt.style.display = "";
-    });
+    buttons.forEach(btn => btn.style.display = "");
   } else {
     // 根据类型显示对应选项
     const targetType = currentType === "deepseek" ? "thinking" : "normal";
 
-    options.forEach((opt) => {
-      const modelInfo = API_CONFIG.models[opt.value];
-      opt.style.display = modelInfo.type === targetType ? "" : "none";
+    buttons.forEach(btn => {
+        btn.style.display = btn.dataset.type === targetType ? "" : "none";
     });
-
+    
     // 如果当前选中的模型类型不匹配，切换到第一个可用的模型
-    const currentModelInfo = API_CONFIG.models[modelSelect.value];
-    if (currentModelInfo.type !== targetType) {
-      const firstMatchingOption = options.find(
-        (opt) =>
-          API_CONFIG.models[opt.value].type === targetType &&
-          opt.style.display !== "none",
+    const hiddenInput = document.getElementById("model-select-value");
+    const currentModelInfo = API_CONFIG.models[hiddenInput.value];
+    
+    if (currentModelInfo && currentModelInfo.type !== targetType) {
+      const firstMatchingBtn = Array.from(buttons).find(
+        (btn) => btn.dataset.type === targetType
       );
-      if (firstMatchingOption) {
-        modelSelect.value = firstMatchingOption.value;
+      if (firstMatchingBtn) {
+        switchModel(firstMatchingBtn.dataset.value);
       }
     }
   }

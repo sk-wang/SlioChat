@@ -34,7 +34,7 @@
         </script>
         <!-- 可以换成本地文件或者其他cdn服务 -->
         <script src="https://cdn.tailwindcss.com/3.4.16"></script>
-        <script src="https://wanghao-blog.oss-cn-hangzhou.aliyuncs.com/llm/js/marked.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
         <link
             rel="stylesheet"
             href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css"
@@ -62,17 +62,66 @@
                 id="sidebar"
                 class="sidebar w-72 md:w-64 bg-[var(--bg-secondary)] border-r border-[var(--border-color)] flex flex-col z-30"
             >
-                <div class="p-4 border-b border-[var(--border-color)]">
+                <div class="p-3 m-2">
                     <button
                         id="new-chat-btn"
                         onclick="createNewConversation()"
-                        class="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+                        class="w-full px-4 py-3 bg-[var(--bg-primary)] text-[var(--text-primary)] border border-[var(--border-color)] rounded-lg hover:bg-[var(--hover-bg)] transition-colors flex items-center justify-between group"
                     >
-                        新建对话
+                        <span class="font-medium">新建对话</span>
+                        <svg class="w-5 h-5 text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                        </svg>
                     </button>
                 </div>
-                <div class="flex-1 overflow-y-auto" id="conversation-list">
+                <div class="flex-1 overflow-y-auto px-2" id="conversation-list">
                     <!-- 对话列表将在这里动态生成 -->
+                </div>
+                
+                <!-- 侧边栏底部：设置与个人信息 -->
+                <div class="p-2 border-t border-[var(--border-color)]">
+                    <button
+                        id="theme-toggle"
+                        class="w-full flex items-center space-x-3 px-3 py-3 rounded-lg hover:bg-[var(--hover-bg)] text-[var(--text-primary)] transition-colors"
+                    >
+                        <div class="w-5 h-5 flex items-center justify-center text-[var(--text-secondary)]">
+                            <!-- 暗色模式图标 -->
+                            <svg
+                                id="dark-icon"
+                                class="w-5 h-5"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                            >
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/>
+                            </svg>
+                            <!-- 亮色模式图标 -->
+                            <svg
+                                id="light-icon"
+                                class="w-5 h-5"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                            >
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>
+                            </svg>
+                        </div>
+                        <span class="text-sm">切换主题</span>
+                    </button>
+                    
+                    <button
+                        id="system-prompt-btn"
+                        class="w-full flex items-center space-x-3 px-3 py-3 rounded-lg hover:bg-[var(--hover-bg)] text-[var(--text-primary)] transition-colors"
+                        onclick="openSystemPromptModal()"
+                    >
+                        <div class="w-5 h-5 flex items-center justify-center text-[var(--text-secondary)]">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                            </svg>
+                        </div>
+                        <span class="text-sm">设置</span>
+                    </button>
                 </div>
             </div>
 
@@ -138,65 +187,28 @@
                             />
                         </div>
                     </div>
-                    <div class="flex items-center space-x-1 flex-shrink-0">
-                        <!-- 主题切换按钮 -->
+                    <div class="flex items-center space-x-1 flex-shrink-0 relative">
+                        <!-- 模型选择 (自定义下拉框) -->
                         <button
-                            id="theme-toggle"
-                            class="p-1 md:p-2 rounded-lg hover:bg-[var(--hover-bg)] transition-colors"
+                            id="model-select-btn"
+                            onclick="toggleModelDropdown(event)"
+                            class="flex items-center space-x-2 px-3 py-2 rounded-lg hover:bg-[var(--bg-secondary)] transition-colors text-[var(--text-primary)] text-sm font-medium group focus:outline-none"
                         >
-                            <!-- 暗色模式图标 -->
-                            <svg
-                                id="dark-icon"
-                                class="w-5 h-5 md:w-6 md:h-6 text-[var(--text-primary)]"
-                                fill="currentColor"
-                                viewBox="0 0 20 20"
-                                xmlns="http://www.w3.org/2000/svg"
-                            >
-                                <path
-                                    d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"
-                                ></path>
-                            </svg>
-                            <!-- 亮色模式图标 -->
-                            <svg
-                                id="light-icon"
-                                class="w-5 h-5 md:w-6 md:h-6 text-[var(--text-primary)]"
-                                fill="currentColor"
-                                viewBox="0 0 20 20"
-                                xmlns="http://www.w3.org/2000/svg"
-                            >
-                                <path
-                                    fill-rule="evenodd"
-                                    d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z"
-                                    clip-rule="evenodd"
-                                ></path>
+                            <span id="model-select-label" class="max-w-[100px] md:max-w-[150px] truncate">选择模型</span>
+                            <svg id="model-select-arrow" class="w-4 h-4 text-[var(--text-secondary)] group-hover:text-[var(--text-primary)] transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
                             </svg>
                         </button>
-                        <!-- 设置按钮 -->
-                        <button
-                            id="system-prompt-btn"
-                            class="flex items-center space-x-1 px-1.5 py-0.5 md:px-3 md:py-1.5 rounded-md hover:bg-[var(--hover-bg)] transition-colors"
-                            onclick="openSystemPromptModal()"
+                        
+                        <div
+                            id="model-dropdown"
+                            class="hidden absolute right-0 top-full mt-1 w-72 bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-xl shadow-xl z-50 py-1.5 max-h-[60vh] overflow-y-auto transform origin-top-right transition-all duration-200 opacity-0 scale-95"
                         >
-                            <svg
-                                class="w-5 h-5"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                            >
-                                <path
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                    stroke-width="2"
-                                    d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
-                                />
-                                <path
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                    stroke-width="2"
-                                    d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                                />
-                            </svg>
-                        </button>
+                            <!-- Options will be populated by JS -->
+                        </div>
+                        
+                        <!-- Hidden input for value storage -->
+                        <input type="hidden" id="model-select-value">
                     </div>
                 </div>
 
@@ -214,9 +226,9 @@
                 <!-- 输入区域 -->
                 <div class="input-area">
                     <div class="max-w-3xl mx-auto flex flex-col space-y-4">
-                        <div class="relative">
+                        <div class="relative bg-[var(--bg-secondary)] rounded-2xl border border-[var(--border-color)] shadow-sm focus-within:ring-1 focus-within:ring-[var(--border-color)] focus-within:border-[var(--border-color)]">
                             <!-- 添加文件上传按钮 -->
-                            <div class="absolute top-1 left-2">
+                            <div class="absolute bottom-2 left-2">
                                 <input
                                     type="file"
                                     id="file-upload"
@@ -227,7 +239,7 @@
                                 />
                                 <button
                                     onclick="document.getElementById('file-upload').click()"
-                                    class="p-2.5 text-[var(--text-secondary)] hover:bg-[var(--hover-bg)] rounded-md transition-colors duration-200"
+                                    class="p-2 text-[var(--text-secondary)] hover:bg-[var(--hover-bg)] rounded-full transition-colors duration-200"
                                     title="上传一个或多个文件"
                                 >
                                     <svg
@@ -240,30 +252,25 @@
                                             stroke-linecap="round"
                                             stroke-linejoin="round"
                                             stroke-width="2"
-                                            d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"
+                                            d="M12 4v16m8-8H4"
                                         />
                                     </svg>
                                 </button>
                             </div>
                             <textarea
                                 id="user-input"
-                                rows="3"
-                                class="resize-none w-full px-12 py-2 pr-36 border border-[var(--border-color)] rounded-md bg-[var(--bg-primary)] text-[var(--text-primary)] focus:ring-2 focus:ring-[var(--button-primary-bg)]"
-                                placeholder="输入消息... (Ctrl+Enter 发送)"
+                                rows="1"
+                                class="w-full pl-12 pr-24 py-[14px] bg-transparent border-none text-[var(--text-primary)] focus:ring-0 resize-none max-h-[200px] overflow-y-auto leading-6"
+                                placeholder="给 AI 发送消息..."
+                                style="min-height: 52px;"
                             ></textarea>
-                            <div class="absolute top-1 right-2">
-                                <select
-                                    id="model-select"
-                                    onchange="switchModel(this.value)"
-                                    class="pl-2 pr-2 p-2.5 text-sm rounded-md bg-[var(--bg-primary)] text-[var(--text-primary)] focus:ring-2 focus:ring-[var(--button-primary-bg)] cursor-pointer hover:bg-[var(--hover-bg)] transition-colors w-32"
-                                ></select>
-                            </div>
+                            
                             <div
-                                class="absolute bottom-2 right-2 flex items-center space-x-1.5"
+                                class="absolute bottom-2 right-2 flex items-center space-x-1"
                             >
                                 <button
                                     onclick="clearCurrentChat()"
-                                    class="p-2.5 text-[var(--text-secondary)] hover:bg-[var(--hover-bg)] rounded-md transition-colors duration-200"
+                                    class="p-2 text-[var(--text-secondary)] hover:bg-[var(--hover-bg)] rounded-full transition-colors duration-200"
                                     title="清空对话"
                                 >
                                     <svg
@@ -282,7 +289,7 @@
                                 </button>
                                 <button
                                     onclick="togglePause()"
-                                    class="hidden p-2.5 text-[var(--text-secondary)] hover:bg-[var(--hover-bg)] rounded-md transition-colors duration-200"
+                                    class="hidden p-2 text-[var(--text-secondary)] hover:bg-[var(--hover-bg)] rounded-full transition-colors duration-200"
                                     id="pause-button"
                                 >
                                     <svg
@@ -322,26 +329,20 @@
                                 </button>
                                 <button
                                     onclick="stopGeneration()"
-                                    class="hidden p-2.5 text-[var(--text-secondary)] hover:bg-[var(--hover-bg)] rounded-md transition-colors duration-200"
+                                    class="hidden p-2 text-[var(--text-secondary)] hover:bg-[var(--hover-bg)] rounded-full transition-colors duration-200"
                                     id="stop-button"
                                 >
                                     <svg
                                         class="w-5 h-5"
                                         viewBox="0 0 24 24"
-                                        fill="none"
-                                        stroke="currentColor"
+                                        fill="currentColor"
                                     >
-                                        <path
-                                            stroke-linecap="round"
-                                            stroke-linejoin="round"
-                                            stroke-width="2"
-                                            d="M6 18L18 6M6 6l12 12"
-                                        />
+                                        <rect x="6" y="6" width="12" height="12" rx="2" />
                                     </svg>
                                 </button>
                                 <button
                                     onclick="sendMessage()"
-                                    class="p-2.5 text-[var(--button-primary-bg)] hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-md transition-colors duration-200"
+                                    class="p-2 bg-[var(--text-primary)] text-[var(--bg-primary)] rounded-full hover:opacity-90 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                                     id="send-button"
                                 >
                                     <svg
@@ -354,11 +355,14 @@
                                             stroke-linecap="round"
                                             stroke-linejoin="round"
                                             stroke-width="2"
-                                            d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"
+                                            d="M5 12h14M12 5l7 7-7 7"
                                         />
                                     </svg>
                                 </button>
                             </div>
+                        </div>
+                        <div class="text-center text-xs text-[var(--text-secondary)]">
+                            AI 可能会犯错。请核对重要信息。
                         </div>
                     </div>
                 </div>

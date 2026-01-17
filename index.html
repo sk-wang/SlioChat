@@ -77,7 +77,7 @@
                 <div class="flex-1 overflow-y-auto px-2" id="conversation-list">
                     <!-- 对话列表将在这里动态生成 -->
                 </div>
-                
+
                 <!-- 侧边栏底部：设置与个人信息 -->
                 <div class="p-2 border-t border-[var(--border-color)]">
                     <button
@@ -108,7 +108,7 @@
                         </div>
                         <span class="text-sm">切换主题</span>
                     </button>
-                    
+
                     <button
                         id="system-prompt-btn"
                         class="w-full flex items-center space-x-3 px-3 py-3 rounded-lg hover:bg-[var(--hover-bg)] text-[var(--text-primary)] transition-colors"
@@ -199,14 +199,14 @@
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
                             </svg>
                         </button>
-                        
+
                         <div
                             id="model-dropdown"
                             class="hidden absolute right-0 top-full mt-1 w-72 bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-xl shadow-xl z-50 py-1.5 max-h-[60vh] overflow-y-auto transform origin-top-right transition-all duration-200 opacity-0 scale-95"
                         >
                             <!-- Options will be populated by JS -->
                         </div>
-                        
+
                         <!-- Hidden input for value storage -->
                         <input type="hidden" id="model-select-value">
                     </div>
@@ -264,7 +264,7 @@
                                 placeholder="给 AI 发送消息..."
                                 style="min-height: 52px;"
                             ></textarea>
-                            
+
                             <div
                                 class="absolute bottom-2 right-2 flex items-center space-x-1"
                             >
@@ -511,7 +511,7 @@
                 <div class="p-4 flex-1 overflow-y-auto min-h-0">
                     <div class="space-y-2">
                         <label class="block text-sm font-medium mb-1"
-                            >系统提示词</label
+                            >当前对话系统提示词</label
                         >
                         <textarea
                             id="system-prompt"
@@ -546,22 +546,22 @@
                         ></select>
                         <p class="text-xs text-[var(--text-secondary)] mt-1">选择用于判断是否需要联网搜索的模型，可选择任意已配置的模型</p>
                     </div>
-                    
+
                     <div class="mt-4">
                         <label class="block text-sm font-medium mb-2">博查搜索 API 配置</label>
                         <div class="space-y-3">
                             <div>
                                 <label class="block text-xs mb-1 text-[var(--text-secondary)]">API Key</label>
-                                <input 
-                                    id="bocha-api-key-settings" 
+                                <input
+                                    id="bocha-api-key-settings"
                                     class="w-full p-2 border rounded-md bg-[var(--bg-primary)] text-[var(--text-primary)] border-[var(--border-color)] focus:ring-2 focus:ring-[var(--button-primary-bg)]"
                                     placeholder="输入博查API密钥"
                                 />
                             </div>
                             <div class="flex items-center space-x-2">
-                                <input 
-                                    type="checkbox" 
-                                    id="bocha-search-enabled" 
+                                <input
+                                    type="checkbox"
+                                    id="bocha-search-enabled"
                                     class="rounded border-[var(--border-color)] text-[var(--button-primary-bg)] focus:ring-[var(--button-primary-bg)]"
                                 />
                                 <label for="bocha-search-enabled" class="text-sm text-[var(--text-primary)]">启用博查联网搜索功能</label>

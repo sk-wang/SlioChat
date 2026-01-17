@@ -1,224 +1,304 @@
-# SlioChat
+<div align="center">
 
-SlioChat is a modern, feature-rich, single-file AI chat web UI designed for large language model interactions. All functionalities are encapsulated within a single HTML file, enabling seamless deployment across various environments.
-[try it now](https://slio-chat.pages.dev/)
+# 🚀 SlioChat
+
+**Modern Single-File AI Chat UI | 现代化单文件 AI 聊天界面**
+
+[![MIT License](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
+[![GitHub Stars](https://img.shields.io/github/stars/user/slio-chat?style=social)](https://github.com/user/slio-chat)
+[![Demo](https://img.shields.io/badge/Demo-Live-blue)](https://slio-chat.pages.dev/)
+
+[中文](README.md) · [Live Demo](https://slio-chat.pages.dev/) · [Quick Start](#-quick-start) · [Features](#-key-features)
+
+<img src="imgs/img.png" alt="SlioChat Interface Preview" width="800"/>
+
+*A modern chat interface supporting multiple LLMs, all packed into a single HTML file*
+
+</div>
+
+---
+
+## 📖 Table of Contents
+
+- [Key Features](#-key-features)
+- [Screenshots](#-screenshots)
+- [Quick Start](#-quick-start)
+- [Project Structure](#-project-structure)
+- [Tech Stack](#️-tech-stack)
+- [API Support](#-api-support)
+- [Build & Deploy](#-build--deploy)
+- [Contributing](#-contributing)
+- [Contact](#-contact)
+
+---
 
 ## ✨ Key Features
 
-- 🎨 Elegant User Interface
-  - Light/Dark theme toggle support
-  - Responsive design optimized for mobile devices
-  - Modern UI components with smooth animations
+<table>
+<tr>
+<td width="50%">
 
-- 💬 Comprehensive Conversation Capabilities
-  - Automatic conversation title generation
-  - Support parse Image/PDF/Word/Excel File
-  - Markdown formatting support
-  - Syntax highlighting for code blocks
-  - One-click code copying
-  - Streaming responses
-  - Pause/Resume response generation
-  - Visualized reasoning process
-  - Support preview HTML code
+### 🎨 Elegant User Interface
+- 🌓 Seamless Light/Dark theme toggle
+- 📱 Responsive design, mobile-ready
+- ✨ Modern UI components with smooth animations
 
-- 📝 Message Management
-  - Edit and delete message functionality
-  - Local storage for conversation history
-  - Import/Export of conversation logs
+</td>
+<td width="50%">
 
-- 🔍 Bocha Web Search Integration (Beta)
-  - Automatically determine whether internet search is needed
-  - Automatically generate query for internet search
-  - Integrated BochaAI search API
-  - Automatic citation of search results
-  - Source link references
-  - Support configuring Bocha API key in settings
+### 💬 Comprehensive Chat Features
+- 🏷️ Automatic conversation title generation
+- 📄 Support for Image, PDF, Excel, Word files
+- 📝 Markdown + Code syntax highlighting
+- ⚡ Streaming responses + Pause/Resume
+- 🧠 **Thinking process visualization**
 
-- ⚙️ Customizable Settings
-  - Customizable system prompts
-  - Online model addition and management (multi-API support)
-  - Multi-model switching (instant effect)
-  - Categorized conversation management
+</td>
+</tr>
+<tr>
+<td width="50%">
+
+### 📝 Message Management
+- ✏️ Edit and delete messages
+- 💾 Local storage for conversations
+- 📤 Export/Import chat history
+
+</td>
+<td width="50%">
+
+### 🔍 Bocha Web Search <sup>Beta</sup>
+- 🤖 Auto-detect when web search is needed
+- 🔗 Auto-generate search queries
+- 📚 Auto-cite results with source links
+
+</td>
+</tr>
+<tr>
+<td colspan="2">
+
+### ⚙️ Customizable Settings
+Custom system prompts · Online model management · Instant model switching · Conversation categorization
+
+</td>
+</tr>
+</table>
+
+---
+
+## 📸 Screenshots
+
+<div align="center">
+
+### Dark Theme - Thinking Process Visualization
+
+<img src="imgs/img.png" alt="SlioChat Dark Theme - Thinking Process Visualization" width="750"/>
+
+*SlioChat dark theme interface showcasing AI thinking process, Markdown rendering, and sidebar conversation management*
+
+</div>
+
+---
+
+## 🚀 Quick Start
+
+### Option 1: Online Configuration (Recommended)
+
+SlioChat supports direct model configuration through the web interface — **no code changes required**:
+
+| Step | Action |
+|------|--------|
+| 1️⃣ | Click the **Settings icon** ⚙️ in the top-right corner |
+| 2️⃣ | Click **Add Model** in the "Model Settings" section |
+| 3️⃣ | Fill in Model ID, Display Name, Type, API URL, and Key |
+| 4️⃣ | (Optional) Configure Bocha Search API for web search |
+| 5️⃣ | Click **Save** — changes take effect immediately |
+
+> **✅ Advantages**: No restart needed · Multi-model support · Privacy-safe local storage · Dynamic CRUD for models
+
+### Option 2: Code Configuration (Advanced)
+
+<details>
+<summary>📝 Click to expand code configuration guide</summary>
+
+#### 1. Configure Model API
+
+Edit `js/config.js`:
+
+```javascript
+const API_CONFIG = {
+    models: {
+        'deepseek-r1': {
+            name: 'deepseek-r1',
+            type: 'thinking',  // Deep thinking model
+            url: 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions',
+            key: 'your-api-key',
+        },
+        'deepseek-v3': {
+            name: 'deepseek-v3',
+            type: 'normal',
+            url: 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions',
+            key: 'your-api-key',
+        },
+    },
+    defaultVlm: 'qwen2.5-vl-3b-instruct',
+};
+```
+
+#### 2. Configure Bocha Search API (Optional)
+
+```javascript
+search: {
+    url: 'https://api.bochaai.com/v1/web-search',
+    enabled: false,
+    token: 'your-bocha-api-key'  // Get it at: https://open.bochaai.com/
+}
+```
+
+#### 3. Run Development Environment
+
+Open `index.html` directly in your browser, or host with any web server.
+
+</details>
+
+---
 
 ## 📁 Project Structure
 
 ```
 slio-chat/
-├── index.html          # Main HTML file
-├── css/
-│   └── main.css        # Stylesheet
-├── js/
-│   ├── config.js       # Configuration file
-│   └── main.js         # Main functionality code
-├── scripts/
-│   └── build.js        # Build script
-├── dist/               # Build output directory
-│   └── index.html      # Packaged single file
-├── package.json        # Project configuration
-└── README.md
+├── 📄 index.html          # Main HTML file
+├── 📁 css/
+│   └── main.css           # Stylesheet
+├── 📁 js/
+│   ├── config.js          # Configuration file
+│   └── main.js            # Core functionality
+├── 📁 scripts/
+│   └── build.js           # Build script
+├── 📁 dist/               # Build output directory
+│   └── index.html         # Bundled single file (~3.9MB)
+├── 📁 imgs/               # Screenshot assets
+└── 📄 package.json
 ```
 
-## 🚀 Getting Started
-
-### Online Model Configuration (Recommended)
-
-SlioChat supports direct configuration and management of models through the web interface without modifying code files:
-
-1. **Open Settings Panel**
-   - Click the settings icon (⚙️) in the top right corner of the page
-   - Or use keyboard shortcut to open the settings panel
-
-2. **Add New Model**
-   - Click the "Add Model" button in the "Model Settings" section
-   - Fill in the model information:
-     - **Model ID**: Unique identifier (e.g., qwen2-72b-instruct)
-     - **Display Name**: Name shown in the interface (e.g., Qwen 72B)
-     - **Type**: Choose "Normal" or "Deep Thinking" type
-     - **API URL**: Model's API endpoint address
-     - **API Key**: Your API key
-
-3. **Configure Bocha Search API (Optional)**
-   - In the "Bocha Search API Configuration" section:
-     - **API Key**: Enter your BochaAI API key
-     - **Enable Toggle**: Check to enable web search functionality
-
-4. **Save Settings**
-   - After configuration, click the "Save" button at the bottom
-   - The system automatically saves all settings to browser local storage
-
-5. **Switch Models**
-   - Select configured models from the dropdown above the input box
-   - The system intelligently matches conversation types based on model type
-
-**Advantages**:
-- ✅ No need to restart the application, configurations take effect immediately
-- ✅ Support for configuring multiple models simultaneously
-- ✅ Configuration information stored locally for privacy and security
-- ✅ Support for dynamic addition, deletion, and modification of models
-- ✅ Visual Bocha search configuration without code modification
-
-### Development Mode (Advanced Users)
-
-#### Method 1: Online Configuration (Recommended)
-
-As described above, configure models directly in the web interface.
-
-#### Method 2: Code Configuration
-
-1. API Configuration
-   - Set your API key in `js/config.js`
-   - Large model configurations are defined in the `API_CONFIG.models` object:
-   ```javascript
-   const API_CONFIG = {
-        models: {
-            // Deepseek large model
-            'deepseek-r1': {
-                name: 'deepseek-r1',
-                type: 'thinking', // Advanced reasoning large model
-                url: 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions',
-                key: 'xxxxxxxxxxx',  // API key
-            },
-            'deepseek-v3': {
-                name: 'deepseek-v3',
-                type: 'normal',
-                url: 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions',
-                key: 'xxxxxxxxxxx',  // API key
-            },
-            // Free large model
-            "glm-4v-plus": {
-                name: 'Zhipu Flash',
-                type: 'normal',
-                url: 'https://open.bigmodel.cn/api/paas/v4/chat/completions',
-                key: '4343afe401f046afa592b4fa4f33cdab.zRzWA4Thv2FYZ2ba',  // Zhipu's free model
-            },
-            // Additional models can be added here
-        },
-        // Set the default vision language model (model with visual capabilities)
-        defaultVlm: 'qwen2.5-vl-3b-instruct', // Specify the default vision model ID
-   };
-   ```
-   - Search API configuration is located in the `search` object:
-   ```javascript
-    search: {
-        url: 'https://api.bochaai.com/v1/web-search',
-        enabled: false,  // Toggle to enable/disable search functionality
-        token: 'xxxxxxxxx'  // BochaAI API key
-    }
-   ```
-   Acquire apikey：https://open.bochaai.com/
-   
-   **Note**: Bocha search API can now also be configured visually through the "Bocha Search API Configuration" section in the settings panel without modifying code files
-
-2. Development Environment
-   - Open `index.html` directly in your browser
-   - Or host the project files using any web server
-
-### Production Deployment
-
-1. Install Dependencies
-   ```bash
-   npm install
-   ```
-
-2. Build Single-File Version
-   ```bash
-   npm run build
-   ```
-
-3. Deploy
-   - After building, `dist/index.html` is a complete single-file application
-   - Contains all CSS, JavaScript, and external dependencies
-   - File size approximately 3.9MB, can be deployed directly to any web server
-   - Supports offline usage (except for API calls)
-
-### Build Features
-
-- ✅ **Automatic Inlining**: Local CSS and JS files are automatically inlined into HTML
-- ✅ **CDN Resource Inlining**: External libraries (TailwindCSS, Marked.js, etc.) are automatically downloaded and inlined
-- ✅ **Code Compression**: JavaScript, CSS, and HTML are automatically compressed and optimized
-- ✅ **Dependency Order**: Ensures external libraries load before local code, preventing dependency errors
-- ✅ **PDF.js Optimization**: Worker scripts converted to Data URI for complete offline support
+---
 
 ## 🛠️ Tech Stack
 
-- Pure Native JavaScript
-- TailwindCSS for styling
-- Marked.js for Markdown parsing
-- Highlight.js for code highlighting
-- PDF.js for PDF file parsing
-- Other utility libraries: XLSX, Mammoth, jschardet
+<table>
+<tr>
+<td align="center" width="120">
+<strong>Core</strong><br/>
+<sub>Vanilla JS</sub>
+</td>
+<td align="center" width="120">
+<strong>Styling</strong><br/>
+<sub>TailwindCSS</sub>
+</td>
+<td align="center" width="120">
+<strong>Markdown</strong><br/>
+<sub>Marked.js</sub>
+</td>
+<td align="center" width="120">
+<strong>Code Highlight</strong><br/>
+<sub>Highlight.js</sub>
+</td>
+</tr>
+<tr>
+<td align="center" width="120">
+<strong>PDF Parsing</strong><br/>
+<sub>PDF.js</sub>
+</td>
+<td align="center" width="120">
+<strong>Excel</strong><br/>
+<sub>SheetJS</sub>
+</td>
+<td align="center" width="120">
+<strong>Word</strong><br/>
+<sub>Mammoth.js</sub>
+</td>
+<td align="center" width="120">
+<strong>Encoding</strong><br/>
+<sub>jschardet</sub>
+</td>
+</tr>
+</table>
+
+---
 
 ## 🔑 API Support
 
-Currently available free APIs for direct experience:
+### Free Trial Models
 
-- **Qwen2-57B** - Qwen2 model (general conversation)
-- **DeepSeek-R1-Distill-Qwen-32B** - DeepSeek distilled model (reasoning & thinking)
+| Model | Type | Description |
+|-------|------|-------------|
+| **Qwen2-57B** | General Chat | Alibaba Cloud Qwen2 model |
+| **DeepSeek-R1-Distill-Qwen-32B** | Reasoning | DeepSeek distilled model |
 
-These models are pre-configured and can be used directly without API keys.
+> These models are pre-configured — **no API key required** for immediate use
 
-Supports custom addition of OpenAI-compatible model APIs, including:
-- GPT series models
-- Claude series models
-- DeepSeek series models
-- Zhipu GLM series models
-- Qwen series models
-- Other APIs compatible with OpenAI format
+### Supported Model Services
 
-## 📸 Screenshots
+<table>
+<tr>
+<td>✅ GPT Series</td>
+<td>✅ Claude Series</td>
+<td>✅ DeepSeek Series</td>
+</tr>
+<tr>
+<td>✅ Zhipu GLM Series</td>
+<td>✅ Qwen Series</td>
+<td>✅ Other OpenAI-compatible APIs</td>
+</tr>
+</table>
 
-![1](https://skwang-static.oss-cn-hongkong.aliyuncs.com/img/1.png)
-![2](https://skwang-static.oss-cn-hongkong.aliyuncs.com/img/2.png)
-![3](https://skwang-static.oss-cn-hongkong.aliyuncs.com/img/3.png)
+---
+
+## 📦 Build & Deploy
+
+### Production Deployment
+
+```bash
+# 1. Install dependencies
+npm install
+
+# 2. Build single-file version
+npm run build
+
+# 3. Deploy dist/index.html to any web server
+```
+
+### Build Features
+
+| Feature | Description |
+|---------|-------------|
+| ✅ Auto Inlining | Local CSS and JS inlined into HTML |
+| ✅ CDN Inlining | External libraries downloaded and inlined |
+| ✅ Code Compression | JS, CSS, HTML auto-minified |
+| ✅ Dependency Order | External libs load before local code |
+| ✅ PDF.js Optimization | Worker converted to Data URI for offline |
+
+---
 
 ## 📝 License
 
-MIT License
+[MIT License](LICENSE) © 2024
 
-## 🤝 Contributions
+---
 
-Contributions are welcome! Feel free to submit Issues or Pull Requests.
+## 🤝 Contributing
+
+Issues and Pull Requests are welcome!
+
+---
 
 ## 📧 Contact
 
-For inquiries, please reach out to: skvdhsh@gmail.com
+<div align="center">
+
+**Email**: skvdhsh@gmail.com
+
+---
+
+<sub>Made with ❤️ by SlioChat Team</sub>
+
+</div>

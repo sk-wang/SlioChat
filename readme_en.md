@@ -2,7 +2,7 @@
 
 # SlioChat
 
-**Modern AI Chat Interface**
+**A clean and elegant AI chat interface built with Svelte 5 + TypeScript, supporting multiple LLMs**
 
 [![MIT License](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
 [![Demo](https://img.shields.io/badge/Demo-Live-blue)](https://slio-chat.pages.dev/)
@@ -27,14 +27,9 @@
 ## Quick Start
 
 ```bash
-# Clone the project
 git clone https://github.com/user/slio-chat.git
 cd slio-chat
-
-# Install dependencies
 npm install
-
-# Start development server
 npm run dev
 ```
 

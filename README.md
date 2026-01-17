@@ -2,7 +2,7 @@
 
 # SlioChat
 
-**现代化 AI 聊天界面**
+**一个简洁优雅的 AI 聊天界面，基于 Svelte 5 + TypeScript 构建，支持多种大语言模型**
 
 [![MIT License](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
 [![Demo](https://img.shields.io/badge/Demo-Live-blue)](https://slio-chat.pages.dev/)
@@ -27,14 +27,9 @@
 ## 快速开始
 
 ```bash
-# 克隆项目
 git clone https://github.com/user/slio-chat.git
 cd slio-chat
-
-# 安装依赖
 npm install
-
-# 启动开发服务器
 npm run dev
 ```
 

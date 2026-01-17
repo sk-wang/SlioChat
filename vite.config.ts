@@ -24,7 +24,7 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     emptyOutDir: true,
-    target: 'es2020',
+    target: ['es2015', 'ios12'],
     assetsInlineLimit: 100000000,
     chunkSizeWarningLimit: 10000,
     cssCodeSplit: false,

@@ -1,28 +1,35 @@
 {
   "name": "slio-chat",
-  "version": "1.0.0",
-  "description": "SlioChat - AI Chat Application",
-  "main": "index.js",
+  "version": "2.0.0",
+  "private": true,
+  "type": "module",
   "scripts": {
-    "build": "node scripts/build.js",
-    "build:simple": "node scripts/build.js",
-    "build:webpack": "webpack --mode production"
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "check": "svelte-check --tsconfig ./tsconfig.json",
+    "check:watch": "svelte-check --tsconfig ./tsconfig.json --watch"
   },
   "devDependencies": {
-    "@babel/core": "^7.23.7",
-    "@babel/plugin-transform-runtime": "^7.23.7",
-    "@babel/preset-env": "^7.23.7",
-    "@babel/runtime": "^7.23.7",
-    "axios": "^1.7.9",
-    "babel-core": "^7.0.0-bridge.0",
-    "babel-loader": "^9.1.3",
-    "cheerio": "^1.0.0",
-    "core-js": "^3.35.0",
-    "html-loader": "^4.2.0",
-    "html-webpack-plugin": "^5.6.0",
-    "node-fetch": "^2.7.0",
-    "terser-webpack-plugin": "^5.3.10",
-    "webpack": "^5.89.0",
-    "webpack-cli": "^5.1.4"
+    "@sveltejs/vite-plugin-svelte": "^5.0.3",
+    "@tailwindcss/typography": "^0.5.15",
+    "@tsconfig/svelte": "^5.0.4",
+    "@types/node": "^22.10.5",
+    "autoprefixer": "^10.4.20",
+    "postcss": "^8.4.49",
+    "svelte": "^5.16.0",
+    "svelte-check": "^4.1.1",
+    "tailwindcss": "^3.4.17",
+    "typescript": "^5.7.2",
+    "vite": "^6.0.7",
+    "vite-plugin-singlefile": "^2.0.3"
+  },
+  "dependencies": {
+    "highlight.js": "^11.11.1",
+    "jschardet": "^3.1.4",
+    "mammoth": "^1.8.0",
+    "marked": "^15.0.4",
+    "pdfjs-dist": "^4.9.155",
+    "xlsx": "^0.18.5"
   }
 }

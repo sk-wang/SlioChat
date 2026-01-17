@@ -2,7 +2,7 @@
 
 # 🚀 SlioChat
 
-**Modern Single-File AI Chat UI | 现代化单文件 AI 聊天界面**
+**Modern AI Chat UI | 现代化 AI 聊天界面**
 
 [![MIT License](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
 [![GitHub Stars](https://img.shields.io/github/stars/user/slio-chat?style=social)](https://github.com/user/slio-chat)
@@ -12,7 +12,7 @@
 
 <img src="imgs/img.png" alt="SlioChat Interface Preview" width="800"/>
 
-*A modern chat interface supporting multiple LLMs, all packed into a single HTML file*
+*A modern AI chat interface built with Svelte 5 + TypeScript*
 
 </div>
 
@@ -48,9 +48,9 @@
 
 ### 💬 Comprehensive Chat Features
 - 🏷️ Automatic conversation title generation
-- 📄 Support for Image, PDF, Excel, Word files
+- 📄 Support for image file conversations
 - 📝 Markdown + Code syntax highlighting
-- ⚡ Streaming responses + Pause/Resume
+- ⚡ Streaming responses
 - 🧠 **Thinking process visualization**
 
 </td>
@@ -61,23 +61,15 @@
 ### 📝 Message Management
 - ✏️ Edit and delete messages
 - 💾 Local storage for conversations
-- 📤 Export/Import chat history
+- 🗂️ Conversations grouped by date
 
 </td>
 <td width="50%">
 
-### 🔍 Bocha Web Search <sup>Beta</sup>
-- 🤖 Auto-detect when web search is needed
-- 🔗 Auto-generate search queries
-- 📚 Auto-cite results with source links
-
-</td>
-</tr>
-<tr>
-<td colspan="2">
-
 ### ⚙️ Customizable Settings
-Custom system prompts · Online model management · Instant model switching · Conversation categorization
+- 🤖 Multiple preset conversation types
+- 🔧 Custom API configuration
+- 🔄 Instant model switching
 
 </td>
 </tr>
@@ -101,64 +93,31 @@ Custom system prompts · Online model management · Instant model switching · C
 
 ## 🚀 Quick Start
 
-### Option 1: Online Configuration (Recommended)
+### Development Environment
 
-SlioChat supports direct model configuration through the web interface — **no code changes required**:
+```bash
+# 1. Clone the project
+git clone https://github.com/user/slio-chat.git
+cd slio-chat
+
+# 2. Install dependencies
+npm install
+
+# 3. Start development server
+npm run dev
+
+# 4. Open browser at http://localhost:5173
+```
+
+### Configure API
+
+Configure your API in the settings panel:
 
 | Step | Action |
 |------|--------|
-| 1️⃣ | Click the **Settings icon** ⚙️ in the top-right corner |
-| 2️⃣ | Click **Add Model** in the "Model Settings" section |
-| 3️⃣ | Fill in Model ID, Display Name, Type, API URL, and Key |
-| 4️⃣ | (Optional) Configure Bocha Search API for web search |
-| 5️⃣ | Click **Save** — changes take effect immediately |
-
-> **✅ Advantages**: No restart needed · Multi-model support · Privacy-safe local storage · Dynamic CRUD for models
-
-### Option 2: Code Configuration (Advanced)
-
-<details>
-<summary>📝 Click to expand code configuration guide</summary>
-
-#### 1. Configure Model API
-
-Edit `js/config.js`:
-
-```javascript
-const API_CONFIG = {
-    models: {
-        'deepseek-r1': {
-            name: 'deepseek-r1',
-            type: 'thinking',  // Deep thinking model
-            url: 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions',
-            key: 'your-api-key',
-        },
-        'deepseek-v3': {
-            name: 'deepseek-v3',
-            type: 'normal',
-            url: 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions',
-            key: 'your-api-key',
-        },
-    },
-    defaultVlm: 'qwen2.5-vl-3b-instruct',
-};
-```
-
-#### 2. Configure Bocha Search API (Optional)
-
-```javascript
-search: {
-    url: 'https://api.bochaai.com/v1/web-search',
-    enabled: false,
-    token: 'your-bocha-api-key'  // Get it at: https://open.bochaai.com/
-}
-```
-
-#### 3. Run Development Environment
-
-Open `index.html` directly in your browser, or host with any web server.
-
-</details>
+| 1️⃣ | Click the **Settings** button at the bottom of sidebar |
+| 2️⃣ | Fill in API URL and API Key |
+| 3️⃣ | Click **Save** — changes take effect immediately |
 
 ---
 
@@ -166,18 +125,23 @@ Open `index.html` directly in your browser, or host with any web server.
 
 ```
 slio-chat/
-├── 📄 index.html          # Main HTML file
-├── 📁 css/
-│   └── main.css           # Stylesheet
-├── 📁 js/
-│   ├── config.js          # Configuration file
-│   └── main.js            # Core functionality
-├── 📁 scripts/
-│   └── build.js           # Build script
-├── 📁 dist/               # Build output directory
-│   └── index.html         # Bundled single file (~3.9MB)
-├── 📁 imgs/               # Screenshot assets
-└── 📄 package.json
+├── 📄 index.html              # Entry HTML
+├── 📄 package.json            # Project config
+├── 📄 vite.config.ts          # Vite config
+├── 📄 tailwind.config.js      # Tailwind config
+├── 📄 tsconfig.json           # TypeScript config
+├── 📁 src/
+│   ├── 📄 App.svelte          # Main app component
+│   ├── 📄 app.css             # Global styles
+│   ├── 📄 main.ts             # App entry point
+│   └── 📁 lib/
+│       ├── 📁 components/     # UI components
+│       ├── 📁 services/       # API service layer
+│       ├── 📁 stores/         # State management
+│       ├── 📁 types/          # TypeScript types
+│       └── 📁 utils/          # Utility functions
+├── 📁 dist/                   # Build output
+└── 📁 imgs/                   # Screenshot assets
 ```
 
 ---
@@ -187,13 +151,23 @@ slio-chat/
 <table>
 <tr>
 <td align="center" width="120">
-<strong>Core</strong><br/>
-<sub>Vanilla JS</sub>
+<strong>Framework</strong><br/>
+<sub>Svelte 5</sub>
+</td>
+<td align="center" width="120">
+<strong>Language</strong><br/>
+<sub>TypeScript</sub>
+</td>
+<td align="center" width="120">
+<strong>Build</strong><br/>
+<sub>Vite</sub>
 </td>
 <td align="center" width="120">
 <strong>Styling</strong><br/>
 <sub>TailwindCSS</sub>
 </td>
+</tr>
+<tr>
 <td align="center" width="120">
 <strong>Markdown</strong><br/>
 <sub>Marked.js</sub>
@@ -202,23 +176,13 @@ slio-chat/
 <strong>Code Highlight</strong><br/>
 <sub>Highlight.js</sub>
 </td>
-</tr>
-<tr>
 <td align="center" width="120">
-<strong>PDF Parsing</strong><br/>
-<sub>PDF.js</sub>
+<strong>Icons</strong><br/>
+<sub>Lucide</sub>
 </td>
 <td align="center" width="120">
-<strong>Excel</strong><br/>
-<sub>SheetJS</sub>
-</td>
-<td align="center" width="120">
-<strong>Word</strong><br/>
-<sub>Mammoth.js</sub>
-</td>
-<td align="center" width="120">
-<strong>Encoding</strong><br/>
-<sub>jschardet</sub>
+<strong>Storage</strong><br/>
+<sub>IndexedDB</sub>
 </td>
 </tr>
 </table>
@@ -226,15 +190,6 @@ slio-chat/
 ---
 
 ## 🔑 API Support
-
-### Free Trial Models
-
-| Model | Type | Description |
-|-------|------|-------------|
-| **Qwen2-57B** | General Chat | Alibaba Cloud Qwen2 model |
-| **DeepSeek-R1-Distill-Qwen-32B** | Reasoning | DeepSeek distilled model |
-
-> These models are pre-configured — **no API key required** for immediate use
 
 ### Supported Model Services
 
@@ -255,27 +210,17 @@ slio-chat/
 
 ## 📦 Build & Deploy
 
-### Production Deployment
+### Production Build
 
 ```bash
-# 1. Install dependencies
-npm install
-
-# 2. Build single-file version
+# Build for production
 npm run build
 
-# 3. Deploy dist/index.html to any web server
+# Preview build result
+npm run preview
+
+# Deploy dist/ directory to any static server
 ```
-
-### Build Features
-
-| Feature | Description |
-|---------|-------------|
-| ✅ Auto Inlining | Local CSS and JS inlined into HTML |
-| ✅ CDN Inlining | External libraries downloaded and inlined |
-| ✅ Code Compression | JS, CSS, HTML auto-minified |
-| ✅ Dependency Order | External libs load before local code |
-| ✅ PDF.js Optimization | Worker converted to Data URI for offline |
 
 ---
 

@@ -11,13 +11,13 @@ const DEFAULT_CONFIG: ApiConfig = {
   defaultSystemPrompt: '你是一位专业、友善且富有同理心的AI助手。你会根据问题的复杂程度调整回答方式：对于复杂问题，你会条理清晰地展示思考过程并给出详细解释；对于简单问题，你会直接给出准确简洁的答案。',
   models: {
     'deepseek-r1-distill-qwen-32b': {
-      name: 'r1-fast',
+      name: 'deepseek-r1-distill-qwen-32b',
       type: 'thinking',
       url: 'https://0f68edf33a3a4219a5ab9d9ae6b3034c-cn-hangzhou.alicloudapi.com/compatible-mode/v1/chat/completions',
       key: 'none',
     },
     'qwen2-57b-a14b-instruct': {
-      name: 'qwen2-57b',
+      name: 'qwen2-57b-a14b-instruct',
       type: 'normal',
       url: 'https://0f68edf33a3a4219a5ab9d9ae6b3034c-cn-hangzhou.alicloudapi.com/compatible-mode/v1/chat/completions',
       key: 'none',
@@ -54,8 +54,8 @@ const DEFAULT_CONFIG: ApiConfig = {
 };
 
 class SettingsStore {
-  #config: ApiConfig;
-  #selectedModel = $state<string>('');
+  private _config: ApiConfig;
+  private _selectedModel = $state<string>('');
 
   constructor() {
     const storedModels = storage.get<Record<string, ModelConfig> | null>('models', null);
@@ -65,7 +65,7 @@ class SettingsStore {
     const storedSearchJudger = storage.get<string | null>('searchJudgerModel', null);
     const storedPreferredModel = storage.get<string>('preferred-model', DEFAULT_CONFIG.defaultModel);
 
-    this.#config = $state<ApiConfig>({
+    this._config = $state<ApiConfig>({
       ...DEFAULT_CONFIG,
       models: storedModels || DEFAULT_CONFIG.models,
       titleGenerationModel: storedTitleModel || DEFAULT_CONFIG.titleGenerationModel,
@@ -77,61 +77,61 @@ class SettingsStore {
       },
     });
 
-    this.#selectedModel = storedPreferredModel;
+    this._selectedModel = storedPreferredModel;
   }
 
-  get config() { return this.#config; }
-  get selectedModel() { return this.#selectedModel; }
-  get currentModelConfig() { return this.#config.models[this.#selectedModel]; }
-  get modelList() { return Object.entries(this.#config.models); }
+  get config() { return this._config; }
+  get selectedModel() { return this._selectedModel; }
+  get currentModelConfig() { return this._config.models[this._selectedModel]; }
+  get modelList() { return Object.entries(this._config.models); }
   get isThinkingModel() { return this.currentModelConfig?.type === 'thinking'; }
 
   selectModel(modelId: string): void {
-    if (this.#config.models[modelId]) {
-      this.#selectedModel = modelId;
+    if (this._config.models[modelId]) {
+      this._selectedModel = modelId;
       storage.set('preferred-model', modelId);
     }
   }
 
   addModel(id: string, model: ModelConfig): void {
-    this.#config.models[id] = model;
-    storage.set('models', this.#config.models);
+    this._config.models[id] = model;
+    storage.set('models', this._config.models);
   }
 
   updateModel(id: string, model: Partial<ModelConfig>): void {
-    if (this.#config.models[id]) {
-      this.#config.models[id] = { ...this.#config.models[id], ...model };
-      storage.set('models', this.#config.models);
+    if (this._config.models[id]) {
+      this._config.models[id] = { ...this._config.models[id], ...model };
+      storage.set('models', this._config.models);
     }
   }
 
   removeModel(id: string): void {
-    delete this.#config.models[id];
-    this.#config.models = { ...this.#config.models };
-    storage.set('models', this.#config.models);
+    delete this._config.models[id];
+    this._config.models = { ...this._config.models };
+    storage.set('models', this._config.models);
   }
 
   updateSearch(updates: Partial<{ token: string; enabled: boolean; url: string }>): void {
     if (updates.token !== undefined) {
-      this.#config.search.token = updates.token;
+      this._config.search.token = updates.token;
       storage.set('bochaApiKey', updates.token);
     }
     if (updates.enabled !== undefined) {
-      this.#config.search.enabled = updates.enabled;
+      this._config.search.enabled = updates.enabled;
       storage.set('bochaSearchEnabled', updates.enabled);
     }
     if (updates.url !== undefined) {
-      this.#config.search.url = updates.url;
+      this._config.search.url = updates.url;
     }
   }
 
   setTitleModel(modelId: string): void {
-    this.#config.titleGenerationModel = modelId;
+    this._config.titleGenerationModel = modelId;
     storage.set('titleGenerationModel', modelId);
   }
 
   setSearchJudgerModel(modelId: string): void {
-    this.#config.searchJudgerModel = modelId;
+    this._config.searchJudgerModel = modelId;
     storage.set('searchJudgerModel', modelId);
   }
 }

@@ -108,7 +108,7 @@ async function describeImageWithVLM(base64: string): Promise<string> {
 }
 
 async function extractPdfText(file: File): Promise<string> {
-  const arrayBuffer = await file.arrayBuffer();
+  const arrayBuffer = await readFileAsArrayBuffer(file);
   const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
   
   let fullText = '';
@@ -125,7 +125,7 @@ async function extractPdfText(file: File): Promise<string> {
 }
 
 async function extractExcelText(file: File): Promise<string> {
-  const arrayBuffer = await file.arrayBuffer();
+  const arrayBuffer = await readFileAsArrayBuffer(file);
   const workbook = XLSX.read(arrayBuffer, { type: 'array' });
   
   let result = '';
@@ -139,7 +139,7 @@ async function extractExcelText(file: File): Promise<string> {
 }
 
 async function extractWordText(file: File): Promise<string> {
-  const arrayBuffer = await file.arrayBuffer();
+  const arrayBuffer = await readFileAsArrayBuffer(file);
   const result = await mammoth.extractRawText({ arrayBuffer });
   return result.value;
 }
@@ -156,8 +156,17 @@ async function extractImageBase64(file: File): Promise<string> {
   });
 }
 
+function readFileAsArrayBuffer(file: File): Promise<ArrayBuffer> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as ArrayBuffer);
+    reader.onerror = reject;
+    reader.readAsArrayBuffer(file);
+  });
+}
+
 async function extractTextContent(file: File): Promise<string> {
-  const arrayBuffer = await file.arrayBuffer();
+  const arrayBuffer = await readFileAsArrayBuffer(file);
   const uint8Array = new Uint8Array(arrayBuffer);
   
   const detected = jschardet.detect(String.fromCharCode(...uint8Array.slice(0, 1024)));

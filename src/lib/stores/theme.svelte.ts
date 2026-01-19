@@ -2,29 +2,35 @@ import { storage } from '$lib/services/storage';
 import { uiStore } from './ui.svelte';
 
 class ThemeStore {
-  #isDark = $state(false);
+  private _isDark = $state(false);
 
   constructor() {
     if (typeof window !== 'undefined') {
       const stored = storage.get<'dark' | 'light' | null>('theme', null);
-      const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-      this.#isDark = stored === 'dark' || (!stored && systemPrefersDark);
-      this.#applyTheme();
+      const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+      this._isDark = stored === 'dark' || (!stored && mediaQuery.matches);
+      this._applyTheme();
 
-      window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+      const handleChange = (e: MediaQueryListEvent) => {
         if (!storage.get('theme', null)) {
-          this.#isDark = e.matches;
-          this.#applyTheme();
+          this._isDark = e.matches;
+          this._applyTheme();
         }
-      });
+      };
+
+      if (typeof mediaQuery.addEventListener === 'function') {
+        mediaQuery.addEventListener('change', handleChange);
+      } else if (typeof mediaQuery.addListener === 'function') {
+        mediaQuery.addListener(handleChange);
+      }
     }
   }
 
-  get isDark() { return this.#isDark; }
+  get isDark() { return this._isDark; }
 
-  #applyTheme() {
+  private _applyTheme() {
     const html = document.documentElement;
-    if (this.#isDark) {
+    if (this._isDark) {
       html.classList.add('dark');
       html.setAttribute('data-theme', 'dark');
     } else {
@@ -34,16 +40,16 @@ class ThemeStore {
   }
 
   toggle(): void {
-    this.#isDark = !this.#isDark;
-    storage.set('theme', this.#isDark ? 'dark' : 'light');
-    this.#applyTheme();
-    uiStore.showToast(`已切换至${this.#isDark ? '暗色' : '亮色'}主题`, 'info');
+    this._isDark = !this._isDark;
+    storage.set('theme', this._isDark ? 'dark' : 'light');
+    this._applyTheme();
+    uiStore.showToast(`已切换至${this._isDark ? '暗色' : '亮色'}主题`, 'info');
   }
 
   set(dark: boolean): void {
-    this.#isDark = dark;
+    this._isDark = dark;
     storage.set('theme', dark ? 'dark' : 'light');
-    this.#applyTheme();
+    this._applyTheme();
   }
 }
 

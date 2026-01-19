@@ -2,7 +2,7 @@
 
 # SlioChat
 
-**一个简洁优雅的 AI 聊天界面，基于 Svelte 5 + TypeScript 构建，支持多种大语言模型**
+**一个简洁优雅的 AI 聊天界面，基于 Svelte 5 + TypeScript 构建，支持多模型配置、流式回复与思考过程可视化，开箱即用且易于扩展**
 
 [![MIT License](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
 [![Demo](https://img.shields.io/badge/Demo-Live-blue)](https://slio-chat.pages.dev/)
@@ -23,6 +23,8 @@
 - **对话管理** - 编辑、删除、按日期分组
 - **本地存储** - 会话记录保存在浏览器
 - **多模型支持** - 自定义 API 配置
+- **多模态支持** - 支持图片识别与视觉交互
+- **文档解析** - 支持 PDF / Word / Excel 文档读取与内容理解
 
 ## 快速开始
 

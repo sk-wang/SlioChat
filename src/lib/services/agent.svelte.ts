@@ -151,7 +151,7 @@ class AgentService {
             // Add assistant message with tool calls
             currentMessages.push({
               role: 'assistant',
-              content: result.content || '',
+              content: result.content || null,
               toolCalls: result.toolCalls
             });
 
@@ -167,6 +167,7 @@ class AgentService {
               }
             }
 
+            console.log(`[Agent] After tool execution, currentMessages count:`, currentMessages.length);
             // Notify that messages have been updated
             yield { type: 'messages_updated', messages: [...currentMessages] };
           } else {
@@ -211,7 +212,7 @@ class AgentService {
             // Add assistant message with tool calls
             currentMessages.push({
               role: 'assistant',
-              content: result.content || '',
+              content: result.content || null,
               toolCalls: result.toolCalls
             });
 
@@ -230,6 +231,7 @@ class AgentService {
             // Clear confirmations for next iteration
             agentStore.clearConfirmations();
 
+            console.log(`[Agent] After tool execution (confirmation mode), currentMessages count:`, currentMessages.length);
             // Notify that messages have been updated
             yield { type: 'messages_updated', messages: [...currentMessages] };
           }

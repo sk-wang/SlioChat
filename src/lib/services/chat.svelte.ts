@@ -29,8 +29,7 @@ class ChatService {
           fileSize: f.size
         }))
       };
-      // Don't embed file content in message - let agent use tools to read
-      content = text + '\n\n[工作空间中有 ' + workspaceFiles.length + ' 个文件，请使用 file_list 和 file_read 工具查看]';
+      // Agent will use tools to discover and read files when needed
     }
 
     const userMessage: Message = {
@@ -57,7 +56,8 @@ class ChatService {
       for await (const event of agentService.runAgentConversation(messagesToSend, systemPrompt)) {
         switch (event.type) {
           case 'thinking':
-            finalThinking += event.content || '';
+            // API callbacks send accumulated content, use = not +=
+            finalThinking = event.content || '';
             streamingStore.setThinking(finalThinking);
             const thinkingContent = JSON.stringify({
               thinking: finalThinking,
@@ -67,7 +67,8 @@ class ChatService {
             break;
 
           case 'content':
-            finalContent += event.content || '';
+            // API callbacks send accumulated content, use = not +=
+            finalContent = event.content || '';
             if (finalThinking) {
               const msgContent = JSON.stringify({
                 thinking: finalThinking,
@@ -100,6 +101,12 @@ class ChatService {
           case 'tool_rejected':
             // Tool was rejected by user
             conversationsStore.updateLastMessage('[工具执行已拒绝]', 'normal');
+            break;
+
+          case 'messages_updated':
+            // Agent has added tool messages to the conversation context
+            // These are used for multi-turn tool calling but not persisted to store
+            // The final response will be saved as the assistant message
             break;
 
           case 'final_response':
@@ -165,7 +172,8 @@ class ChatService {
       for await (const event of agentService.runAgentConversation(contextMessages, systemPrompt)) {
         switch (event.type) {
           case 'thinking':
-            finalThinking += event.content || '';
+            // API callbacks send accumulated content, use = not +=
+            finalThinking = event.content || '';
             streamingStore.setThinking(finalThinking);
             const thinkingContent = JSON.stringify({
               thinking: finalThinking,
@@ -175,7 +183,8 @@ class ChatService {
             break;
 
           case 'content':
-            finalContent += event.content || '';
+            // API callbacks send accumulated content, use = not +=
+            finalContent = event.content || '';
             if (finalThinking) {
               const msgContent = JSON.stringify({
                 thinking: finalThinking,
@@ -200,6 +209,10 @@ class ChatService {
 
           case 'tool_rejected':
             conversationsStore.updateLastMessage('[工具执行已拒绝]', 'normal');
+            break;
+
+          case 'messages_updated':
+            // Agent has added tool messages to the conversation context
             break;
 
           case 'final_response':

@@ -5,6 +5,7 @@
 
 import { storage } from '$lib/services/storage';
 import { vfs } from '$lib/services/sandbox.svelte';
+import { clearFileCache, clearAllFileCache } from '$lib/tools/fileTools';
 import type { Workspace, WorkspaceFile } from '$lib/types/workspace';
 
 const STORAGE_KEY = 'workspaces';
@@ -192,6 +193,9 @@ class WorkspaceStore {
       }
     }
 
+    // Clear processed cache
+    clearFileCache(fileId);
+
     this.#files.delete(fileId);
     this.#workspaces = this.#workspaces.map(w =>
       w.id === currentWs.id
@@ -270,6 +274,9 @@ class WorkspaceStore {
       }
       this.#files.delete(fileId);
     }
+
+    // Clear all processed cache
+    clearAllFileCache();
 
     this.#workspaces = this.#workspaces.map(w =>
       w.id === currentWs.id

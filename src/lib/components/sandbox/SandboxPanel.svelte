@@ -219,7 +219,7 @@
         class="flex-1 px-4 py-2 text-sm transition-colors"
         class:text-[var(--text-primary)]={activeTab === 'files'}
         class:border-b-2={activeTab === 'files'}
-        class:border-[var(--accent-color)]={activeTab === 'files'}
+        class:border-[var(--button-primary-bg)]={activeTab === 'files'}
         class:text-[var(--text-secondary)]={activeTab !== 'files'}
         onclick={() => activeTab = 'files'}
       >
@@ -229,7 +229,7 @@
         class="flex-1 px-4 py-2 text-sm transition-colors"
         class:text-[var(--text-primary)]={activeTab === 'editor'}
         class:border-b-2={activeTab === 'editor'}
-        class:border-[var(--accent-color)]={activeTab === 'editor'}
+        class:border-[var(--button-primary-bg)]={activeTab === 'editor'}
         class:text-[var(--text-secondary)]={activeTab !== 'editor'}
         onclick={() => activeTab = 'editor'}
       >
@@ -316,7 +316,7 @@
 
                       <!-- Quick action indicator for selected item on mobile -->
                       {#if isSelected && editingEntry?.path !== entry.path}
-                        <span class="text-xs text-[var(--accent-color)] md:hidden">已选择</span>
+                        <span class="text-xs text-[var(--button-primary-bg)] md:hidden">已选择</span>
                       {/if}
                     </div>
 

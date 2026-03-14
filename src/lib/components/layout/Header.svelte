@@ -111,7 +111,7 @@
     <!-- Sandbox Toggle -->
     <button
       class="p-1.5 md:p-2 text-[var(--text-secondary)] hover:bg-[var(--hover-bg)] rounded-lg transition-colors"
-      class:bg-[var(--accent-color)]={agentStore.showSandbox}
+      class:bg-[var(--button-primary-bg)]={agentStore.showSandbox}
       class:text-white={agentStore.showSandbox}
       onclick={() => agentStore.toggleSandbox()}
       title="切换沙箱面板"

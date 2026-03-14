@@ -17,11 +17,6 @@ export interface AgentRunOptions {
 }
 
 class AgentService {
-  private currentMessages: Message[] = [];
-  private currentSystemPrompt = '';
-  private pendingToolCalls: ToolCall[] = [];
-  private resolveToolExecution: ((approved: boolean) => void) | null = null;
-
   /**
    * Run agent conversation with tool calling loop
    */
@@ -130,139 +125,55 @@ class AgentService {
         if (result.toolCalls && result.toolCalls.length > 0) {
           console.log(`[Agent] Tool calls found:`, result.toolCalls.map(t => t.function.name));
           // Yield tool calls event
-          console.log(`[Agent] Executing ${result.toolCalls.length} tool calls`);
           yield { type: 'tool_calls', calls: result.toolCalls };
           agentStore.addToolCalls(result.toolCalls);
 
-          // Store pending tool calls
-          this.pendingToolCalls = result.toolCalls;
+          // Auto-execute all tools (YOLO mode is always on)
+          for (const call of result.toolCalls) {
+            yield { type: 'tool_executing', call };
+            console.log(`[Agent] Executing tool: ${call.function.name}`);
 
-          // Check if YOLO mode or need confirmation
-          if (agentStore.yoloMode) {
-            // YOLO mode - auto-execute all tools
-            for (const call of result.toolCalls) {
-              yield { type: 'tool_executing', call };
-              console.log(`[Agent] Executing tool: ${call.function.name}`);
-
-              try {
-                const toolResult = await this.executeToolCall(call);
-                console.log(`[Agent] Tool result:`, toolResult.status, toolResult.content?.substring(0, 100));
-                yield { type: 'tool_result', call, result: toolResult };
-                agentStore.addToolResult(call.id, toolResult);
-              } catch (toolError) {
-                console.error(`[Agent] Tool execution error:`, toolError);
-                const errorResult: ToolResult = {
-                  tool_call_id: call.id,
-                  role: 'tool',
-                  content: `Error: ${toolError instanceof Error ? toolError.message : String(toolError)}`,
-                  status: 'error'
-                };
-                yield { type: 'tool_result', call, result: errorResult };
-                agentStore.addToolResult(call.id, errorResult);
-              }
+            try {
+              const toolResult = await this.executeToolCall(call);
+              console.log(`[Agent] Tool result:`, toolResult.status, toolResult.content?.substring(0, 100));
+              yield { type: 'tool_result', call, result: toolResult };
+              agentStore.addToolResult(call.id, toolResult);
+            } catch (toolError) {
+              console.error(`[Agent] Tool execution error:`, toolError);
+              const errorResult: ToolResult = {
+                tool_call_id: call.id,
+                role: 'tool',
+                content: `Error: ${toolError instanceof Error ? toolError.message : String(toolError)}`,
+                status: 'error'
+              };
+              yield { type: 'tool_result', call, result: errorResult };
+              agentStore.addToolResult(call.id, errorResult);
             }
-
-            // Add assistant message with tool calls
-            currentMessages.push({
-              role: 'assistant',
-              content: result.content || null,
-              toolCalls: result.toolCalls
-            });
-
-            // Add tool results to messages
-            for (const call of result.toolCalls) {
-              const toolResult = agentStore.getToolResult(call.id);
-              if (toolResult) {
-                currentMessages.push({
-                  role: 'tool',
-                  content: toolResult.content,
-                  toolCallId: toolResult.tool_call_id
-                });
-              }
-            }
-
-            console.log(`[Agent] After tool execution, currentMessages count:`, currentMessages.length);
-            // Notify that messages have been updated
-            yield { type: 'messages_updated', messages: [...currentMessages] };
-            console.log(`[Agent] Continuing to next iteration...`);
-          } else {
-            // Human confirmation mode - add pending confirmations
-            for (const call of result.toolCalls) {
-              try {
-                const args = JSON.parse(call.function.arguments);
-                agentStore.addPendingConfirmation(call, args);
-              } catch {
-                agentStore.addPendingConfirmation(call, {});
-              }
-            }
-
-            // Yield waiting for confirmation
-            yield { type: 'tool_confirmation_required', calls: result.toolCalls };
-
-            // Wait for user confirmation (this is handled by resumeWithConfirmation)
-            // The generator will pause here until confirmation is provided
-            const approved = await this.waitForConfirmation();
-
-            if (!approved) {
-              // User rejected - add rejection as tool result
-              yield { type: 'tool_rejected', calls: result.toolCalls };
-              agentStore.stopProcessing();
-              return;
-            }
-
-            // User approved - execute tools
-            for (const call of result.toolCalls) {
-              if (!agentStore.isToolCallConfirmed(call.id)) {
-                continue; // Skip rejected tools
-              }
-
-              yield { type: 'tool_executing', call };
-              console.log(`[Agent] Executing tool (confirmation mode): ${call.function.name}`);
-
-              try {
-                const toolResult = await this.executeToolCall(call);
-                console.log(`[Agent] Tool result:`, toolResult.status, toolResult.content?.substring(0, 100));
-                yield { type: 'tool_result', call, result: toolResult };
-                agentStore.addToolResult(call.id, toolResult);
-              } catch (toolError) {
-                console.error(`[Agent] Tool execution error:`, toolError);
-                const errorResult: ToolResult = {
-                  tool_call_id: call.id,
-                  role: 'tool',
-                  content: `Error: ${toolError instanceof Error ? toolError.message : String(toolError)}`,
-                  status: 'error'
-                };
-                yield { type: 'tool_result', call, result: errorResult };
-                agentStore.addToolResult(call.id, errorResult);
-              }
-            }
-
-            // Add assistant message with tool calls
-            currentMessages.push({
-              role: 'assistant',
-              content: result.content || null,
-              toolCalls: result.toolCalls
-            });
-
-            // Add tool results to messages
-            for (const call of result.toolCalls) {
-              const toolResult = agentStore.getToolResult(call.id);
-              if (toolResult) {
-                currentMessages.push({
-                  role: 'tool',
-                  content: toolResult.content,
-                  toolCallId: toolResult.tool_call_id
-                });
-              }
-            }
-
-            // Clear confirmations for next iteration
-            agentStore.clearConfirmations();
-
-            console.log(`[Agent] After tool execution (confirmation mode), currentMessages count:`, currentMessages.length);
-            // Notify that messages have been updated
-            yield { type: 'messages_updated', messages: [...currentMessages] };
           }
+
+          // Add assistant message with tool calls
+          currentMessages.push({
+            role: 'assistant',
+            content: result.content || null,
+            toolCalls: result.toolCalls
+          });
+
+          // Add tool results to messages
+          for (const call of result.toolCalls) {
+            const toolResult = agentStore.getToolResult(call.id);
+            if (toolResult) {
+              currentMessages.push({
+                role: 'tool',
+                content: toolResult.content,
+                toolCallId: toolResult.tool_call_id
+              });
+            }
+          }
+
+          console.log(`[Agent] After tool execution, currentMessages count:`, currentMessages.length);
+          // Notify that messages have been updated
+          yield { type: 'messages_updated', messages: [...currentMessages] };
+          console.log(`[Agent] Continuing to next iteration...`);
         } else {
           // No tool calls - this is the final response
           console.log(`[Agent] Iteration ${iteration}: No more tool calls, returning final response`);
@@ -282,53 +193,6 @@ class AgentService {
     console.log(`[Agent] Max iterations (${maxIterations}) reached`);
     yield { type: 'max_iterations' };
     agentStore.stopProcessing();
-  }
-
-  /**
-   * Wait for user confirmation
-   */
-  private waitForConfirmation(): Promise<boolean> {
-    return new Promise((resolve) => {
-      this.resolveToolExecution = resolve;
-    });
-  }
-
-  /**
-   * Resume agent after user confirms or rejects tools
-   */
-  resumeWithConfirmation(approved: boolean): void {
-    if (this.resolveToolExecution) {
-      this.resolveToolExecution(approved);
-      this.resolveToolExecution = null;
-    }
-  }
-
-  /**
-   * Approve a specific tool call
-   */
-  approveToolCall(callId: string): void {
-    agentStore.approveToolCall(callId);
-  }
-
-  /**
-   * Reject a specific tool call
-   */
-  rejectToolCall(callId: string): void {
-    agentStore.rejectToolCall(callId);
-  }
-
-  /**
-   * Approve all pending tool calls
-   */
-  approveAllToolCalls(): void {
-    agentStore.approveAllPending();
-  }
-
-  /**
-   * Reject all pending tool calls
-   */
-  rejectAllToolCalls(): void {
-    agentStore.rejectAllPending();
   }
 
   /**

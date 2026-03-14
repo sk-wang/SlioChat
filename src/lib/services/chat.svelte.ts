@@ -50,6 +50,7 @@ class ChatService {
 
     try {
       let finalContent = '';
+      let finalThinking = ''; // Combined thinking for display
       let allRoundsThinking = ''; // Accumulate thinking from all rounds
       let currentRoundThinking = ''; // Thinking for current round only
 
@@ -187,6 +188,7 @@ class ChatService {
 
     try {
       let finalContent = '';
+      let finalThinking = '';
       let allRoundsThinking = '';
       let currentRoundThinking = '';
 

@@ -153,6 +153,24 @@
       uiStore.showToast('移动失败: ' + (e as Error).message, 'error');
     }
   }
+
+  async function handleDownload(entry: VFSEntry) {
+    try {
+      const content = await vfs.readFile(entry.path);
+      const blob = new Blob([content], { type: 'application/octet-stream' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = entry.name;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      uiStore.showToast('下载开始', 'success');
+    } catch (e) {
+      uiStore.showToast('下载失败: ' + (e as Error).message, 'error');
+    }
+  }
 </script>
 
 {#if agentStore.showSandbox}
@@ -291,6 +309,15 @@
                         >
                           📤 移动
                         </button>
+                        {#if entry.type === 'file'}
+                          <button
+                            class="flex-1 flex items-center justify-center gap-1 p-2 text-xs text-[var(--text-secondary)] hover:text-green-500 hover:bg-green-500/10 rounded transition-colors"
+                            onclick={() => handleDownload(entry)}
+                            title="下载"
+                          >
+                            ⬇️ 下载
+                          </button>
+                        {/if}
                         <button
                           class="flex-1 flex items-center justify-center gap-1 p-2 text-xs text-[var(--text-secondary)] hover:text-red-500 hover:bg-red-500/10 rounded transition-colors"
                           onclick={() => handleDelete(entry)}

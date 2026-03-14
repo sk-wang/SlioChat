@@ -141,11 +141,24 @@ class AgentService {
             // YOLO mode - auto-execute all tools
             for (const call of result.toolCalls) {
               yield { type: 'tool_executing', call };
+              console.log(`[Agent] Executing tool: ${call.function.name}`);
 
-              const toolResult = await this.executeToolCall(call);
-
-              yield { type: 'tool_result', call, result: toolResult };
-              agentStore.addToolResult(call.id, toolResult);
+              try {
+                const toolResult = await this.executeToolCall(call);
+                console.log(`[Agent] Tool result:`, toolResult.status, toolResult.content?.substring(0, 100));
+                yield { type: 'tool_result', call, result: toolResult };
+                agentStore.addToolResult(call.id, toolResult);
+              } catch (toolError) {
+                console.error(`[Agent] Tool execution error:`, toolError);
+                const errorResult: ToolResult = {
+                  tool_call_id: call.id,
+                  role: 'tool',
+                  content: `Error: ${toolError instanceof Error ? toolError.message : String(toolError)}`,
+                  status: 'error'
+                };
+                yield { type: 'tool_result', call, result: errorResult };
+                agentStore.addToolResult(call.id, errorResult);
+              }
             }
 
             // Add assistant message with tool calls
@@ -202,11 +215,24 @@ class AgentService {
               }
 
               yield { type: 'tool_executing', call };
+              console.log(`[Agent] Executing tool (confirmation mode): ${call.function.name}`);
 
-              const toolResult = await this.executeToolCall(call);
-
-              yield { type: 'tool_result', call, result: toolResult };
-              agentStore.addToolResult(call.id, toolResult);
+              try {
+                const toolResult = await this.executeToolCall(call);
+                console.log(`[Agent] Tool result:`, toolResult.status, toolResult.content?.substring(0, 100));
+                yield { type: 'tool_result', call, result: toolResult };
+                agentStore.addToolResult(call.id, toolResult);
+              } catch (toolError) {
+                console.error(`[Agent] Tool execution error:`, toolError);
+                const errorResult: ToolResult = {
+                  tool_call_id: call.id,
+                  role: 'tool',
+                  content: `Error: ${toolError instanceof Error ? toolError.message : String(toolError)}`,
+                  status: 'error'
+                };
+                yield { type: 'tool_result', call, result: errorResult };
+                agentStore.addToolResult(call.id, errorResult);
+              }
             }
 
             // Add assistant message with tool calls

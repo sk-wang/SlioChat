@@ -92,7 +92,7 @@
               <span class="text-xs text-[var(--text-secondary)]">(默认)</span>
             {/if}
             {#if workspace.id === workspaceStore.currentWorkspaceId}
-              <svg class="w-4 h-4 text-[var(--accent-color)] ml-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg class="w-4 h-4 text-[var(--button-primary-bg)] ml-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
               </svg>
             {/if}
@@ -111,7 +111,7 @@
             bind:value={newWorkspaceName}
             onkeydown={handleKeydown}
             placeholder="工作空间名称"
-            class="w-full px-3 py-1.5 text-sm bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-lg focus:outline-none focus:border-[var(--accent-color)]"
+            class="w-full px-3 py-1.5 text-sm bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-lg focus:outline-none focus:border-[var(--button-primary-bg)]"
           />
           <div class="flex gap-2 mt-2">
             <button
@@ -123,7 +123,7 @@
             <button
               onclick={createWorkspace}
               disabled={!newWorkspaceName.trim()}
-              class="flex-1 px-3 py-1.5 text-sm bg-[var(--accent-color)] text-white rounded-lg hover:opacity-90 transition-colors disabled:opacity-50"
+              class="flex-1 px-3 py-1.5 text-sm bg-[var(--button-primary-bg)] text-white rounded-lg hover:bg-[var(--button-primary-hover)] transition-colors disabled:opacity-50"
             >
               创建
             </button>

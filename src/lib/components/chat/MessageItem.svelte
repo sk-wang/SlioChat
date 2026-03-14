@@ -8,7 +8,6 @@
   import type { Message } from '$lib/types';
   import ThinkingBlock from './ThinkingBlock.svelte';
   import ToolCallDisplay from '$lib/components/agent/ToolCallDisplay.svelte';
-  import ToolConfirmation from '$lib/components/agent/ToolConfirmation.svelte';
   import { fade } from 'svelte/transition';
 
   const { message, index }: { message: Message; index: number } = $props();
@@ -29,9 +28,6 @@
   const isLastAssistant = $derived(!isUser && index === (conversationsStore.current?.messages.length ?? 0) - 1);
   const isGeneratingThis = $derived(isLastAssistant && streamingStore.isGenerating);
   const hasToolCalls = $derived(message.toolCalls && message.toolCalls.length > 0);
-  // Show tool confirmation for the last assistant message when there are pending confirmations
-  // OR when agent is processing (to show tool calls during execution)
-  const showToolConfirmation = $derived(isLastAssistant && (agentStore.hasPendingConfirmations || (agentStore.isProcessing && hasToolCalls)));
 
   function copyMessage() {
     navigator.clipboard.writeText(message.content);
@@ -106,11 +102,6 @@
               <ToolCallDisplay {call} />
             {/each}
           </div>
-        {/if}
-
-        <!-- Tool confirmation UI -->
-        {#if showToolConfirmation}
-          <ToolConfirmation />
         {/if}
 
         {#if !isTool}

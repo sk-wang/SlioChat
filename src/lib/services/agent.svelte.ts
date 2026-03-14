@@ -126,8 +126,9 @@ class AgentService {
         }
 
         // Check for tool calls
-        console.log(`[Agent] Iteration ${iteration}: toolCalls=`, result.toolCalls?.length || 0);
+        console.log(`[Agent] Iteration ${iteration}: content length=${result.content?.length || 0}, toolCalls=${result.toolCalls?.length || 0}`);
         if (result.toolCalls && result.toolCalls.length > 0) {
+          console.log(`[Agent] Tool calls found:`, result.toolCalls.map(t => t.function.name));
           // Yield tool calls event
           console.log(`[Agent] Executing ${result.toolCalls.length} tool calls`);
           yield { type: 'tool_calls', calls: result.toolCalls };
@@ -183,6 +184,7 @@ class AgentService {
             console.log(`[Agent] After tool execution, currentMessages count:`, currentMessages.length);
             // Notify that messages have been updated
             yield { type: 'messages_updated', messages: [...currentMessages] };
+            console.log(`[Agent] Continuing to next iteration...`);
           } else {
             // Human confirmation mode - add pending confirmations
             for (const call of result.toolCalls) {

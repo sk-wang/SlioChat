@@ -41,7 +41,7 @@
   }
 </script>
 
-<div class="tool-call-block border border-[var(--border-color)] rounded-lg overflow-hidden my-2 text-sm">
+<div class="tool-call-block border border-[var(--border-color)] rounded-lg overflow-hidden my-2 text-sm min-w-0 w-full">
   <!-- Header -->
   <div class={headerClass()}>
     {#if isExecuting}

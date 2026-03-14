@@ -125,10 +125,14 @@ class ChatService {
             } else {
               conversationsStore.updateLastMessage(finalContent, 'normal');
             }
+            // Ensure processing state is cleared
+            streamingStore.finish();
             break;
 
           case 'error':
             conversationsStore.updateLastMessage('发生错误: ' + (event.error || '未知错误'));
+            // Ensure processing state is cleared on error
+            streamingStore.finish();
             break;
         }
       }
@@ -239,10 +243,14 @@ class ChatService {
             } else {
               conversationsStore.updateLastMessage(finalContent, 'normal');
             }
+            // Ensure processing state is cleared
+            streamingStore.finish();
             break;
 
           case 'error':
             conversationsStore.updateLastMessage('发生错误: ' + (event.error || '未知错误'));
+            // Ensure processing state is cleared on error
+            streamingStore.finish();
             break;
         }
       }

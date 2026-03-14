@@ -81,26 +81,31 @@ class ChatService {
             break;
 
           case 'tool_calls':
-            // Tool calls are handled by agent store and displayed via ToolCallDisplay
-            // Update the message to show tool calls are in progress
-            if (!finalContent && !finalThinking) {
-              conversationsStore.updateLastMessage('[正在使用工具...]', 'normal');
+            // Save tool calls to the message so ToolCallDisplay can show them
+            if (event.calls && event.calls.length > 0) {
+              conversationsStore.updateLastMessageFields({
+                toolCalls: event.calls
+              });
             }
             break;
 
           case 'tool_result':
             // Tool results are displayed in UI via ToolCallDisplay
+            // Results are stored in agentStore
             break;
 
           case 'tool_confirmation_required':
             // Tool confirmation UI is shown via ToolConfirmation component
-            // Update message to indicate waiting for confirmation
-            conversationsStore.updateLastMessage('[等待工具执行确认...]', 'normal');
+            // Also save tool calls to message for display
+            if (event.calls && event.calls.length > 0) {
+              conversationsStore.updateLastMessageFields({
+                toolCalls: event.calls
+              });
+            }
             break;
 
           case 'tool_rejected':
             // Tool was rejected by user
-            conversationsStore.updateLastMessage('[工具执行已拒绝]', 'normal');
             break;
 
           case 'messages_updated':
@@ -197,18 +202,26 @@ class ChatService {
             break;
 
           case 'tool_calls':
-            if (!finalContent && !finalThinking) {
-              conversationsStore.updateLastMessage('[正在使用工具...]', 'normal');
+            // Save tool calls to the message so ToolCallDisplay can show them
+            if (event.calls && event.calls.length > 0) {
+              conversationsStore.updateLastMessageFields({
+                toolCalls: event.calls
+              });
             }
             break;
 
           case 'tool_confirmation_required':
             // Tool confirmation UI is shown via ToolConfirmation component
-            conversationsStore.updateLastMessage('[等待工具执行确认...]', 'normal');
+            // Also save tool calls to message for display
+            if (event.calls && event.calls.length > 0) {
+              conversationsStore.updateLastMessageFields({
+                toolCalls: event.calls
+              });
+            }
             break;
 
           case 'tool_rejected':
-            conversationsStore.updateLastMessage('[工具执行已拒绝]', 'normal');
+            // Tool was rejected by user
             break;
 
           case 'messages_updated':

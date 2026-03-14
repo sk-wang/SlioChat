@@ -29,7 +29,9 @@
   const isLastAssistant = $derived(!isUser && index === (conversationsStore.current?.messages.length ?? 0) - 1);
   const isGeneratingThis = $derived(isLastAssistant && streamingStore.isGenerating);
   const hasToolCalls = $derived(message.toolCalls && message.toolCalls.length > 0);
-  const showToolConfirmation = $derived(isLastAssistant && agentStore.hasPendingConfirmations);
+  // Show tool confirmation for the last assistant message when there are pending confirmations
+  // OR when agent is processing (to show tool calls during execution)
+  const showToolConfirmation = $derived(isLastAssistant && (agentStore.hasPendingConfirmations || (agentStore.isProcessing && hasToolCalls)));
 
   function copyMessage() {
     navigator.clipboard.writeText(message.content);

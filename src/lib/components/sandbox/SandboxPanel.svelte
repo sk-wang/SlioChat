@@ -178,26 +178,37 @@
     <!-- Header -->
     <div class="sandbox-header flex items-center justify-between px-4 py-3 border-b border-[var(--border-color)]">
       <h3 class="text-base font-semibold">沙箱</h3>
-      <div class="flex items-center gap-4">
+      <div class="flex items-center gap-1">
         <button
-          class="text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+          class="p-2 text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--hover-bg)] rounded transition-colors"
           onclick={handleRefresh}
           title="刷新"
         >
-          🔄
+          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/>
+            <path d="M21 3v5h-5"/>
+          </svg>
         </button>
         <button
-          class="text-xs text-[var(--text-secondary)] hover:text-red-500"
+          class="p-2 text-[var(--text-secondary)] hover:text-red-500 hover:bg-red-500/10 rounded transition-colors"
           onclick={handleClear}
           title="清空"
         >
-          🗑️
+          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 6h18"/>
+            <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/>
+            <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
+          </svg>
         </button>
         <button
-          class="text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+          class="p-2 text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--hover-bg)] rounded transition-colors"
           onclick={() => agentStore.setShowSandbox(false)}
+          title="关闭"
         >
-          ✕
+          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"/>
+            <line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
         </button>
       </div>
     </div>
@@ -234,7 +245,12 @@
           <!-- Path breadcrumb -->
           <div class="px-3 py-2 bg-[var(--bg-secondary)] text-xs text-[var(--text-secondary)] flex items-center gap-2">
             {#if currentPath !== '/'}
-              <button onclick={handleBack} class="hover:text-[var(--text-primary)]">⬅️</button>
+              <button onclick={handleBack} class="p-1 hover:text-[var(--text-primary)] hover:bg-[var(--hover-bg)] rounded transition-colors" title="返回">
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M19 12H5"/>
+                  <path d="M12 19l-7-7 7-7"/>
+                </svg>
+              </button>
             {/if}
             <span class="font-mono">{currentPath}</span>
           </div>
@@ -266,7 +282,19 @@
                         onclick={() => handleFileClick(entry)}
                         ondblclick={() => handleFileDblClick(entry)}
                       >
-                        <span>{entry.type === 'directory' ? '📁' : '📄'}</span>
+                        {#if entry.type === 'directory'}
+                          <svg class="w-4 h-4 text-yellow-500 flex-shrink-0" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M10 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/>
+                          </svg>
+                        {:else}
+                          <svg class="w-4 h-4 text-[var(--text-secondary)] flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                            <path d="M14 2v6h6"/>
+                            <line x1="16" y1="13" x2="8" y2="13"/>
+                            <line x1="16" y1="17" x2="8" y2="17"/>
+                            <line x1="10" y1="9" x2="8" y2="9"/>
+                          </svg>
+                        {/if}
                         {#if editingEntry?.path === entry.path}
                           <input
                             type="text"
@@ -300,14 +328,26 @@
                           onclick={() => startRename(entry)}
                           title="重命名"
                         >
-                          ✏️ 重命名
+                          <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                          </svg>
+                          重命名
                         </button>
                         <button
                           class="flex-1 flex items-center justify-center gap-1 p-2 text-xs text-[var(--text-secondary)] hover:text-blue-500 hover:bg-blue-500/10 rounded transition-colors"
                           onclick={() => handleMove(entry)}
                           title="移动"
                         >
-                          📤 移动
+                          <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M5 9l-3 3 3 3"/>
+                            <path d="M9 5l3-3 3 3"/>
+                            <path d="M15 19l-3 3-3-3"/>
+                            <path d="M19 9l3 3-3 3"/>
+                            <line x1="2" y1="12" x2="22" y2="12"/>
+                            <line x1="12" y1="2" x2="12" y2="22"/>
+                          </svg>
+                          移动
                         </button>
                         {#if entry.type === 'file'}
                           <button
@@ -315,7 +355,12 @@
                             onclick={() => handleDownload(entry)}
                             title="下载"
                           >
-                            ⬇️ 下载
+                            <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                              <polyline points="7 10 12 15 17 10"/>
+                              <line x1="12" y1="15" x2="12" y2="3"/>
+                            </svg>
+                            下载
                           </button>
                         {/if}
                         <button
@@ -323,7 +368,12 @@
                           onclick={() => handleDelete(entry)}
                           title="删除"
                         >
-                          🗑️ 删除
+                          <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M3 6h18"/>
+                            <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/>
+                            <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
+                          </svg>
+                          删除
                         </button>
                       </div>
                     {/if}
@@ -346,13 +396,17 @@
                 {currentFileName}
               </span>
               <button
-                class="hover:text-[var(--text-primary)] p-2 min-w-[44px] min-h-[44px] flex items-center justify-center"
+                class="hover:text-[var(--text-primary)] p-2 hover:bg-[var(--hover-bg)] rounded transition-colors flex items-center justify-center"
                 class:opacity-50={!isEditing}
                 onclick={handleSave}
                 disabled={!isEditing}
                 title="保存"
               >
-                💾
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+                  <polyline points="17 21 17 13 7 13 7 21"/>
+                  <polyline points="7 3 7 8 15 8"/>
+                </svg>
               </button>
             </div>
             <textarea

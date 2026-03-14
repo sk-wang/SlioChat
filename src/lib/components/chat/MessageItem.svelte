@@ -97,7 +97,7 @@
       <div class="flex flex-col">
         <!-- Tool calls display -->
         {#if hasToolCalls}
-          <div class="tool-calls-container mb-2">
+          <div class="tool-calls-container mb-2 min-w-0 w-full">
             {#each message.toolCalls || [] as call}
               <ToolCallDisplay {call} />
             {/each}

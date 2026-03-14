@@ -87,11 +87,35 @@ Deploy `dist/index.html` to any static server:
 
 Models with **Function Calling / Tool Use** support required:
 
-- OpenAI GPT-4 / GPT-4o / GPT-3.5
-- Anthropic Claude 3+ (via compatible API)
-- DeepSeek V3 / R1
-- Qwen 2.5+
-- GLM-4+
+### OpenAI
+- GPT-4o / GPT-4o mini
+- GPT-4.1 / GPT-4.1 mini / GPT-4.1 nano
+- o1 / o1-mini / o1-pro
+- o3 / o3-mini
+- o4-mini
+
+### Anthropic
+- Claude 4 Opus / Claude 4 Sonnet
+- Claude 3.7 Sonnet
+- Claude 3.5 Sonnet / Haiku
+
+### Google
+- Gemini 2.5 Pro / Gemini 2.5 Flash
+- Gemini 2.0 Flash
+- Gemini 1.5 Pro / Flash
+
+### Chinese Models
+- **DeepSeek**: V3 / R1 / R1-0528
+- **Qwen**: 3 / 2.5 / Qwen-Max / Qwen-Plus
+- **GLM**: GLM-4 / GLM-4.5
+- **Doubao**: Seed-1.6 / Seed-1.6-thinking
+- **Moonshot**: Kimi k1.5
+- **MiniMax**: abab7 / abab6.5s
+- **Baidu**: ERNIE 4.5 / ERNIE X1
+
+### Others
+- Grok 2 / Grok 3
+- Mistral Large 2
 - Other OpenAI-compatible APIs with function calling support
 
 ## 📄 License

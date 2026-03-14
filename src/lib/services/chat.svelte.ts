@@ -50,20 +50,37 @@ class ChatService {
 
     try {
       let finalContent = '';
-      let finalThinking = '';
+      let allRoundsThinking = ''; // Accumulate thinking from all rounds
+      let currentRoundThinking = ''; // Thinking for current round only
 
       // Use agent service for all conversations
       for await (const event of agentService.runAgentConversation(messagesToSend, systemPrompt)) {
         switch (event.type) {
+          case 'start':
+            // New round starting, reset current round thinking
+            currentRoundThinking = '';
+            break;
+
           case 'thinking':
-            // API callbacks send accumulated content, use = not +=
-            finalThinking = event.content || '';
+            // API sends accumulated content for current round
+            currentRoundThinking = event.content || '';
+            // Combine all previous rounds with current round
+            finalThinking = allRoundsThinking + (allRoundsThinking && currentRoundThinking ? '\n\n---\n\n' : '') + currentRoundThinking;
             streamingStore.setThinking(finalThinking);
             const thinkingContent = JSON.stringify({
               thinking: finalThinking,
               content: finalContent
             });
             conversationsStore.updateLastMessage(thinkingContent, 'thinking');
+            break;
+
+          case 'messages_updated':
+            // Round completed, save this round's thinking
+            if (currentRoundThinking) {
+              allRoundsThinking += (allRoundsThinking ? '\n\n---\n\n' : '') + currentRoundThinking;
+            }
+            // Reset for next round
+            currentRoundThinking = '';
             break;
 
           case 'content':
@@ -106,12 +123,6 @@ class ChatService {
 
           case 'tool_rejected':
             // Tool was rejected by user
-            break;
-
-          case 'messages_updated':
-            // Agent has added tool messages to the conversation context
-            // These are used for multi-turn tool calling but not persisted to store
-            // The final response will be saved as the assistant message
             break;
 
           case 'final_response':
@@ -176,19 +187,31 @@ class ChatService {
 
     try {
       let finalContent = '';
-      let finalThinking = '';
+      let allRoundsThinking = '';
+      let currentRoundThinking = '';
 
       for await (const event of agentService.runAgentConversation(contextMessages, systemPrompt)) {
         switch (event.type) {
+          case 'start':
+            currentRoundThinking = '';
+            break;
+
           case 'thinking':
-            // API callbacks send accumulated content, use = not +=
-            finalThinking = event.content || '';
+            currentRoundThinking = event.content || '';
+            finalThinking = allRoundsThinking + (allRoundsThinking && currentRoundThinking ? '\n\n---\n\n' : '') + currentRoundThinking;
             streamingStore.setThinking(finalThinking);
             const thinkingContent = JSON.stringify({
               thinking: finalThinking,
               content: finalContent
             });
             conversationsStore.updateLastMessage(thinkingContent, 'thinking');
+            break;
+
+          case 'messages_updated':
+            if (currentRoundThinking) {
+              allRoundsThinking += (allRoundsThinking ? '\n\n---\n\n' : '') + currentRoundThinking;
+            }
+            currentRoundThinking = '';
             break;
 
           case 'content':
@@ -226,10 +249,6 @@ class ChatService {
 
           case 'tool_rejected':
             // Tool was rejected by user
-            break;
-
-          case 'messages_updated':
-            // Agent has added tool messages to the conversation context
             break;
 
           case 'final_response':

@@ -1,11 +1,9 @@
 <script lang="ts">
   import { conversationsStore } from '$lib/stores/conversations.svelte';
   import { streamingStore } from '$lib/stores/streaming.svelte';
-  import { filesStore } from '$lib/stores/files.svelte';
-  import { processFile } from '$lib/services/fileHandlers';
+  import { workspaceStore } from '$lib/stores/workspace.svelte';
   import { chatService } from '$lib/services/chat.svelte';
   import { uiStore } from '$lib/stores/ui.svelte';
-  import type { PendingFile } from '$lib/types';
 
   let inputValue = $state('');
   let textareaEl: HTMLTextAreaElement;
@@ -22,14 +20,13 @@
 
   async function handleSend() {
     if (streamingStore.isGenerating) return;
-    if (!inputValue.trim() && filesStore.files.length === 0) return;
+    if (!inputValue.trim() && workspaceStore.files.length === 0) return;
 
     const message = inputValue.trim();
     inputValue = '';
     adjustHeight();
 
-    await chatService.sendMessage(message, filesStore.files);
-    filesStore.clear();
+    await chatService.sendMessage(message);
   }
 
   function handleKeydown(event: KeyboardEvent) {
@@ -53,10 +50,12 @@
 
     for (const file of input.files) {
       try {
-        const content = await processFile(file);
-        filesStore.add(content);
+        // Add file to workspace
+        await workspaceStore.addFile(file);
+        uiStore.showToast(`已上传: ${file.name}`, 'success');
       } catch (error) {
         console.error('File processing error:', error);
+        uiStore.showToast(`文件处理失败: ${file.name}`, 'error');
       }
     }
 
@@ -154,7 +153,7 @@
 
         <button
           onclick={handleSend}
-          disabled={!inputValue.trim() && filesStore.files.length === 0}
+          disabled={!inputValue.trim() && workspaceStore.files.length === 0}
           class="p-2 bg-[var(--text-primary)] text-[var(--bg-primary)] rounded-full hover:opacity-90 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
           title="发送消息"
         >

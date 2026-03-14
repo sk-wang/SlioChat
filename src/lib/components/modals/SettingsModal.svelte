@@ -1,11 +1,16 @@
 <script lang="ts">
   import { uiStore } from '$lib/stores/ui.svelte';
-  import { settingsStore } from '$lib/stores/settings.svelte';
+  import { settingsStore, API_PROVIDERS, type ApiProvider } from '$lib/stores/settings.svelte';
   import { chatService } from '$lib/services/chat.svelte';
   import { conversationsStore } from '$lib/stores/conversations.svelte';
+  import { fetchModelList, type ModelInfo } from '$lib/services/api';
+  import type { ModelConfig } from '$lib/types';
 
   let activeTab = $state('general');
   let fileInput: HTMLInputElement;
+  let selectedProviders: Record<string, string> = $state({});
+  let availableModels: Record<string, ModelInfo[]> = $state({});
+  let loadingModels: Record<string, boolean> = $state({});
 
   function handleClose() {
     uiStore.closeModal('settings');
@@ -33,6 +38,49 @@
 
   function updateModel(modelId: string, field: string, value: string) {
     settingsStore.updateModel(modelId, { [field]: value });
+  }
+
+  function handleProviderChange(modelId: string, providerId: string) {
+    selectedProviders[modelId] = providerId;
+    const provider = API_PROVIDERS.find(p => p.id === providerId);
+    if (provider && provider.url) {
+      updateModel(modelId, 'url', provider.url);
+    }
+    // Clear available models when provider changes
+    delete availableModels[modelId];
+  }
+
+  async function fetchModels(modelId: string) {
+    const modelInfo = settingsStore.config.models[modelId];
+    if (!modelInfo?.url) return;
+
+    loadingModels[modelId] = true;
+    try {
+      const models = await fetchModelList(modelInfo.url, modelInfo.key || '');
+      availableModels[modelId] = models;
+    } catch (e) {
+      console.error('Failed to fetch models:', e);
+      availableModels[modelId] = [];
+    } finally {
+      loadingModels[modelId] = false;
+    }
+  }
+
+  function selectModel(modelId: string, modelName: string) {
+    updateModel(modelId, 'name', modelName);
+  }
+
+  function getProviderForModel(modelInfo: ModelConfig): ApiProvider {
+    // Try to auto-detect provider from URL
+    const url = modelInfo.url || '';
+    try {
+      const matched = API_PROVIDERS.find(p =>
+        p.id !== 'custom' && p.url && url.includes(new URL(p.url).hostname)
+      );
+      return matched || API_PROVIDERS[0];
+    } catch {
+      return API_PROVIDERS[0];
+    }
   }
 
   function updateSearch(field: string, value: string | boolean) {
@@ -66,6 +114,9 @@
 
   const models = $derived(Object.entries(settingsStore.config.models));
   const searchConfig = $derived(settingsStore.config.search);
+  const modelIds = $derived(Object.keys(settingsStore.config.models));
+  const vlmModel = $derived(settingsStore.config.defaultVlm);
+  const titleModel = $derived(settingsStore.config.titleGenerationModel);
 </script>
 
 <div
@@ -139,48 +190,100 @@
       {:else if activeTab === 'models'}
         <div class="space-y-4">
           {#each models as [modelId, modelInfo]}
+            {@const provider = getProviderForModel(modelInfo)}
             <div class="p-4 bg-[var(--bg-primary)] rounded-lg border border-[var(--border-color)]">
               <div class="flex items-center justify-between mb-3">
                 <span class="font-medium text-[var(--text-primary)]">{modelInfo.name}</span>
                 <button
                   class="p-1 text-red-500 hover:bg-red-500/10 rounded transition-colors"
                   onclick={() => removeModel(modelId)}
+                  title="删除模型"
                 >
                   <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                   </svg>
                 </button>
               </div>
-              <div class="grid grid-cols-2 gap-3">
-                <input
-                  type="text"
-                  value={modelInfo.name}
-                  placeholder="模型名称"
-                  class="px-3 py-2 bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-lg text-sm text-[var(--text-primary)]"
-                  oninput={(e) => updateModel(modelId, 'name', (e.target as HTMLInputElement).value)}
-                />
-                <select
-                  value={modelInfo.type}
-                  class="px-3 py-2 bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-lg text-sm text-[var(--text-primary)]"
-                  onchange={(e) => updateModel(modelId, 'type', (e.target as HTMLSelectElement).value)}
-                >
-                  <option value="normal">普通模型</option>
-                  <option value="thinking">思考模型</option>
-                </select>
-                <input
-                  type="text"
-                  value={modelInfo.url}
-                  placeholder="API URL"
-                  class="col-span-2 px-3 py-2 bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-lg text-sm text-[var(--text-primary)]"
-                  oninput={(e) => updateModel(modelId, 'url', (e.target as HTMLInputElement).value)}
-                />
-                <input
-                  type="password"
-                  value={modelInfo.key || ''}
-                  placeholder="API Key"
-                  class="col-span-2 px-3 py-2 bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-lg text-sm text-[var(--text-primary)]"
-                  oninput={(e) => updateModel(modelId, 'key', (e.target as HTMLInputElement).value)}
-                />
+              <div class="space-y-3">
+                <div class="grid grid-cols-2 gap-3">
+                  <!-- Model Selection -->
+                  <div class="col-span-2 flex gap-2">
+                    {#if availableModels[modelId]?.length > 0}
+                      <select
+                        value={modelInfo.name}
+                        class="flex-1 px-3 py-2 bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-lg text-sm text-[var(--text-primary)]"
+                        onchange={(e) => selectModel(modelId, (e.target as HTMLSelectElement).value)}
+                      >
+                        <option value="">选择模型</option>
+                        {#each availableModels[modelId] as m}
+                          <option value={m.id}>{m.id}</option>
+                        {/each}
+                      </select>
+                    {:else}
+                      <input
+                        type="text"
+                        value={modelInfo.name}
+                        placeholder="模型名称"
+                        class="flex-1 px-3 py-2 bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-lg text-sm text-[var(--text-primary)]"
+                        oninput={(e) => updateModel(modelId, 'name', (e.target as HTMLInputElement).value)}
+                      />
+                    {/if}
+                    <select
+                      value={modelInfo.type}
+                      class="w-28 px-3 py-2 bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-lg text-sm text-[var(--text-primary)]"
+                      onchange={(e) => updateModel(modelId, 'type', (e.target as HTMLSelectElement).value)}
+                    >
+                      <option value="normal">普通</option>
+                      <option value="thinking">思考</option>
+                    </select>
+                  </div>
+                </div>
+
+                <!-- Provider Selection -->
+                <div class="grid grid-cols-2 gap-3">
+                  <select
+                    value={selectedProviders[modelId] || provider.id}
+                    class="px-3 py-2 bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-lg text-sm text-[var(--text-primary)]"
+                    onchange={(e) => handleProviderChange(modelId, (e.target as HTMLSelectElement).value)}
+                  >
+                    <option value="" disabled>选择服务商</option>
+                    {#each API_PROVIDERS as p}
+                      <option value={p.id}>{p.name}</option>
+                    {/each}
+                  </select>
+                  <input
+                    type="password"
+                    value={modelInfo.key || ''}
+                    placeholder={provider.keyPlaceholder || 'API Key'}
+                    class="px-3 py-2 bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-lg text-sm text-[var(--text-primary)]"
+                    oninput={(e) => updateModel(modelId, 'key', (e.target as HTMLInputElement).value)}
+                  />
+                </div>
+
+                <!-- API URL (editable) -->
+                <div class="flex gap-2">
+                  <input
+                    type="text"
+                    value={modelInfo.url}
+                    placeholder="API URL"
+                    class="flex-1 px-3 py-2 bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-lg text-sm text-[var(--text-primary)]"
+                    oninput={(e) => updateModel(modelId, 'url', (e.target as HTMLInputElement).value)}
+                  />
+                  <button
+                    class="px-3 py-2 text-sm bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-lg text-[var(--text-primary)] hover:bg-[var(--hover-bg)] transition-colors whitespace-nowrap"
+                    onclick={() => fetchModels(modelId)}
+                    disabled={loadingModels[modelId] || !modelInfo.url}
+                    title="获取可用模型列表"
+                  >
+                    {loadingModels[modelId] ? '加载中...' : '获取模型'}
+                  </button>
+                </div>
+
+                {#if provider.keyHelp}
+                  <div class="text-xs text-[var(--text-secondary)]">
+                    {provider.keyHelp}
+                  </div>
+                {/if}
               </div>
             </div>
           {/each}
@@ -191,6 +294,48 @@
           >
             + 添加模型
           </button>
+
+          <!-- Special Purpose Models -->
+          <div class="p-4 bg-[var(--bg-primary)] rounded-lg border border-[var(--border-color)] mt-4">
+            <h4 class="text-sm font-medium text-[var(--text-primary)] mb-3">专用模型配置</h4>
+            <div class="space-y-3">
+              <!-- VLM Model -->
+              <div>
+                <label class="block text-xs text-[var(--text-secondary)] mb-1">视觉模型 (VLM)</label>
+                <select
+                  value={vlmModel}
+                  class="w-full px-3 py-2 bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-lg text-sm text-[var(--text-primary)]"
+                  onchange={(e) => settingsStore.setVlmModel((e.target as HTMLSelectElement).value)}
+                >
+                  <option value="">选择模型</option>
+                  {#each modelIds as id}
+                    <option value={id}>{id}</option>
+                  {/each}
+                </select>
+                <div class="text-xs text-[var(--text-secondary)] mt-1">
+                  用于图片理解和视觉任务
+                </div>
+              </div>
+
+              <!-- Title Generation Model -->
+              <div>
+                <label class="block text-xs text-[var(--text-secondary)] mb-1">标题生成模型</label>
+                <select
+                  value={titleModel}
+                  class="w-full px-3 py-2 bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-lg text-sm text-[var(--text-primary)]"
+                  onchange={(e) => settingsStore.setTitleModel((e.target as HTMLSelectElement).value)}
+                >
+                  <option value="">选择模型</option>
+                  {#each modelIds as id}
+                    <option value={id}>{id}</option>
+                  {/each}
+                </select>
+                <div class="text-xs text-[var(--text-secondary)] mt-1">
+                  用于自动生成对话标题
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       {:else if activeTab === 'search'}
         <div class="space-y-4">

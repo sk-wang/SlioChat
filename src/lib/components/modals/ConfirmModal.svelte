@@ -26,10 +26,10 @@
 >
   <div class="bg-[var(--bg-secondary)] rounded-xl shadow-xl w-full max-w-sm mx-4 p-6">
     <h3 class="text-lg font-medium text-[var(--text-primary)] mb-2">
-      {uiStore.confirmData?.title || '确认'}
+      {uiStore.confirmDialog?.title || '确认'}
     </h3>
     <p class="text-[var(--text-secondary)] mb-6">
-      {uiStore.confirmData?.message || '确定要执行此操作吗？'}
+      {uiStore.confirmDialog?.message || '确定要执行此操作吗？'}
     </p>
     
     <div class="flex justify-end gap-3">

@@ -1,8 +1,9 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { uiStore, type Toast } from '$lib/stores/ui.svelte';
+  import { uiStore } from '$lib/stores/ui.svelte';
+  import type { ToastMessage } from '$lib/types';
 
-  const { toast }: { toast: Toast } = $props();
+  const { toast }: { toast: ToastMessage } = $props();
 
   onMount(() => {
     const timer = setTimeout(() => {

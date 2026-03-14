@@ -34,7 +34,7 @@
   role="button"
   tabindex="0"
 >
-  <div class="flex-1 truncate mr-2 text-sm text-[var(--text-primary)]">
+  <div class="flex-1 min-w-0 truncate mr-2 text-sm text-[var(--text-primary)]">
     {title}
   </div>
   

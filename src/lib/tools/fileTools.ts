@@ -38,6 +38,20 @@ export function clearUploadingFiles(): void {
 }
 
 /**
+ * Clear processed cache for a specific file
+ */
+export function clearFileCache(fileId: string): void {
+  processedCache.delete(fileId);
+}
+
+/**
+ * Clear all processed file cache
+ */
+export function clearAllFileCache(): void {
+  processedCache.clear();
+}
+
+/**
  * Process a file and cache the result
  */
 async function processAndCacheFile(file: File, fileId: string): Promise<FileContent> {

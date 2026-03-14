@@ -1,7 +1,9 @@
 <script lang="ts">
   import { renderMarkdown } from '$lib/services/markdown';
+  import type { ToolCall } from '$lib/types/tool';
+  import ToolCallDisplay from '$lib/components/agent/ToolCallDisplay.svelte';
 
-  const { thinking, content }: { thinking: string; content: string } = $props();
+  const { thinking, content, toolCalls }: { thinking: string; content: string; toolCalls?: ToolCall[] } = $props();
 
   let isExpanded = $state(true);
   let contentEl: HTMLElement;
@@ -52,13 +54,23 @@
     </svg>
     <span class="text-[var(--text-secondary)]">🤔 思考过程</span>
   </div>
-  <div 
+  <div
     bind:this={contentEl}
     class="think-content"
   >
     <div class="markdown-body text-[var(--text-primary)]">
       {@html renderedThinking}
     </div>
+
+    <!-- Tool calls in thinking process -->
+    {#if toolCalls && toolCalls.length > 0}
+      <div class="tool-calls-in-thinking mt-3 border-t border-[var(--border-color)] pt-2">
+        <div class="text-xs text-[var(--text-secondary)] mb-2">🛠️ 调用的工具</div>
+        {#each toolCalls as call}
+          <ToolCallDisplay {call} />
+        {/each}
+      </div>
+    {/if}
   </div>
 </div>
 

@@ -58,11 +58,6 @@
       <span class="truncate text-[var(--text-primary)]">
         {workspaceStore.currentWorkspace?.name || '默认工作空间'}
       </span>
-      {#if workspaceStore.files.length > 0}
-        <span class="text-xs text-[var(--text-secondary)] bg-[var(--bg-tertiary)] px-1.5 py-0.5 rounded">
-          {workspaceStore.files.length}
-        </span>
-      {/if}
     </div>
     <svg
       class="w-4 h-4 text-[var(--text-secondary)] transition-transform"

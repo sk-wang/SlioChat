@@ -50,6 +50,7 @@ class AgentService {
 
     while (iteration < maxIterations) {
       iteration++;
+      console.log(`[Agent] Starting iteration ${iteration}/${maxIterations}`);
 
       // Yield start event for first iteration
       if (iteration === 1) {
@@ -58,11 +59,64 @@ class AgentService {
 
       try {
         // Stream LLM response with tools
-        const result = await streamChatCompletionWithTools(
+        // Use a queue to handle streaming events from callbacks
+        const eventQueue: AgentEvent[] = [];
+        let streamResult: { thinking: string; content: string; toolCalls?: ToolCall[] } | null | undefined = undefined;
+
+        // Create a promise that resolves when streaming is complete
+        let resolveStreamComplete: () => void;
+        const streamCompletePromise = new Promise<void>((resolve) => {
+          resolveStreamComplete = resolve;
+        });
+
+        streamChatCompletionWithTools(
           currentMessages,
           fullSystemPrompt,
-          tools
-        );
+          tools,
+          {
+            onThinking: (thinking) => {
+              eventQueue.push({ type: 'thinking', content: thinking });
+            },
+            onContent: (content) => {
+              eventQueue.push({ type: 'content', content: content });
+            },
+            onToolCalls: (calls) => {
+              // Store tool calls in a temporary variable
+            }
+          }
+        ).then((result) => {
+          streamResult = result;
+          resolveStreamComplete!();
+        }).catch((err) => {
+          eventQueue.push({ type: 'error', error: err.message });
+          streamResult = null;
+          resolveStreamComplete!();
+        });
+
+        // Process events as they come in
+        let isStreamComplete = false;
+        while (!isStreamComplete || eventQueue.length > 0) {
+          // Check if stream is complete (undefined means not done yet)
+          if (streamResult !== undefined) {
+            isStreamComplete = true;
+          }
+
+          // Process all queued events
+          while (eventQueue.length > 0) {
+            const event = eventQueue.shift()!;
+            yield event;
+          }
+
+          // If not complete, wait a bit and check again
+          if (!isStreamComplete) {
+            await Promise.race([
+              streamCompletePromise,
+              new Promise((r) => setTimeout(r, 10))
+            ]);
+          }
+        }
+
+        const result = streamResult;
 
         if (!result) {
           // Stream was aborted
@@ -71,19 +125,11 @@ class AgentService {
           return;
         }
 
-        // Handle thinking content
-        if (result.thinking) {
-          yield { type: 'thinking', content: result.thinking };
-        }
-
-        // Handle content
-        if (result.content) {
-          yield { type: 'content', content: result.content };
-        }
-
         // Check for tool calls
+        console.log(`[Agent] Iteration ${iteration}: toolCalls=`, result.toolCalls?.length || 0);
         if (result.toolCalls && result.toolCalls.length > 0) {
           // Yield tool calls event
+          console.log(`[Agent] Executing ${result.toolCalls.length} tool calls`);
           yield { type: 'tool_calls', calls: result.toolCalls };
           agentStore.addToolCalls(result.toolCalls);
 
@@ -120,6 +166,9 @@ class AgentService {
                 });
               }
             }
+
+            // Notify that messages have been updated
+            yield { type: 'messages_updated', messages: [...currentMessages] };
           } else {
             // Human confirmation mode - add pending confirmations
             for (const call of result.toolCalls) {
@@ -180,9 +229,13 @@ class AgentService {
 
             // Clear confirmations for next iteration
             agentStore.clearConfirmations();
+
+            // Notify that messages have been updated
+            yield { type: 'messages_updated', messages: [...currentMessages] };
           }
         } else {
           // No tool calls - this is the final response
+          console.log(`[Agent] Iteration ${iteration}: No more tool calls, returning final response`);
           yield { type: 'final_response', content: result.content };
           agentStore.stopProcessing();
           return;
@@ -196,6 +249,7 @@ class AgentService {
     }
 
     // Max iterations reached
+    console.log(`[Agent] Max iterations (${maxIterations}) reached`);
     yield { type: 'max_iterations' };
     agentStore.stopProcessing();
   }

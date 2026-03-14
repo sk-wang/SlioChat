@@ -220,12 +220,16 @@ export async function generateTitle(
 function formatMessageForAPI(m: Message): Record<string, unknown> {
   const formatted: Record<string, unknown> = {
     role: m.role,
-    content: m.content
+    content: m.content || null
   };
 
   // Handle tool calls in assistant messages
   if (m.toolCalls && m.toolCalls.length > 0) {
     formatted.tool_calls = m.toolCalls;
+    // When tool_calls is present, content should be null (not empty string)
+    if (!m.content) {
+      formatted.content = null;
+    }
   }
 
   // Handle tool result messages

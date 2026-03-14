@@ -308,8 +308,8 @@
                   onchange={(e) => settingsStore.setVlmModel((e.target as HTMLSelectElement).value)}
                 >
                   <option value="">选择模型</option>
-                  {#each modelIds as id}
-                    <option value={id}>{id}</option>
+                  {#each models as [id, modelInfo]}
+                    <option value={id}>{modelInfo.name}</option>
                   {/each}
                 </select>
                 <div class="text-xs text-[var(--text-secondary)] mt-1">
@@ -326,8 +326,8 @@
                   onchange={(e) => settingsStore.setTitleModel((e.target as HTMLSelectElement).value)}
                 >
                   <option value="">选择模型</option>
-                  {#each modelIds as id}
-                    <option value={id}>{id}</option>
+                  {#each models as [id, modelInfo]}
+                    <option value={id}>{modelInfo.name}</option>
                   {/each}
                 </select>
                 <div class="text-xs text-[var(--text-secondary)] mt-1">

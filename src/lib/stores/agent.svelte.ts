@@ -22,7 +22,7 @@ class AgentStore {
   private _toolResults = $state<Map<string, ToolResult>>(new Map());
   private _iteration = $state(0);
   private _error = $state<string | null>(null);
-  private _maxIterations = $state(10);
+  private _maxIterations = $state(100);
   private _showSandbox = $state(false);
 
   // YOLO mode - auto-execute tools without confirmation
@@ -78,7 +78,7 @@ class AgentStore {
 
   // Actions
   setMaxIterations(max: number): void {
-    this._maxIterations = Math.max(1, Math.min(20, max));
+    this._maxIterations = Math.max(1, Math.min(100, max));
   }
 
   setShowSandbox(show: boolean): void {

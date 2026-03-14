@@ -62,7 +62,13 @@ marked.use({ renderer });
 
 export function renderMarkdown(content: string): string {
   if (!content) return '';
-  return marked.parse(content) as string;
+  try {
+    // marked.parse returns Promise in v9+, use parseSync for synchronous parsing
+    return marked.parse(content, { async: false }) as string;
+  } catch {
+    // Fallback to async parsing if sync fails
+    return content;
+  }
 }
 
 export function highlightCode(element: HTMLElement): void {

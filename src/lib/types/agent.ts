@@ -24,6 +24,7 @@ export type AgentEventType =
   | 'tool_result'
   | 'tool_confirmation_required'
   | 'tool_rejected'
+  | 'messages_updated'
   | 'final_response'
   | 'error'
   | 'max_iterations';
@@ -35,6 +36,7 @@ export interface AgentEvent {
   call?: ToolCall;
   result?: ToolResult;
   error?: string;
+  messages?: import('$lib/types').Message[];
 }
 
 export interface AgentCallbacks {

@@ -1,0 +1,284 @@
+/**
+ * Workspace Store - Manages workspaces, files, and their associations
+ * Files are stored in VFS (sandbox) for unified file system
+ */
+
+import { storage } from '$lib/services/storage';
+import { vfs } from '$lib/services/sandbox.svelte';
+import type { Workspace, WorkspaceFile } from '$lib/types/workspace';
+
+const STORAGE_KEY = 'workspaces';
+const FILES_KEY = 'workspaceFiles';
+const CURRENT_WORKSPACE_KEY = 'currentWorkspaceId';
+
+function generateId(): string {
+  return `ws_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+}
+
+function generateFileId(): string {
+  return `file_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+}
+
+class WorkspaceStore {
+  #workspaces = $state<Workspace[]>([]);
+  #currentWorkspaceId = $state<string | null>(null);
+  #files = $state<Map<string, WorkspaceFile>>(new Map());
+
+  constructor() {
+    this.loadFromStorage();
+  }
+
+  private loadFromStorage(): void {
+    const savedWorkspaces = storage.get<Workspace[]>(STORAGE_KEY, []);
+    const savedFiles = storage.get<[string, WorkspaceFile][]>(FILES_KEY, []);
+    const savedCurrentId = storage.get<string | null>(CURRENT_WORKSPACE_KEY, null);
+
+    this.#workspaces = savedWorkspaces;
+    this.#files = new Map(savedFiles);
+    this.#currentWorkspaceId = savedCurrentId;
+
+    // Create default workspace if none exists
+    if (this.#workspaces.length === 0) {
+      this.createDefaultWorkspace();
+    }
+
+    // Ensure current workspace is valid
+    if (!this.#currentWorkspaceId || !this.#workspaces.find(w => w.id === this.#currentWorkspaceId)) {
+      this.#currentWorkspaceId = this.#workspaces[0]?.id || null;
+    }
+  }
+
+  private saveToStorage(): void {
+    storage.set(STORAGE_KEY, this.#workspaces);
+    storage.set(FILES_KEY, Array.from(this.#files.entries()));
+    if (this.#currentWorkspaceId) {
+      storage.set(CURRENT_WORKSPACE_KEY, this.#currentWorkspaceId);
+    }
+  }
+
+  // Getters
+  get workspaces(): Workspace[] {
+    return this.#workspaces;
+  }
+
+  get currentWorkspace(): Workspace | null {
+    return this.#workspaces.find(w => w.id === this.#currentWorkspaceId) || null;
+  }
+
+  get currentWorkspaceId(): string | null {
+    return this.#currentWorkspaceId;
+  }
+
+  get files(): WorkspaceFile[] {
+    const workspace = this.currentWorkspace;
+    if (!workspace) return [];
+    return workspace.files.map(id => this.#files.get(id)).filter(Boolean) as WorkspaceFile[];
+  }
+
+  // Workspace actions
+  createDefaultWorkspace(): Workspace {
+    const defaultWorkspace: Workspace = {
+      id: 'default',
+      name: '默认工作空间',
+      description: '默认的工作空间',
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+      files: [],
+      conversations: [],
+      isDefault: true
+    };
+
+    this.#workspaces = [defaultWorkspace, ...this.#workspaces.filter(w => w.id !== 'default')];
+    this.#currentWorkspaceId = defaultWorkspace.id;
+    this.saveToStorage();
+
+    return defaultWorkspace;
+  }
+
+  createWorkspace(name: string, description?: string): Workspace {
+    const workspace: Workspace = {
+      id: generateId(),
+      name,
+      description,
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+      files: [],
+      conversations: []
+    };
+
+    this.#workspaces = [...this.#workspaces, workspace];
+    this.saveToStorage();
+
+    return workspace;
+  }
+
+  updateWorkspace(id: string, updates: Partial<Pick<Workspace, 'name' | 'description'>>): void {
+    this.#workspaces = this.#workspaces.map(w =>
+      w.id === id ? { ...w, ...updates, updatedAt: Date.now() } : w
+    );
+    this.saveToStorage();
+  }
+
+  deleteWorkspace(id: string): void {
+    const workspace = this.#workspaces.find(w => w.id === id);
+    if (!workspace || workspace.isDefault) return;
+
+    // Delete associated files
+    for (const fileId of workspace.files) {
+      this.#files.delete(fileId);
+    }
+
+    this.#workspaces = this.#workspaces.filter(w => w.id !== id);
+
+    // Switch to default workspace if current was deleted
+    if (this.#currentWorkspaceId === id) {
+      this.#currentWorkspaceId = this.#workspaces[0]?.id || null;
+    }
+
+    this.saveToStorage();
+  }
+
+  setCurrentWorkspace(id: string): void {
+    if (this.#workspaces.find(w => w.id === id)) {
+      this.#currentWorkspaceId = id;
+      storage.set(CURRENT_WORKSPACE_KEY, id);
+    }
+  }
+
+  // File actions - files are stored in VFS for unified file system
+  async addFile(file: File): Promise<WorkspaceFile> {
+    const currentWs = this.currentWorkspace;
+    if (!currentWs) throw new Error('No current workspace');
+
+    // Read file content
+    const content = await file.text();
+
+    // Write to VFS (sandbox file system)
+    const vfsPath = `/uploads/${file.name}`;
+    await vfs.writeFile(vfsPath, content);
+
+    const workspaceFile: WorkspaceFile = {
+      id: generateFileId(),
+      name: file.name,
+      type: file.type,
+      size: file.size,
+      uploadedAt: Date.now(),
+      vfsPath, // Store VFS path instead of rawFile
+      rawFile: file // Keep for backward compatibility
+    };
+
+    this.#files.set(workspaceFile.id, workspaceFile);
+    this.#workspaces = this.#workspaces.map(w =>
+      w.id === currentWs.id
+        ? { ...w, files: [...w.files, workspaceFile.id], updatedAt: Date.now() }
+        : w
+    );
+
+    this.saveToStorage();
+    return workspaceFile;
+  }
+
+  async removeFile(fileId: string): Promise<void> {
+    const currentWs = this.currentWorkspace;
+    if (!currentWs) return;
+
+    const file = this.#files.get(fileId);
+    if (file?.vfsPath) {
+      // Delete from VFS
+      try {
+        await vfs.delete(file.vfsPath);
+      } catch (e) {
+        // Ignore error if file doesn't exist in VFS
+      }
+    }
+
+    this.#files.delete(fileId);
+    this.#workspaces = this.#workspaces.map(w =>
+      w.id === currentWs.id
+        ? { ...w, files: w.files.filter(id => id !== fileId), updatedAt: Date.now() }
+        : w
+    );
+
+    this.saveToStorage();
+  }
+
+  getFile(fileId: string): WorkspaceFile | undefined {
+    return this.#files.get(fileId);
+  }
+
+  getFileByName(name: string): WorkspaceFile | undefined {
+    return this.files.find(f => f.name === name);
+  }
+
+  // Conversation actions
+  addConversation(conversationId: string): void {
+    const currentWs = this.currentWorkspace;
+    if (!currentWs) return;
+
+    this.#workspaces = this.#workspaces.map(w =>
+      w.id === currentWs.id
+        ? { ...w, conversations: [...w.conversations, conversationId], updatedAt: Date.now() }
+        : w
+    );
+
+    this.saveToStorage();
+  }
+
+  removeConversation(conversationId: string): void {
+    this.#workspaces = this.#workspaces.map(w =>
+      w.conversations.includes(conversationId)
+        ? { ...w, conversations: w.conversations.filter(id => id !== conversationId), updatedAt: Date.now() }
+        : w
+    );
+
+    this.saveToStorage();
+  }
+
+  // Migration: Import old conversations to default workspace
+  migrateOldConversations(conversationIds: string[]): void {
+    const defaultWs = this.#workspaces.find(w => w.isDefault);
+    if (!defaultWs) return;
+
+    this.#workspaces = this.#workspaces.map(w =>
+      w.id === defaultWs.id
+        ? { ...w, conversations: [...new Set([...w.conversations, ...conversationIds])], updatedAt: Date.now() }
+        : w
+    );
+
+    this.saveToStorage();
+  }
+
+  // Get all conversation IDs for current workspace
+  getConversationIds(): string[] {
+    return this.currentWorkspace?.conversations || [];
+  }
+
+  // Clear all files in current workspace
+  async clearFiles(): Promise<void> {
+    const currentWs = this.currentWorkspace;
+    if (!currentWs) return;
+
+    // Delete files from VFS
+    for (const fileId of currentWs.files) {
+      const file = this.#files.get(fileId);
+      if (file?.vfsPath) {
+        try {
+          await vfs.delete(file.vfsPath);
+        } catch (e) {
+          // Ignore error
+        }
+      }
+      this.#files.delete(fileId);
+    }
+
+    this.#workspaces = this.#workspaces.map(w =>
+      w.id === currentWs.id
+        ? { ...w, files: [], updatedAt: Date.now() }
+        : w
+    );
+
+    this.saveToStorage();
+  }
+}
+
+export const workspaceStore = new WorkspaceStore();

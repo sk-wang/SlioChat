@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(CLOUDFLARE_API_TOKEN=Neopl0GWRIF1MY_nOVtgb2IEXVcxOmBWxunFYLJq npx wrangler pages deploy dist --project-name=slio-chat --commit-dirty=true 2>&1)",
+      "Bash(curl -s -X GET \"https://api.cloudflare.com/client/v4/user/tokens/verify\" \\\\\n  -H \"Authorization: Bearer Neopl0GWRIF1MY_nOVtgb2IEXVcxOmBWxunFYLJq\")",
+      "Bash(curl -s \"https://api.cloudflare.com/client/v4/accounts/ed92e8d7c9c27bb37e2973775a1dc46a/tokens/verify\" \\\\\n-H \"Authorization: Bearer Neopl0GWRIF1MY_nOVtgb2IEXVcxOmBWxunFYLJq\")",
+      "Bash(CLOUDFLARE_API_TOKEN=Neopl0GWRIF1MY_nOVtgb2IEXVcxOmBWxunFYLJq \\\\\nCLOUDFLARE_ACCOUNT_ID=ed92e8d7c9c27bb37e2973775a1dc46a \\\\\nnpx wrangler pages deploy dist --project-name=slio-chat --commit-dirty=true 2>&1)"
+    ]
+  }
+}

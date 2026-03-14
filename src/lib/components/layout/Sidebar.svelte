@@ -3,17 +3,35 @@
   import { conversationsStore } from '$lib/stores/conversations.svelte';
   import { streamingStore } from '$lib/stores/streaming.svelte';
   import { themeStore } from '$lib/stores/theme.svelte';
+  import { workspaceStore } from '$lib/stores/workspace.svelte';
+  import { AGENT_SYSTEM_PROMPT } from '$lib/types/agent';
   import ConversationList from '$lib/components/sidebar/ConversationList.svelte';
+  import WorkspaceSelector from '$lib/components/workspace/WorkspaceSelector.svelte';
+
+  // Use derived state for reactive file list
+  const workspaceFiles = $derived(workspaceStore.files);
 
   function handleNewConversation() {
     if (streamingStore.isGenerating) return;
-    uiStore.openModal('chatType');
+    // Create conversation directly with agent system prompt
+    const id = conversationsStore.create('agent', AGENT_SYSTEM_PROMPT, '新对话');
+    // Add to current workspace
+    workspaceStore.addConversation(id);
+    // Close sidebar on mobile
+    if (window.innerWidth < 768) {
+      uiStore.closeSidebar();
+    }
+  }
+
+  async function handleClearFiles() {
+    await workspaceStore.clearFiles();
+    uiStore.showToast('已清空工作空间文件', 'success');
   }
 </script>
 
 <aside
   id="sidebar"
-  class="sidebar fixed md:relative z-30 h-full w-72 bg-[var(--bg-secondary)] border-r border-[var(--border-color)] flex flex-col transition-transform duration-300"
+  class="sidebar fixed md:relative z-30 h-full w-[85vw] max-w-[240px] md:w-72 md:max-w-none bg-[var(--bg-secondary)] border-r border-[var(--border-color)] flex flex-col transition-transform duration-300"
   class:active={uiStore.sidebarOpen}
   class:collapsed={uiStore.sidebarCollapsed}
 >
@@ -29,6 +47,37 @@
       </svg>
     </button>
   </div>
+
+  <!-- Workspace selector -->
+  <div class="px-2 pt-2 relative">
+    <WorkspaceSelector />
+  </div>
+
+  <!-- Current workspace files -->
+  {#if workspaceFiles.length > 0}
+    <div class="px-3 py-2 mx-2 mt-2 bg-[var(--bg-tertiary)] rounded-lg">
+      <div class="flex items-center justify-between mb-2">
+        <span class="text-xs text-[var(--text-secondary)]">工作空间文件</span>
+        <button
+          onclick={handleClearFiles}
+          class="text-xs text-[var(--text-secondary)] hover:text-red-500 transition-colors"
+          title="清空文件"
+        >
+          清空
+        </button>
+      </div>
+      <div class="space-y-1 max-h-24 overflow-y-auto">
+        {#each workspaceFiles as file}
+          <div class="flex items-center gap-2 text-xs text-[var(--text-primary)]">
+            <svg class="w-3 h-3 text-[var(--text-secondary)] flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            <span class="truncate">{file.name}</span>
+          </div>
+        {/each}
+      </div>
+    </div>
+  {/if}
 
   <div class="p-3 m-2">
     <button

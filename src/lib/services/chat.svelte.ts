@@ -2,105 +2,129 @@ import { conversationsStore } from '$lib/stores/conversations.svelte';
 import { streamingStore } from '$lib/stores/streaming.svelte';
 import { settingsStore } from '$lib/stores/settings.svelte';
 import { uiStore } from '$lib/stores/ui.svelte';
-import { streamChatCompletion, generateTitle } from './api';
-import { shouldSearch, generateSearchQuery, performSearch, formatSearchResults } from './search';
-import type { PendingFile, Message } from '$lib/types';
+import { workspaceStore } from '$lib/stores/workspace.svelte';
+import { generateTitle } from './api';
+import { agentService } from './agent.svelte';
+import type { Message } from '$lib/types';
 
 class ChatService {
-  async sendMessage(text: string, files: PendingFile[]) {
+  async sendMessage(text: string) {
     if (streamingStore.isGenerating) return;
-    
+
     const current = conversationsStore.current;
     if (!current) return;
+
+    // Check workspace files
+    const workspaceFiles = workspaceStore.files;
 
     let content = text;
     let metadata: Message['metadata'] | undefined;
 
-    if (files.length > 0) {
-      const fileContents = files.map(f => `[文件: ${f.fileName}]\n${f.content}`).join('\n\n');
-      content = fileContents + '\n\n' + text;
-      
+    if (workspaceFiles.length > 0) {
       metadata = {
         type: 'files',
-        files: files.map(f => ({
-          fileName: f.fileName,
+        files: workspaceFiles.map(f => ({
+          fileName: f.name,
           fileType: f.type,
           fileSize: f.size
         }))
       };
+      // Don't embed file content in message - let agent use tools to read
+      content = text + '\n\n[工作空间中有 ' + workspaceFiles.length + ' 个文件，请使用 file_list 和 file_read 工具查看]';
     }
 
-    const userMessage: Message = { 
-      role: 'user', 
-      content, 
+    const userMessage: Message = {
+      role: 'user',
+      content,
       type: 'normal',
       metadata
     };
     conversationsStore.addMessage(userMessage);
 
-    let searchResults = '';
-    if (settingsStore.config.search.enabled && !files.length) {
-      try {
-        const needsSearch = await shouldSearch(text);
-        if (needsSearch) {
-          const query = await generateSearchQuery(text);
-          const results = await performSearch(query);
-          if (results.length > 0) {
-            searchResults = formatSearchResults(results);
-          }
-        }
-      } catch (e) {
-        console.error('Search failed', e);
-      }
-    }
-
-    if (searchResults) {
-        conversationsStore.updateLastMessageFields({ searchResults });
-    }
-
+    // Add empty assistant message
     conversationsStore.addMessage({ role: 'assistant', content: '', type: 'normal' });
 
     const contextMessages = conversationsStore.getMessagesForContext(settingsStore.config.contextCount);
     const messagesToSend = contextMessages.slice(0, -1);
 
-    let systemPrompt = current.systemPrompt || settingsStore.config.defaultSystemPrompt;
-    if (searchResults) {
-        systemPrompt += `\n\n以下是与用户问题相关的搜索结果，你可以参考这些信息来回答。在引用信息时，请使用markdown格式的链接，例如：根据[来源1](链接)显示...。这样可以让用户直接点击查看原始来源：\n${searchResults}`;
-    }
+    const systemPrompt = current.systemPrompt || settingsStore.config.defaultSystemPrompt;
 
     try {
-      const result = await streamChatCompletion(
-        messagesToSend,
-        systemPrompt,
-        {
-          onThinking: (thinkingContent) => {
-            streamingStore.setThinking(thinkingContent);
-            const content = JSON.stringify({
-              thinking: thinkingContent,
-              content: ''
+      let finalContent = '';
+      let finalThinking = '';
+
+      // Use agent service for all conversations
+      for await (const event of agentService.runAgentConversation(messagesToSend, systemPrompt)) {
+        switch (event.type) {
+          case 'thinking':
+            finalThinking += event.content || '';
+            streamingStore.setThinking(finalThinking);
+            const thinkingContent = JSON.stringify({
+              thinking: finalThinking,
+              content: finalContent
             });
-            conversationsStore.updateLastMessage(content, 'thinking');
-          },
-          onContent: (responseContent) => {
-            const thinking = streamingStore.thinkingContent;
-            let content = responseContent;
-            let type: 'normal' | 'thinking' = 'normal';
+            conversationsStore.updateLastMessage(thinkingContent, 'thinking');
+            break;
 
-            if (thinking) {
-              content = JSON.stringify({
-                thinking,
-                content: responseContent
+          case 'content':
+            finalContent += event.content || '';
+            if (finalThinking) {
+              const msgContent = JSON.stringify({
+                thinking: finalThinking,
+                content: finalContent
               });
-              type = 'thinking';
+              conversationsStore.updateLastMessage(msgContent, 'thinking');
+            } else {
+              conversationsStore.updateLastMessage(finalContent, 'normal');
             }
+            break;
 
-            conversationsStore.updateLastMessage(content, type);
-          },
+          case 'tool_calls':
+            // Tool calls are handled by agent store and displayed via ToolCallDisplay
+            // Update the message to show tool calls are in progress
+            if (!finalContent && !finalThinking) {
+              conversationsStore.updateLastMessage('[正在使用工具...]', 'normal');
+            }
+            break;
+
+          case 'tool_result':
+            // Tool results are displayed in UI via ToolCallDisplay
+            break;
+
+          case 'tool_confirmation_required':
+            // Tool confirmation UI is shown via ToolConfirmation component
+            // Update message to indicate waiting for confirmation
+            conversationsStore.updateLastMessage('[等待工具执行确认...]', 'normal');
+            break;
+
+          case 'tool_rejected':
+            // Tool was rejected by user
+            conversationsStore.updateLastMessage('[工具执行已拒绝]', 'normal');
+            break;
+
+          case 'final_response':
+            finalContent = event.content || finalContent;
+            if (finalThinking) {
+              const msgContent = JSON.stringify({
+                thinking: finalThinking,
+                content: finalContent
+              });
+              conversationsStore.updateLastMessage(msgContent, 'thinking');
+            } else {
+              conversationsStore.updateLastMessage(finalContent, 'normal');
+            }
+            break;
+
+          case 'error':
+            conversationsStore.updateLastMessage('发生错误: ' + (event.error || '未知错误'));
+            break;
         }
-      );
+      }
 
-      if (result && current.messages.length === 2) {
-        const title = await generateTitle(text, result.content);
+      // Generate title if this is the first exchange (only one user message)
+      const userMessageCount = current.messages.filter(m => m.role === 'user').length;
+      if (userMessageCount === 1 && finalContent) {
+        const title = await generateTitle(text, finalContent);
         if (title) {
           conversationsStore.updateTitle(current.id, title);
         }
@@ -113,12 +137,12 @@ class ChatService {
 
   async regenerateMessage(index: number) {
     if (streamingStore.isGenerating) return;
-    
+
     const current = conversationsStore.current;
     if (!current) return;
 
     if (index !== current.messages.length - 1) {
-        return; 
+      return;
     }
 
     const message = current.messages[index];
@@ -130,44 +154,72 @@ class ChatService {
     conversationsStore.deleteMessage(index);
 
     const contextMessages = conversationsStore.getMessagesForContext(settingsStore.config.contextCount);
-
-    let systemPrompt = current.systemPrompt || settingsStore.config.defaultSystemPrompt;
-    if (userMessage.searchResults) {
-        systemPrompt += `\n\n以下是与用户问题相关的搜索结果，你可以参考这些信息来回答。在引用信息时，请使用markdown格式的链接，例如：根据[来源1](链接)显示...。这样可以让用户直接点击查看原始来源：\n${userMessage.searchResults}`;
-    }
+    const systemPrompt = current.systemPrompt || settingsStore.config.defaultSystemPrompt;
 
     conversationsStore.addMessage({ role: 'assistant', content: '', type: 'normal' });
 
     try {
-      await streamChatCompletion(
-        contextMessages,
-        systemPrompt,
-        {
-          onThinking: (thinkingContent) => {
-            streamingStore.setThinking(thinkingContent);
-            const content = JSON.stringify({
-              thinking: thinkingContent,
-              content: ''
+      let finalContent = '';
+      let finalThinking = '';
+
+      for await (const event of agentService.runAgentConversation(contextMessages, systemPrompt)) {
+        switch (event.type) {
+          case 'thinking':
+            finalThinking += event.content || '';
+            streamingStore.setThinking(finalThinking);
+            const thinkingContent = JSON.stringify({
+              thinking: finalThinking,
+              content: finalContent
             });
-            conversationsStore.updateLastMessage(content, 'thinking');
-          },
-          onContent: (responseContent) => {
-            const thinking = streamingStore.thinkingContent;
-            let content = responseContent;
-            let type: 'normal' | 'thinking' = 'normal';
+            conversationsStore.updateLastMessage(thinkingContent, 'thinking');
+            break;
 
-            if (thinking) {
-              content = JSON.stringify({
-                thinking,
-                content: responseContent
+          case 'content':
+            finalContent += event.content || '';
+            if (finalThinking) {
+              const msgContent = JSON.stringify({
+                thinking: finalThinking,
+                content: finalContent
               });
-              type = 'thinking';
+              conversationsStore.updateLastMessage(msgContent, 'thinking');
+            } else {
+              conversationsStore.updateLastMessage(finalContent, 'normal');
             }
+            break;
 
-            conversationsStore.updateLastMessage(content, type);
-          },
+          case 'tool_calls':
+            if (!finalContent && !finalThinking) {
+              conversationsStore.updateLastMessage('[正在使用工具...]', 'normal');
+            }
+            break;
+
+          case 'tool_confirmation_required':
+            // Tool confirmation UI is shown via ToolConfirmation component
+            conversationsStore.updateLastMessage('[等待工具执行确认...]', 'normal');
+            break;
+
+          case 'tool_rejected':
+            conversationsStore.updateLastMessage('[工具执行已拒绝]', 'normal');
+            break;
+
+          case 'final_response':
+            finalContent = event.content || finalContent;
+            if (finalThinking) {
+              const msgContent = JSON.stringify({
+                thinking: finalThinking,
+                content: finalContent
+              });
+              conversationsStore.updateLastMessage(msgContent, 'thinking');
+            } else {
+              conversationsStore.updateLastMessage(finalContent, 'normal');
+            }
+            break;
+
+          case 'error':
+            conversationsStore.updateLastMessage('发生错误: ' + (event.error || '未知错误'));
+            break;
         }
-      );
+      }
     } catch (error) {
       console.error('Regenerate message error:', error);
       conversationsStore.updateLastMessage('发生错误: ' + (error as Error).message);
@@ -184,7 +236,7 @@ class ChatService {
       uiStore.showToast('没有可导出的对话', 'error');
       return;
     }
-    
+
     const data = {
       title: current.title,
       messages: current.messages,
@@ -193,7 +245,7 @@ class ChatService {
       exportDate: new Date().toISOString(),
       version: '1.0'
     };
-    
+
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -209,20 +261,23 @@ class ChatService {
     try {
       const text = await readFileAsText(file);
       const data = JSON.parse(text);
-      
+
       if (!data.title || !Array.isArray(data.messages)) {
         throw new Error('无效的对话文件格式');
       }
 
       const id = conversationsStore.create(
-        data.type || 'normal', 
-        data.systemPrompt || '', 
+        data.type || 'normal',
+        data.systemPrompt || '',
         '导入对话'
       );
-      
+
       conversationsStore.updateTitle(id, data.title);
       conversationsStore.setMessages(id, data.messages);
-      
+
+      // Add to current workspace
+      workspaceStore.addConversation(id);
+
       uiStore.showToast('导入成功', 'success');
     } catch (e) {
       console.error(e);

@@ -2,10 +2,13 @@
   import { conversationsStore } from '$lib/stores/conversations.svelte';
   import { uiStore } from '$lib/stores/ui.svelte';
   import { streamingStore } from '$lib/stores/streaming.svelte';
+  import { agentStore } from '$lib/stores/agent.svelte';
   import { chatService } from '$lib/services/chat.svelte';
   import { renderMarkdown } from '$lib/services/markdown';
   import type { Message } from '$lib/types';
   import ThinkingBlock from './ThinkingBlock.svelte';
+  import ToolCallDisplay from '$lib/components/agent/ToolCallDisplay.svelte';
+  import ToolConfirmation from '$lib/components/agent/ToolConfirmation.svelte';
   import { fade } from 'svelte/transition';
 
   const { message, index }: { message: Message; index: number } = $props();
@@ -19,11 +22,14 @@
   }
 
   const isUser = $derived(message.role === 'user');
+  const isTool = $derived(message.role === 'tool');
   const isThinking = $derived(message.type === 'thinking');
   const parsedContent = $derived(isThinking ? parseThinkingContent(message.content) : null);
   const renderedContent = $derived(isThinking ? null : renderMarkdown(message.content));
   const isLastAssistant = $derived(!isUser && index === (conversationsStore.current?.messages.length ?? 0) - 1);
   const isGeneratingThis = $derived(isLastAssistant && streamingStore.isGenerating);
+  const hasToolCalls = $derived(message.toolCalls && message.toolCalls.length > 0);
+  const showToolConfirmation = $derived(isLastAssistant && agentStore.hasPendingConfirmations);
 
   function copyMessage() {
     navigator.clipboard.writeText(message.content);
@@ -91,17 +97,33 @@
 
     <div class="message-content-wrapper min-w-0" class:flex-1={!isUser}>
       <div class="flex flex-col">
-        <div 
-          class="markdown-body text-[var(--text-primary)]"
-          onclick={handleContentClick}
-          role="presentation"
-        >
-          {#if isThinking && parsedContent}
-            <ThinkingBlock thinking={parsedContent.thinking} content={parsedContent.content} />
-          {:else}
-            {@html renderedContent}
-          {/if}
-        </div>
+        <!-- Tool calls display -->
+        {#if hasToolCalls}
+          <div class="tool-calls-container mb-2">
+            {#each message.toolCalls || [] as call}
+              <ToolCallDisplay {call} />
+            {/each}
+          </div>
+        {/if}
+
+        <!-- Tool confirmation UI -->
+        {#if showToolConfirmation}
+          <ToolConfirmation />
+        {/if}
+
+        {#if !isTool}
+          <div
+            class="markdown-body text-[var(--text-primary)]"
+            onclick={handleContentClick}
+            role="presentation"
+          >
+            {#if isThinking && parsedContent}
+              <ThinkingBlock thinking={parsedContent.thinking} content={parsedContent.content} />
+            {:else}
+              {@html renderedContent}
+            {/if}
+          </div>
+        {/if}
 
         {#if !isGeneratingThis}
           <div 

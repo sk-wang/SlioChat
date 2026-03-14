@@ -1,6 +1,79 @@
 import type { ApiConfig, ModelConfig } from '$lib/types';
 import { storage } from '$lib/services/storage';
 
+// Preset API Providers
+export interface ApiProvider {
+  id: string;
+  name: string;
+  url: string;
+  keyPlaceholder?: string;
+  keyHelp?: string;
+}
+
+export const API_PROVIDERS: ApiProvider[] = [
+  {
+    id: 'custom',
+    name: '自定义',
+    url: '',
+  },
+  {
+    id: 'openai',
+    name: 'OpenAI',
+    url: 'https://api.openai.com/v1/chat/completions',
+    keyPlaceholder: 'sk-...',
+    keyHelp: '从 https://platform.openai.com/api-keys 获取',
+  },
+  {
+    id: 'aihubmix',
+    name: 'AIHubMix',
+    url: 'https://aihubmix.com/v1/chat/completions',
+    keyPlaceholder: 'sk-...',
+    keyHelp: '从 https://aihubmix.com/token 获取',
+  },
+  {
+    id: 'siliconflow',
+    name: '硅基流动',
+    url: 'https://api.siliconflow.cn/v1/chat/completions',
+    keyPlaceholder: 'sk-...',
+    keyHelp: '从 https://cloud.siliconflow.cn/account/ak 获取',
+  },
+  {
+    id: 'dashscope',
+    name: '阿里灵积',
+    url: 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions',
+    keyPlaceholder: 'sk-...',
+    keyHelp: '从 https://dashscope.console.aliyun.com/apiKey 获取',
+  },
+  {
+    id: 'deepseek',
+    name: 'DeepSeek',
+    url: 'https://api.deepseek.com/v1/chat/completions',
+    keyPlaceholder: 'sk-...',
+    keyHelp: '从 https://platform.deepseek.com/api_keys 获取',
+  },
+  {
+    id: 'ollama',
+    name: 'Ollama (本地)',
+    url: 'http://localhost:11434/v1/chat/completions',
+    keyPlaceholder: '无需 Key',
+    keyHelp: '本地运行，无需 API Key',
+  },
+  {
+    id: 'openrouter',
+    name: 'OpenRouter',
+    url: 'https://openrouter.ai/api/v1/chat/completions',
+    keyPlaceholder: 'sk-or-...',
+    keyHelp: '从 https://openrouter.ai/keys 获取',
+  },
+  {
+    id: 'oneapi',
+    name: 'OneAPI',
+    url: 'https://<your-domain>/v1/chat/completions',
+    keyPlaceholder: 'sk-...',
+    keyHelp: '请输入您的 OneAPI 域名和 Key',
+  },
+];
+
 const DEFAULT_CONFIG: ApiConfig = {
   defaultUrl: 'https://0f68edf33a3a4219a5ab9d9ae6b3034c-cn-hangzhou.alicloudapi.com/compatible-mode/v1/chat/completions',
   defaultKey: 'none',
@@ -63,6 +136,7 @@ class SettingsStore {
     const storedSearchEnabled = storage.get<boolean>('bochaSearchEnabled', false);
     const storedTitleModel = storage.get<string | null>('titleGenerationModel', null);
     const storedSearchJudger = storage.get<string | null>('searchJudgerModel', null);
+    const storedVlmModel = storage.get<string | null>('vlmModel', null);
     const storedPreferredModel = storage.get<string>('preferred-model', DEFAULT_CONFIG.defaultModel);
 
     this._config = $state<ApiConfig>({
@@ -70,6 +144,7 @@ class SettingsStore {
       models: storedModels || DEFAULT_CONFIG.models,
       titleGenerationModel: storedTitleModel || DEFAULT_CONFIG.titleGenerationModel,
       searchJudgerModel: storedSearchJudger || DEFAULT_CONFIG.searchJudgerModel,
+      defaultVlm: storedVlmModel || DEFAULT_CONFIG.defaultVlm,
       search: {
         ...DEFAULT_CONFIG.search,
         token: storedBochaKey,
@@ -133,6 +208,11 @@ class SettingsStore {
   setSearchJudgerModel(modelId: string): void {
     this._config.searchJudgerModel = modelId;
     storage.set('searchJudgerModel', modelId);
+  }
+
+  setVlmModel(modelId: string): void {
+    this._config.defaultVlm = modelId;
+    storage.set('vlmModel', modelId);
   }
 }
 

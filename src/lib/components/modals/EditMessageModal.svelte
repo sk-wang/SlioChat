@@ -5,15 +5,15 @@
   let editValue = $state('');
 
   $effect(() => {
-    if (uiStore.modals.editMessage !== null) {
-      const msg = conversationsStore.currentConversation?.messages[uiStore.modals.editMessage];
+    if (uiStore.editingMessageIndex !== null) {
+      const msg = conversationsStore.current?.messages[uiStore.editingMessageIndex];
       editValue = msg?.content || '';
     }
   });
 
   function handleSave() {
-    if (uiStore.modals.editMessage !== null) {
-      conversationsStore.editMessage(uiStore.modals.editMessage, editValue);
+    if (uiStore.editingMessageIndex !== null) {
+      conversationsStore.updateMessage(uiStore.editingMessageIndex, editValue);
       uiStore.closeEditModal();
     }
   }

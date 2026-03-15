@@ -186,26 +186,37 @@ export const fileReadTool: ToolExecutor = {
 
       if (matchedFile.rawFile) {
         rawFile = matchedFile.rawFile;
-      } else if (matchedFile.isBinary && matchedFile.vfsPath) {
-        // For binary files stored in VFS as base64, reconstruct the File object
+      } else if (matchedFile.vfsPath) {
+        // Reconstruct File from VFS (for both binary and text files)
         try {
-          const base64Content = await vfs.readFile(matchedFile.vfsPath);
-          if (base64Content) {
-            // Use fetch to convert base64 to blob, then to File
+          const vfsContent = await vfs.readFile(matchedFile.vfsPath);
+          if (vfsContent) {
             const mimeType = matchedFile.type && matchedFile.type.trim() !== '' ? matchedFile.type : 'application/octet-stream';
-            const response = await fetch(`data:${mimeType};base64,${base64Content}`);
-            const blob = await response.blob();
-            rawFile = new File([blob], matchedFile.name, { type: mimeType });
-            console.log('Reconstructed binary file:', matchedFile.name, 'type:', mimeType, 'size:', rawFile.size);
+
+            if (matchedFile.isBinary) {
+              // Binary file: vfsContent is base64, convert to blob
+              const response = await fetch(`data:${mimeType};base64,${vfsContent}`);
+              const blob = await response.blob();
+              rawFile = new File([blob], matchedFile.name, { type: mimeType });
+              console.log('Reconstructed binary file from VFS:', matchedFile.name, 'type:', mimeType, 'size:', rawFile.size);
+            } else {
+              // Text file: vfsContent is plain text, create File directly
+              const blob = new Blob([vfsContent], { type: mimeType });
+              rawFile = new File([blob], matchedFile.name, { type: mimeType });
+              console.log('Reconstructed text file from VFS:', matchedFile.name, 'type:', mimeType, 'size:', rawFile.size);
+            }
           }
         } catch (e) {
-          console.error('Failed to reconstruct binary file:', e);
+          console.error('Failed to reconstruct file from VFS:', e);
         }
-      } else {
-        // Try to get from uploading files (for recently uploaded)
+      }
+
+      // Fallback: try to get from uploading files (for recently uploaded)
+      if (!rawFile) {
         for (const [tempId, file] of uploadingFiles) {
           if (file.name === matchedFile.name) {
             rawFile = file;
+            console.log('Found file in uploadingFiles cache:', matchedFile.name);
             break;
           }
         }

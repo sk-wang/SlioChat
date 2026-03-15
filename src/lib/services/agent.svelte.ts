@@ -8,6 +8,7 @@ import type { AgentEvent, AgentCallbacks } from '$lib/types/agent';
 import type { ToolCall, ToolResult } from '$lib/types/tool';
 import { toolRegistry } from '$lib/tools';
 import { agentStore } from '$lib/stores/agent.svelte';
+import { streamingStore } from '$lib/stores/streaming.svelte';
 import { streamChatCompletionWithTools } from './api';
 import { AGENT_SYSTEM_PROMPT } from '$lib/types/agent';
 
@@ -179,12 +180,14 @@ class AgentService {
           console.log(`[Agent] Iteration ${iteration}: No more tool calls, returning final response`);
           yield { type: 'final_response', content: result.content };
           agentStore.stopProcessing();
+          streamingStore.stop();
           return;
         }
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : String(error);
         yield { type: 'error', error: errorMessage };
         agentStore.setError(errorMessage);
+        streamingStore.stop();
         return;
       }
     }
@@ -193,6 +196,7 @@ class AgentService {
     console.log(`[Agent] Max iterations (${maxIterations}) reached`);
     yield { type: 'max_iterations' };
     agentStore.stopProcessing();
+    streamingStore.stop();
   }
 
   /**

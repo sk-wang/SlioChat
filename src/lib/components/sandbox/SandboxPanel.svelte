@@ -12,10 +12,55 @@
   let isEditing = $state(false);
   let currentEntries = $state<VFSEntry[]>([]);
   let previewImage = $state<{ path: string; data: string } | null>(null);
+  let fileInputEl: HTMLInputElement;
 
   // Check if file is an image
   function isImageFile(filename: string): boolean {
     return /\.(jpg|jpeg|png|gif|bmp|webp|svg)$/i.test(filename);
+  }
+
+  // Handle file upload from sandbox
+  async function handleSandboxFileUpload(event: Event) {
+    const input = event.target as HTMLInputElement;
+    if (!input.files?.length) return;
+
+    for (const file of input.files) {
+      try {
+        const workspaceFile = await workspaceStore.addFile(file);
+        workspaceStore.pinFile(workspaceFile.id);
+        uiStore.showToast(`已上传并引用: ${file.name}`, 'success');
+      } catch (error) {
+        console.error('File upload error:', error);
+        uiStore.showToast(`上传失败: ${file.name}`, 'error');
+      }
+    }
+
+    input.value = '';
+    await refreshCurrentEntries();
+  }
+
+  function triggerFileUpload() {
+    fileInputEl?.click();
+  }
+
+  // Pin/reference file from sandbox
+  async function handlePinFile(entry: VFSEntry) {
+    try {
+      // Find the workspace file by VFS path
+      const workspaceFile = workspaceStore.files.find(f => f.vfsPath === entry.path);
+
+      if (workspaceFile) {
+        // Toggle pin status
+        workspaceStore.togglePinFile(workspaceFile.id);
+        const isPinned = workspaceStore.isPinned(workspaceFile.id);
+        uiStore.showToast(isPinned ? '已引用到对话' : '已取消引用', 'success');
+      } else {
+        uiStore.showToast('文件未关联到工作空间', 'error');
+      }
+    } catch (error) {
+      console.error('Pin file error:', error);
+      uiStore.showToast('操作失败', 'error');
+    }
   }
 
   // Initialize VFS on mount and load initial entries
@@ -223,6 +268,25 @@
     <div class="sandbox-header flex items-center justify-between px-4 py-3 border-b border-[var(--border-color)]">
       <h3 class="text-base font-semibold">沙箱</h3>
       <div class="flex items-center gap-1">
+        <input
+          bind:this={fileInputEl}
+          type="file"
+          multiple
+          accept=".pdf,.xlsx,.xls,.docx,.txt,.md,.json,.csv,.png,.jpg,.jpeg,.gif,.webp"
+          class="hidden"
+          onchange={handleSandboxFileUpload}
+        />
+        <button
+          class="p-2 text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--hover-bg)] rounded transition-colors"
+          onclick={triggerFileUpload}
+          title="上传文件"
+        >
+          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="17 8 12 3 7 8"/>
+            <line x1="12" y1="3" x2="12" y2="15"/>
+          </svg>
+        </button>
         <button
           class="p-2 text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--hover-bg)] rounded transition-colors"
           onclick={handleRefresh}
@@ -367,6 +431,21 @@
                     <!-- File actions - show for selected file -->
                     {#if isSelected && editingEntry?.path !== entry.path}
                       <div class="flex items-center gap-1 px-3 pb-2 border-b border-[var(--border-color)]/50">
+                        {#if entry.type === 'file'}
+                          {@const workspaceFile = workspaceStore.files.find(f => f.vfsPath === entry.path)}
+                          {@const isPinned = workspaceFile ? workspaceStore.isPinned(workspaceFile.id) : false}
+                          <button
+                            class="flex-1 flex items-center justify-center gap-1 p-2 text-xs transition-colors rounded {isPinned ? 'text-blue-600 bg-blue-50 dark:text-blue-400 dark:bg-blue-900' : 'text-[var(--text-secondary)] hover:text-blue-600 hover:bg-blue-50 dark:hover:text-blue-400 dark:hover:bg-blue-900'}"
+                            onclick={() => handlePinFile(entry)}
+                            title={isPinned ? "取消引用" : "引用到对话"}
+                          >
+                            <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill={isPinned ? "currentColor" : "none"} stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                              <path d="M12 17v5"/>
+                              <path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z"/>
+                            </svg>
+                            {isPinned ? "已引用" : "引用"}
+                          </button>
+                        {/if}
                         <button
                           class="flex-1 flex items-center justify-center gap-1 p-2 text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--hover-bg)] rounded transition-colors"
                           onclick={() => startRename(entry)}

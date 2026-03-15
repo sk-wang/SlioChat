@@ -11,6 +11,7 @@ import type { Workspace, WorkspaceFile } from '$lib/types/workspace';
 const STORAGE_KEY = 'workspaces';
 const FILES_KEY = 'workspaceFiles';
 const CURRENT_WORKSPACE_KEY = 'currentWorkspaceId';
+const PINNED_FILES_KEY = 'pinnedFiles';
 
 function generateId(): string {
   return `ws_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
@@ -24,6 +25,7 @@ class WorkspaceStore {
   #workspaces = $state<Workspace[]>([]);
   #currentWorkspaceId = $state<string | null>(null);
   #files = $state<Map<string, WorkspaceFile>>(new Map());
+  #pinnedFiles = $state<Map<string, Set<string>>>(new Map()); // workspaceId -> Set<fileId>
 
   constructor() {
     this.loadFromStorage();
@@ -33,10 +35,12 @@ class WorkspaceStore {
     const savedWorkspaces = storage.get<Workspace[]>(STORAGE_KEY, []);
     const savedFiles = storage.get<[string, WorkspaceFile][]>(FILES_KEY, []);
     const savedCurrentId = storage.get<string | null>(CURRENT_WORKSPACE_KEY, null);
+    const savedPinnedFiles = storage.get<[string, string[]][]>(PINNED_FILES_KEY, []);
 
     this.#workspaces = savedWorkspaces;
     this.#files = new Map(savedFiles);
     this.#currentWorkspaceId = savedCurrentId;
+    this.#pinnedFiles = new Map(savedPinnedFiles.map(([wsId, fileIds]) => [wsId, new Set(fileIds)]));
 
     // Create default workspace if none exists
     if (this.#workspaces.length === 0) {
@@ -58,6 +62,13 @@ class WorkspaceStore {
       return [id, serializableFile] as [string, Omit<WorkspaceFile, 'rawFile'>];
     });
     storage.set(FILES_KEY, serializableFiles);
+
+    // Serialize pinned files
+    const serializablePinnedFiles = Array.from(this.#pinnedFiles.entries()).map(([wsId, fileIds]) => [
+      wsId,
+      Array.from(fileIds)
+    ]);
+    storage.set(PINNED_FILES_KEY, serializablePinnedFiles);
 
     if (this.#currentWorkspaceId) {
       storage.set(CURRENT_WORKSPACE_KEY, this.#currentWorkspaceId);
@@ -81,6 +92,18 @@ class WorkspaceStore {
     const workspace = this.currentWorkspace;
     if (!workspace) return [];
     return workspace.files.map(id => this.#files.get(id)).filter(Boolean) as WorkspaceFile[];
+  }
+
+  get pinnedFiles(): WorkspaceFile[] {
+    if (!this.#currentWorkspaceId) return [];
+    const pinnedFileIds = this.#pinnedFiles.get(this.#currentWorkspaceId) || new Set();
+    return Array.from(pinnedFileIds)
+      .map(id => this.#files.get(id))
+      .filter(Boolean) as WorkspaceFile[];
+  }
+
+  getFile(fileId: string): WorkspaceFile | undefined {
+    return this.#files.get(fileId);
   }
 
   // Workspace actions
@@ -246,6 +269,14 @@ class WorkspaceStore {
     // Clear processed cache
     clearFileCache(fileId);
 
+    // Remove from pinned files
+    if (this.#currentWorkspaceId) {
+      const pinnedSet = this.#pinnedFiles.get(this.#currentWorkspaceId);
+      if (pinnedSet) {
+        pinnedSet.delete(fileId);
+      }
+    }
+
     this.#files.delete(fileId);
     this.#workspaces = this.#workspaces.map(w =>
       w.id === currentWs.id
@@ -256,8 +287,42 @@ class WorkspaceStore {
     this.saveToStorage();
   }
 
-  getFile(fileId: string): WorkspaceFile | undefined {
-    return this.#files.get(fileId);
+  pinFile(fileId: string): void {
+    if (!this.#currentWorkspaceId) return;
+
+    if (!this.#pinnedFiles.has(this.#currentWorkspaceId)) {
+      this.#pinnedFiles.set(this.#currentWorkspaceId, new Set());
+    }
+
+    this.#pinnedFiles.get(this.#currentWorkspaceId)!.add(fileId);
+    this.saveToStorage();
+  }
+
+  unpinFile(fileId: string): void {
+    if (!this.#currentWorkspaceId) return;
+
+    const pinnedSet = this.#pinnedFiles.get(this.#currentWorkspaceId);
+    if (pinnedSet) {
+      pinnedSet.delete(fileId);
+      this.saveToStorage();
+    }
+  }
+
+  togglePinFile(fileId: string): void {
+    if (!this.#currentWorkspaceId) return;
+
+    const pinnedSet = this.#pinnedFiles.get(this.#currentWorkspaceId) || new Set();
+    if (pinnedSet.has(fileId)) {
+      this.unpinFile(fileId);
+    } else {
+      this.pinFile(fileId);
+    }
+  }
+
+  isPinned(fileId: string): boolean {
+    if (!this.#currentWorkspaceId) return false;
+    const pinnedSet = this.#pinnedFiles.get(this.#currentWorkspaceId);
+    return pinnedSet ? pinnedSet.has(fileId) : false;
   }
 
   getFileByName(name: string): WorkspaceFile | undefined {

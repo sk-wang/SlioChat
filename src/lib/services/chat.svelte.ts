@@ -14,8 +14,8 @@ class ChatService {
     const current = conversationsStore.current;
     if (!current) return;
 
-    // Check workspace files
-    const workspaceFiles = workspaceStore.files;
+    // Check workspace pinned files
+    const workspaceFiles = workspaceStore.pinnedFiles;
 
     let content = text;
     let metadata: Message['metadata'] | undefined;

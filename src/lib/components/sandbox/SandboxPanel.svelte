@@ -27,8 +27,8 @@
     for (const file of input.files) {
       try {
         const workspaceFile = await workspaceStore.addFile(file);
-        workspaceStore.pinFile(workspaceFile.id);
-        uiStore.showToast(`已上传并引用: ${file.name}`, 'success');
+        // Don't auto-pin files uploaded from sandbox
+        uiStore.showToast(`已上传: ${file.name}`, 'success');
       } catch (error) {
         console.error('File upload error:', error);
         uiStore.showToast(`上传失败: ${file.name}`, 'error');

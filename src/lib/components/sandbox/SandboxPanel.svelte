@@ -108,7 +108,19 @@
   async function handleDelete(entry: VFSEntry) {
     if (confirm(`确定要删除 "${entry.name}" 吗？`)) {
       try {
+        // Delete from VFS
         await vfs.delete(entry.path);
+
+        // Also remove from workspace file references
+        const fileToRemove = workspaceStore.currentWorkspace?.files.find(fileId => {
+          const file = workspaceStore.getFile(fileId);
+          return file?.vfsPath === entry.path;
+        });
+
+        if (fileToRemove) {
+          await workspaceStore.removeFile(fileToRemove);
+        }
+
         if (selectedFile === entry.path) {
           selectedFile = null;
           fileContent = '';

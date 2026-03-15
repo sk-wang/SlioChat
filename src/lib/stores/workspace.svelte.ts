@@ -51,7 +51,14 @@ class WorkspaceStore {
 
   private saveToStorage(): void {
     storage.set(STORAGE_KEY, this.#workspaces);
-    storage.set(FILES_KEY, Array.from(this.#files.entries()));
+
+    // Serialize files but exclude rawFile (File objects can't be serialized)
+    const serializableFiles = Array.from(this.#files.entries()).map(([id, file]) => {
+      const { rawFile, ...serializableFile } = file;
+      return [id, serializableFile] as [string, Omit<WorkspaceFile, 'rawFile'>];
+    });
+    storage.set(FILES_KEY, serializableFiles);
+
     if (this.#currentWorkspaceId) {
       storage.set(CURRENT_WORKSPACE_KEY, this.#currentWorkspaceId);
     }

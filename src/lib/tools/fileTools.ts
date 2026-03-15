@@ -190,7 +190,8 @@ export const fileReadTool: ToolExecutor = {
         return `错误: 文件元数据损坏（缺少文件名）。请重新上传文件。`;
       }
 
-      if (matchedFile.rawFile) {
+      // Check if rawFile is a valid File object (not just a truthy value)
+      if (matchedFile.rawFile && matchedFile.rawFile instanceof File) {
         rawFile = matchedFile.rawFile;
         console.log('Using existing rawFile:', matchedFile.name);
       } else if (matchedFile.vfsPath) {

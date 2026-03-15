@@ -168,22 +168,26 @@ class WorkspaceStore {
 
     let vfsPath: string | undefined;
 
+    console.log('Adding file to workspace:', file.name, 'type:', file.type, 'isBinary:', isBinary);
+
     if (isBinary) {
       // For binary files, convert to base64 using FileReader
       const base64 = await fileToBase64(file);
       vfsPath = `/uploads/${file.name}`;
       await vfs.writeFile(vfsPath, base64);
+      console.log('Stored binary file in VFS:', vfsPath);
     } else {
       // For text files, use text() as before
       const content = await file.text();
       vfsPath = `/uploads/${file.name}`;
       await vfs.writeFile(vfsPath, content);
+      console.log('Stored text file in VFS:', vfsPath);
     }
 
     const workspaceFile: WorkspaceFile = {
       id: generateFileId(),
       name: file.name,
-      type: file.type,
+      type: file.type || 'application/octet-stream',
       size: file.size,
       uploadedAt: Date.now(),
       vfsPath,
@@ -321,9 +325,14 @@ function fileToBase64(file: File): Promise<string> {
       const result = reader.result as string;
       // Remove data URL prefix (e.g., "data:application/pdf;base64,")
       const base64 = result.split(',')[1];
+      if (!base64) {
+        reject(new Error('Failed to extract base64 from FileReader result'));
+        return;
+      }
+      console.log('Converted file to base64:', file.name, 'type:', file.type, 'base64 length:', base64.length);
       resolve(base64);
     };
-    reader.onerror = reject;
+    reader.onerror = () => reject(new Error(`FileReader error for ${file.name}`));
     reader.readAsDataURL(file);
   });
 }

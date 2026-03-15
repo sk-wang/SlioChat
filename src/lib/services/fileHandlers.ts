@@ -20,30 +20,43 @@ export interface FileContent {
 }
 
 export async function processFile(file: File): Promise<FileContent> {
+  // Validate file object
+  if (!file || typeof file !== 'object') {
+    throw new Error('Invalid file object: file is null or undefined');
+  }
+  if (!file.name) {
+    throw new Error('Invalid file object: file.name is missing');
+  }
+
   const fileName = file.name;
-  const fileType = file.type;
-  const fileSize = file.size;
+  const fileType = file.type || '';
+  const fileSize = file.size || 0;
+
+  console.log('Processing file:', fileName, 'type:', fileType, 'size:', fileSize);
 
   let content: string;
 
   try {
-    if (fileType === 'application/pdf') {
+    if (fileType === 'application/pdf' || fileName.toLowerCase().endsWith('.pdf')) {
       content = await extractPdfText(file);
     } else if (
       fileType === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' ||
-      fileType === 'application/vnd.ms-excel'
+      fileType === 'application/vnd.ms-excel' ||
+      fileName.toLowerCase().endsWith('.xlsx') ||
+      fileName.toLowerCase().endsWith('.xls')
     ) {
       content = await extractExcelText(file);
     } else if (
       fileType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
-      file.name.endsWith('.docx') || file.name.endsWith('.doc')
+      fileName.toLowerCase().endsWith('.docx') ||
+      fileName.toLowerCase().endsWith('.doc')
     ) {
       content = await extractWordText(file);
     } else if (fileType.startsWith('image/') || /\.(jpg|jpeg|png|gif|bmp|webp|svg)$/i.test(fileName)) {
       uiStore.showToast(`正在解析图片: ${fileName}...`, 'info');
       const base64 = await extractImageBase64(file);
       const description = await describeImageWithVLM(base64);
-      content = `[图片解析结果]\n文件名: ${fileName}\n图片类型: ${fileType}\n文件大小: ${(fileSize / 1024).toFixed(1)}KB\n\n图片内容描述:\n${description}`;
+      content = `[图片解析结果]\n文件名: ${fileName}\n图片类型: ${fileType || 'unknown'}\n文件大小: ${(fileSize / 1024).toFixed(1)}KB\n\n图片内容描述:\n${description}`;
       uiStore.showToast(`图片解析完成: ${fileName}`, 'success');
     } else {
       content = await extractTextContent(file);

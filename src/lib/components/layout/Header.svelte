@@ -75,12 +75,12 @@
           bind:value={editingTitleValue}
           onblur={saveTitle}
           onkeydown={handleTitleKeydown}
-          class="text-base md:text-lg font-medium text-[var(--text-primary)] bg-transparent border-b-2 border-[var(--button-primary-bg)] focus:outline-none max-w-[80px] md:max-w-[320px]"
+          class="text-base md:text-lg font-medium text-[var(--text-primary)] bg-transparent border-b-2 border-[var(--button-primary-bg)] focus:outline-none max-w-[200px] md:max-w-[320px]"
         />
       {:else}
         <h1
           id="current-conversation-title"
-          class="text-sm md:text-lg font-medium text-[var(--text-primary)] truncate max-w-[80px] md:max-w-none cursor-pointer hover:text-[var(--button-primary-bg)]"
+          class="text-sm md:text-lg font-medium text-[var(--text-primary)] truncate max-w-[200px] md:max-w-none cursor-pointer hover:text-[var(--button-primary-bg)]"
           onclick={startEditingTitle}
           onkeydown={(e) => e.key === 'Enter' && startEditingTitle()}
           role="button"

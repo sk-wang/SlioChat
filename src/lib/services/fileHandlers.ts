@@ -220,25 +220,29 @@ async function extractImageBase64(file: File): Promise<string> {
       try {
         const dataUrl = reader.result as string;
 
-        // Validate image by trying to load it
-        const img = new Image();
-        await new Promise((resolveImg, rejectImg) => {
-          img.onload = resolveImg;
-          img.onerror = () => rejectImg(new Error('图片加载失败，可能已损坏'));
-          img.src = dataUrl;
-        });
-
-        console.log('[Image] Successfully validated image:', file.name);
-        console.log('[Image] Image dimensions:', img.width, 'x', img.height);
+        console.log('[Image] Processing image:', file.name);
+        console.log('[Image] File type:', file.type);
+        console.log('[Image] File size:', file.size, 'bytes');
         console.log('[Image] Data URL length:', dataUrl.length);
 
-        // Check if image is too large (> 4MB base64)
-        if (dataUrl.length > 5 * 1024 * 1024) {
-          // Resize image if too large
+        // Try to load and process the image, but don't fail if validation fails
+        try {
+          const img = new Image();
+          await new Promise((resolveImg, rejectImg) => {
+            img.onload = resolveImg;
+            img.onerror = rejectImg;
+            img.src = dataUrl;
+          });
+
+          console.log('[Image] Successfully loaded image');
+          console.log('[Image] Image dimensions:', img.width, 'x', img.height);
+
+          // Always convert to JPEG for better compatibility
           const canvas = document.createElement('canvas');
           const ctx = canvas.getContext('2d');
           if (!ctx) {
-            reject(new Error('无法创建 canvas context'));
+            console.warn('[Image] Cannot create canvas, using original');
+            resolve(dataUrl);
             return;
           }
 
@@ -255,17 +259,20 @@ async function extractImageBase64(file: File): Promise<string> {
               width = (width / height) * maxSize;
               height = maxSize;
             }
+            console.log('[Image] Resizing from', img.width, 'x', img.height, 'to', width, 'x', height);
           }
 
           canvas.width = width;
           canvas.height = height;
           ctx.drawImage(img, 0, 0, width, height);
 
-          // Convert to JPEG with quality 0.8
-          const resizedDataUrl = canvas.toDataURL('image/jpeg', 0.8);
-          console.log('[Image] Resized image from', dataUrl.length, 'to', resizedDataUrl.length, 'bytes');
-          resolve(resizedDataUrl);
-        } else {
+          // Convert to JPEG with quality 0.9 for better quality
+          const processedDataUrl = canvas.toDataURL('image/jpeg', 0.9);
+          console.log('[Image] Converted to JPEG, size:', processedDataUrl.length, 'bytes');
+          resolve(processedDataUrl);
+        } catch (validationError) {
+          // If image validation/processing fails, try using original data URL
+          console.warn('[Image] Image processing failed, using original:', validationError);
           resolve(dataUrl);
         }
       } catch (error) {

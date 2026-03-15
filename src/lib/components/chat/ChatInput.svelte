@@ -4,10 +4,15 @@
   import { workspaceStore } from '$lib/stores/workspace.svelte';
   import { chatService } from '$lib/services/chat.svelte';
   import { uiStore } from '$lib/stores/ui.svelte';
+  import type { WorkspaceFile } from '$lib/types/workspace';
 
   let inputValue = $state('');
   let textareaEl: HTMLTextAreaElement;
   let fileInputEl: HTMLInputElement;
+  let showFileSuggestions = $state(false);
+  let mentionStartPos = $state(-1);
+  let filteredFiles = $state<WorkspaceFile[]>([]);
+  let selectedSuggestionIndex = $state(0);
 
   function adjustHeight() {
     if (!textareaEl) return;
@@ -16,6 +21,65 @@
     if (!inputValue) {
       textareaEl.style.height = '52px';
     }
+  }
+
+  function handleInput() {
+    adjustHeight();
+    checkForMention();
+  }
+
+  function checkForMention() {
+    const cursorPos = textareaEl?.selectionStart || 0;
+    const textBeforeCursor = inputValue.slice(0, cursorPos);
+
+    // Find the last @ symbol before cursor
+    const lastAtIndex = textBeforeCursor.lastIndexOf('@');
+
+    if (lastAtIndex === -1) {
+      showFileSuggestions = false;
+      return;
+    }
+
+    // Check if there's a space between @ and cursor (if so, don't show suggestions)
+    const textAfterAt = textBeforeCursor.slice(lastAtIndex + 1);
+    if (textAfterAt.includes(' ')) {
+      showFileSuggestions = false;
+      return;
+    }
+
+    // Show suggestions
+    mentionStartPos = lastAtIndex;
+    const searchQuery = textAfterAt.toLowerCase();
+
+    // Filter files based on search query
+    filteredFiles = workspaceStore.files.filter(file =>
+      file.name.toLowerCase().includes(searchQuery)
+    );
+
+    showFileSuggestions = filteredFiles.length > 0;
+    selectedSuggestionIndex = 0;
+  }
+
+  function selectFile(file: WorkspaceFile) {
+    // Pin the file
+    workspaceStore.pinFile(file.id);
+
+    // Replace @mention with file name
+    const beforeMention = inputValue.slice(0, mentionStartPos);
+    const afterCursor = inputValue.slice(textareaEl.selectionStart);
+    inputValue = beforeMention + `@${file.name} ` + afterCursor;
+
+    // Close suggestions
+    showFileSuggestions = false;
+
+    // Focus back on textarea
+    textareaEl?.focus();
+
+    // Set cursor position after the inserted text
+    setTimeout(() => {
+      const newPos = beforeMention.length + file.name.length + 2;
+      textareaEl?.setSelectionRange(newPos, newPos);
+    }, 0);
   }
 
   async function handleSend() {
@@ -30,6 +94,33 @@
   }
 
   function handleKeydown(event: KeyboardEvent) {
+    // Handle file suggestion navigation
+    if (showFileSuggestions) {
+      if (event.key === 'ArrowDown') {
+        event.preventDefault();
+        selectedSuggestionIndex = Math.min(selectedSuggestionIndex + 1, filteredFiles.length - 1);
+        return;
+      }
+      if (event.key === 'ArrowUp') {
+        event.preventDefault();
+        selectedSuggestionIndex = Math.max(selectedSuggestionIndex - 1, 0);
+        return;
+      }
+      if (event.key === 'Enter' || event.key === 'Tab') {
+        event.preventDefault();
+        if (filteredFiles[selectedSuggestionIndex]) {
+          selectFile(filteredFiles[selectedSuggestionIndex]);
+        }
+        return;
+      }
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        showFileSuggestions = false;
+        return;
+      }
+    }
+
+    // Normal enter to send
     if (event.key === 'Enter' && !event.shiftKey) {
       event.preventDefault();
       handleSend();
@@ -101,13 +192,55 @@
       <textarea
         bind:this={textareaEl}
         bind:value={inputValue}
-        oninput={adjustHeight}
+        oninput={handleInput}
         onkeydown={handleKeydown}
         rows="1"
         class="w-full pl-12 pr-24 py-[14px] bg-transparent border-none text-[var(--text-primary)] focus:ring-0 resize-none max-h-[200px] overflow-y-auto leading-6 placeholder-[var(--text-secondary)] focus:outline-none"
         placeholder="给 AI 发送消息..."
         style="min-height: 52px;"
       ></textarea>
+
+      <!-- File mention suggestions -->
+      {#if showFileSuggestions}
+        <div class="absolute bottom-full left-0 right-0 mb-2 mx-2 bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg shadow-lg max-h-60 overflow-y-auto z-10">
+          <div class="p-2">
+            <div class="text-xs text-[var(--text-secondary)] px-2 py-1 mb-1">选择文件引用</div>
+            {#each filteredFiles as file, index}
+              <button
+                class="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-left transition-colors"
+                class:bg-[var(--hover-bg)]={index === selectedSuggestionIndex}
+                onclick={() => selectFile(file)}
+                onmouseenter={() => selectedSuggestionIndex = index}
+              >
+                <span class="text-lg">
+                  {#if file.type.startsWith('image/')}
+                    🖼️
+                  {:else if file.type.includes('pdf')}
+                    📄
+                  {:else if file.type.includes('word') || file.type.includes('document')}
+                    📝
+                  {:else if file.type.includes('excel') || file.type.includes('spreadsheet')}
+                    📊
+                  {:else if file.type.includes('text')}
+                    📃
+                  {:else}
+                    📎
+                  {/if}
+                </span>
+                <div class="flex-1 min-w-0">
+                  <div class="text-sm text-[var(--text-primary)] truncate">{file.name}</div>
+                  <div class="text-xs text-[var(--text-secondary)]">
+                    {file.size < 1024 ? `${file.size} B` : file.size < 1024 * 1024 ? `${(file.size / 1024).toFixed(1)} KB` : `${(file.size / (1024 * 1024)).toFixed(1)} MB`}
+                  </div>
+                </div>
+                {#if workspaceStore.isPinned(file.id)}
+                  <span class="text-xs text-blue-600 dark:text-blue-400">已引用</span>
+                {/if}
+              </button>
+            {/each}
+          </div>
+        </div>
+      {/if}
 
       <div class="absolute bottom-2 right-2 flex items-center space-x-1">
         <button

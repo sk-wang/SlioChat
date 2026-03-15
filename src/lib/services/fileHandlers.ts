@@ -78,17 +78,22 @@ export async function processFile(file: File): Promise<FileContent> {
 
 async function describeImageWithVLM(base64: string): Promise<string> {
   const config = settingsStore.config;
-  const model = config.defaultVlm || 'qwen2.5-vl-3b-instruct';
+  const vlmModelId = config.defaultVlm || 'qwen2.5-vl-3b-instruct';
+
+  // Get model name from model config (not the ID)
+  const modelConfig = config.models[vlmModelId];
+  const modelName = modelConfig?.name || vlmModelId;
 
   console.log('[VLM] Starting image description request');
-  console.log('[VLM] Model:', model);
+  console.log('[VLM] Model ID:', vlmModelId);
+  console.log('[VLM] Model Name:', modelName);
   console.log('[VLM] URL:', config.defaultUrl);
   console.log('[VLM] Base64 length:', base64.length);
   console.log('[VLM] Base64 prefix:', base64.substring(0, 50));
 
   try {
     const requestBody = {
-      model: model,
+      model: modelName,
       messages: [
         {
           role: 'user',

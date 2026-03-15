@@ -80,14 +80,20 @@ async function describeImageWithVLM(base64: string): Promise<string> {
   const config = settingsStore.config;
   const vlmModelId = config.defaultVlm || 'qwen2.5-vl-3b-instruct';
 
-  // Get model name from model config (not the ID)
+  // Get model config - use model's own URL and Key
   const modelConfig = config.models[vlmModelId];
-  const modelName = modelConfig?.name || vlmModelId;
+  if (!modelConfig) {
+    throw new Error(`VLM 模型配置不存在: ${vlmModelId}`);
+  }
+
+  const modelName = modelConfig.name || vlmModelId;
+  const apiUrl = modelConfig.url || config.defaultUrl;
+  const apiKey = modelConfig.key || config.defaultKey;
 
   console.log('[VLM] Starting image description request');
   console.log('[VLM] Model ID:', vlmModelId);
   console.log('[VLM] Model Name:', modelName);
-  console.log('[VLM] URL:', config.defaultUrl);
+  console.log('[VLM] API URL:', apiUrl);
   console.log('[VLM] Base64 length:', base64.length);
   console.log('[VLM] Base64 prefix:', base64.substring(0, 50));
 
@@ -115,11 +121,11 @@ async function describeImageWithVLM(base64: string): Promise<string> {
 
     console.log('[VLM] Request body (truncated):', JSON.stringify(requestBody).substring(0, 500));
 
-    const response = await fetch(config.defaultUrl, {
+    const response = await fetch(apiUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${config.defaultKey}`,
+        Authorization: `Bearer ${apiKey}`,
       },
       body: JSON.stringify(requestBody),
     });

@@ -80,55 +80,35 @@ async function describeImageWithVLM(base64: string): Promise<string> {
   const config = settingsStore.config;
   const model = config.defaultVlm || 'qwen2.5-vl-3b-instruct';
 
+  console.log('[VLM] Starting image description request');
+  console.log('[VLM] Model:', model);
+  console.log('[VLM] URL:', config.defaultUrl);
+  console.log('[VLM] Base64 length:', base64.length);
+  console.log('[VLM] Base64 prefix:', base64.substring(0, 50));
+
   try {
-    // Detect if using Gemini API (different format)
-    const isGemini = model.toLowerCase().includes('gemini');
-
-    let requestBody: any;
-
-    if (isGemini) {
-      // Gemini API format
-      // Extract base64 data without the data URL prefix
-      const base64Data = base64.includes(',') ? base64.split(',')[1] : base64;
-
-      requestBody = {
-        contents: [{
-          parts: [
-            { text: '请详细描述这张图片的内容，包括图片中的文字、物体、场景、颜色等所有可见元素。如果图片包含文字，请准确识别并提取出来。' },
+    const requestBody = {
+      model: model,
+      messages: [
+        {
+          role: 'user',
+          content: [
             {
-              inline_data: {
-                mime_type: 'image/jpeg',
-                data: base64Data
-              }
-            }
-          ]
-        }]
-      };
-    } else {
-      // OpenAI-compatible format
-      requestBody = {
-        model: model,
-        messages: [
-          {
-            role: 'user',
-            content: [
-              {
-                type: 'text',
-                text: '请详细描述这张图片的内容，包括图片中的文字、物体、场景、颜色等所有可见元素。如果图片包含文字，请准确识别并提取出来。',
+              type: 'text',
+              text: '请详细描述这张图片的内容，包括图片中的文字、物体、场景、颜色等所有可见元素。如果图片包含文字，请准确识别并提取出来。',
+            },
+            {
+              type: 'image_url',
+              image_url: {
+                url: base64,
               },
-              {
-                type: 'image_url',
-                image_url: {
-                  url: base64,
-                },
-              },
-            ],
-          },
-        ],
-      };
-    }
+            },
+          ],
+        },
+      ],
+    };
 
-    console.log('VLM Request:', { model, isGemini, url: config.defaultUrl });
+    console.log('[VLM] Request body (truncated):', JSON.stringify(requestBody).substring(0, 500));
 
     const response = await fetch(config.defaultUrl, {
       method: 'POST',
@@ -139,23 +119,27 @@ async function describeImageWithVLM(base64: string): Promise<string> {
       body: JSON.stringify(requestBody),
     });
 
+    console.log('[VLM] Response status:', response.status);
+
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('VLM Error Response:', response.status, errorText);
-      throw new Error(`VLM request failed: ${response.status} - ${errorText}`);
+      console.error('[VLM] Error response:', errorText);
+      throw new Error(`VLM request failed: ${response.status} - ${errorText.substring(0, 200)}`);
     }
 
     const data = await response.json();
-    console.log('VLM Response:', data);
+    console.log('[VLM] Response data:', data);
 
-    // Parse response based on API format
-    if (isGemini) {
-      return data.candidates?.[0]?.content?.parts?.[0]?.text || '无法解析图片内容';
-    } else {
-      return data.choices?.[0]?.message?.content || '无法解析图片内容';
+    const content = data.choices?.[0]?.message?.content;
+    if (!content) {
+      console.error('[VLM] No content in response');
+      throw new Error('VLM 响应中没有内容');
     }
+
+    console.log('[VLM] Success! Content length:', content.length);
+    return content;
   } catch (error) {
-    console.error('VLM Error:', error);
+    console.error('[VLM] Error:', error);
     throw new Error(`图片解析服务请求失败: ${error instanceof Error ? error.message : String(error)}`);
   }
 }

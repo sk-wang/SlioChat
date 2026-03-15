@@ -85,25 +85,12 @@ npm run build
 
 ## 📝 支持的模型
 
-需要支持 **Function Calling / Tool Use** 的模型：
+支持所有兼容 **OpenAI API 格式**且具备 **Function Calling / Tool Use** 能力的模型，包括但不限于：
 
-### 国际模型
-- **OpenAI**: GPT-4o / GPT-4.1 / o1 / o3-mini
-- **Anthropic**: Claude 4 / Claude 3.7 Sonnet / Claude 3.5 (via 兼容 API)
-- **Google**: Gemini 2.5 Pro / Gemini 2.0 Flash
-
-### 国产模型
-- **DeepSeek**: DeepSeek V3 / R1 (推理模型)
-- **阿里**: Qwen 3 / Qwen 2.5-Max / Qwen 2.5-Coder
-- **智谱**: GLM-4-Plus / GLM-4.5 / GLM-Z1 (推理模型)
-- **字节**: Doubao-1.5-Pro / Seed-1.6
-- **月之暗面**: Kimi k1.5
-- **MiniMax**: abab7 / abab6.5s
-- **百度**: ERNIE 4.5 / ERNIE X1
-
-### 其他
-- Grok 2 / Grok 3
-- Mistral Large 2
+- OpenAI GPT 系列
+- Anthropic Claude 系列
+- Google Gemini 系列
+- DeepSeek / Qwen / GLM / Doubao / Kimi 等国产模型
 - 其他支持 function calling 的 OpenAI 兼容 API
 
 ## 📄 License

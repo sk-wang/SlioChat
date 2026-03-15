@@ -299,8 +299,6 @@ export async function streamChatCompletionWithTools(
       return null;
     }
     throw error;
-  } finally {
-    streamingStore.stop();
   }
 }
 

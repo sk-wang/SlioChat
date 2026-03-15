@@ -79,15 +79,34 @@ export async function processFile(file: File): Promise<FileContent> {
 async function describeImageWithVLM(base64: string): Promise<string> {
   const config = settingsStore.config;
   const model = config.defaultVlm || 'qwen2.5-vl-3b-instruct';
-  
+
   try {
-    const response = await fetch(config.defaultUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${config.defaultKey}`,
-      },
-      body: JSON.stringify({
+    // Detect if using Gemini API (different format)
+    const isGemini = model.toLowerCase().includes('gemini');
+
+    let requestBody: any;
+
+    if (isGemini) {
+      // Gemini API format
+      // Extract base64 data without the data URL prefix
+      const base64Data = base64.includes(',') ? base64.split(',')[1] : base64;
+
+      requestBody = {
+        contents: [{
+          parts: [
+            { text: '请详细描述这张图片的内容，包括图片中的文字、物体、场景、颜色等所有可见元素。如果图片包含文字，请准确识别并提取出来。' },
+            {
+              inline_data: {
+                mime_type: 'image/jpeg',
+                data: base64Data
+              }
+            }
+          ]
+        }]
+      };
+    } else {
+      // OpenAI-compatible format
+      requestBody = {
         model: model,
         messages: [
           {
@@ -106,18 +125,38 @@ async function describeImageWithVLM(base64: string): Promise<string> {
             ],
           },
         ],
-      }),
+      };
+    }
+
+    console.log('VLM Request:', { model, isGemini, url: config.defaultUrl });
+
+    const response = await fetch(config.defaultUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${config.defaultKey}`,
+      },
+      body: JSON.stringify(requestBody),
     });
 
     if (!response.ok) {
-      throw new Error(`VLM request failed: ${response.status}`);
+      const errorText = await response.text();
+      console.error('VLM Error Response:', response.status, errorText);
+      throw new Error(`VLM request failed: ${response.status} - ${errorText}`);
     }
 
     const data = await response.json();
-    return data.choices?.[0]?.message?.content || '无法解析图片内容';
+    console.log('VLM Response:', data);
+
+    // Parse response based on API format
+    if (isGemini) {
+      return data.candidates?.[0]?.content?.parts?.[0]?.text || '无法解析图片内容';
+    } else {
+      return data.choices?.[0]?.message?.content || '无法解析图片内容';
+    }
   } catch (error) {
     console.error('VLM Error:', error);
-    throw new Error('图片解析服务请求失败');
+    throw new Error(`图片解析服务请求失败: ${error instanceof Error ? error.message : String(error)}`);
   }
 }
 

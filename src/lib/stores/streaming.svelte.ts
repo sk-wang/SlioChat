@@ -7,6 +7,7 @@ class StreamingStore {
   #thinkingContent = $state('');
   #responseContent = $state('');
   #isThinkingPhase = $state(false);
+  #isWaitingForFirstToken = $state(false);
 
   get isGenerating() { return this.#isGenerating; }
   get isPaused() { return this.#isPaused; }
@@ -14,6 +15,7 @@ class StreamingStore {
   get thinkingContent() { return this.#thinkingContent; }
   get responseContent() { return this.#responseContent; }
   get isThinkingPhase() { return this.#isThinkingPhase; }
+  get isWaitingForFirstToken() { return this.#isWaitingForFirstToken; }
 
   start(): void {
     this.#controller = new AbortController();
@@ -22,6 +24,7 @@ class StreamingStore {
     this.#thinkingContent = '';
     this.#responseContent = '';
     this.#isThinkingPhase = false;
+    this.#isWaitingForFirstToken = true;
   }
 
   stop(): void {
@@ -29,6 +32,7 @@ class StreamingStore {
     this.#controller = null;
     this.#isGenerating = false;
     this.#isPaused = false;
+    this.#isWaitingForFirstToken = false;
   }
 
   togglePause(): void {
@@ -42,15 +46,18 @@ class StreamingStore {
   setThinking(text: string): void {
     this.#isThinkingPhase = true;
     this.#thinkingContent = text;
+    this.#isWaitingForFirstToken = false;
   }
 
   appendThinking(text: string): void {
     this.#isThinkingPhase = true;
     this.#thinkingContent += text;
+    this.#isWaitingForFirstToken = false;
   }
 
   appendResponse(text: string): void {
     this.#responseContent += text;
+    this.#isWaitingForFirstToken = false;
   }
 
   getSignal(): AbortSignal | undefined {
@@ -67,6 +74,7 @@ class StreamingStore {
     this.#controller = null;
     this.#isGenerating = false;
     this.#isPaused = false;
+    this.#isWaitingForFirstToken = false;
   }
 }
 

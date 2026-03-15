@@ -9,7 +9,10 @@
 
 [在线体验](https://slio-chat.pages.dev/)
 
-<img src="imgs/img.png" alt="SlioChat 界面预览" width="800"/>
+<div>
+  <img src="imgs/img_1.png" alt="SlioChat 日间模式" width="45%" style="display: inline-block;"/>
+  <img src="imgs/img_2.png" alt="SlioChat 夜间模式" width="45%" style="display: inline-block;"/>
+</div>
 
 </div>
 

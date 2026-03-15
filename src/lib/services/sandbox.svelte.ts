@@ -30,6 +30,7 @@ class VirtualFileSystem {
   private _files = $state<VFSEntry[]>([]);
   private _currentFile = $state<string | null>(null);
   private _currentContent = $state('');
+  private _currentWorkspaceId = $state<string | null>(null);
 
   get isReady(): boolean {
     return this._isReady;
@@ -49,6 +50,52 @@ class VirtualFileSystem {
 
   get currentContent(): string {
     return this._currentContent;
+  }
+
+  get currentWorkspaceId(): string | null {
+    return this._currentWorkspaceId;
+  }
+
+  /**
+   * Set current workspace ID for file isolation
+   */
+  setWorkspace(workspaceId: string): void {
+    this._currentWorkspaceId = workspaceId;
+    this.refreshFileTree();
+  }
+
+  /**
+   * Get workspace prefix for file paths
+   */
+  private getWorkspacePrefix(): string {
+    if (!this._currentWorkspaceId) {
+      return '/default';
+    }
+    return `/ws-${this._currentWorkspaceId}`;
+  }
+
+  /**
+   * Add workspace prefix to path
+   */
+  private addWorkspacePrefix(path: string): string {
+    const prefix = this.getWorkspacePrefix();
+    if (path.startsWith(prefix)) {
+      return path;
+    }
+    // Normalize path first
+    const normalized = this.normalizePath(path);
+    return prefix + normalized;
+  }
+
+  /**
+   * Remove workspace prefix from path for display
+   */
+  private removeWorkspacePrefix(path: string): string {
+    const prefix = this.getWorkspacePrefix();
+    if (path.startsWith(prefix)) {
+      return path.slice(prefix.length) || '/';
+    }
+    return path;
   }
 
   /**
@@ -97,10 +144,12 @@ class VirtualFileSystem {
   async readFile(path: string): Promise<string> {
     await this.ensureReady();
 
+    const fullPath = this.addWorkspacePrefix(path);
+
     return new Promise((resolve, reject) => {
       const tx = this.getTransaction();
       const store = tx.objectStore(STORE_NAME);
-      const request = store.get(this.normalizePath(path));
+      const request = store.get(fullPath);
 
       request.onsuccess = () => {
         const file = request.result as VFSFile | undefined;
@@ -127,14 +176,14 @@ class VirtualFileSystem {
   async writeFile(path: string, content: string): Promise<void> {
     await this.ensureReady();
 
-    const normalizedPath = this.normalizePath(path);
+    const fullPath = this.addWorkspacePrefix(path);
     const now = Date.now();
 
     // Check if file exists
-    const existing = await this.getFile(normalizedPath);
+    const existing = await this.getFile(fullPath);
 
     const file: VFSFile = {
-      path: normalizedPath,
+      path: fullPath,
       content,
       type: 'file',
       createdAt: existing?.createdAt || now,
@@ -148,7 +197,7 @@ class VirtualFileSystem {
       const request = store.put(file);
 
       request.onsuccess = () => {
-        this._currentFile = normalizedPath;
+        this._currentFile = fullPath;
         this._currentContent = content;
         this.refreshFileTree();
         resolve();
@@ -166,14 +215,14 @@ class VirtualFileSystem {
   async delete(path: string): Promise<void> {
     await this.ensureReady();
 
-    const normalizedPath = this.normalizePath(path);
+    const fullPath = this.addWorkspacePrefix(path);
 
     return new Promise((resolve, reject) => {
       const tx = this.getTransaction('readwrite');
       const store = tx.objectStore(STORE_NAME);
 
       // If it's a directory, delete all files inside
-      const range = IDBKeyRange.lowerBound(normalizedPath);
+      const range = IDBKeyRange.lowerBound(fullPath);
       const cursorRequest = store.openCursor(range);
 
       const toDelete: string[] = [];
@@ -182,7 +231,7 @@ class VirtualFileSystem {
         const cursor = (event.target as IDBRequest<IDBCursorWithValue>).result;
         if (cursor) {
           const file = cursor.value as VFSFile;
-          if (file.path === normalizedPath || file.path.startsWith(normalizedPath + '/')) {
+          if (file.path === fullPath || file.path.startsWith(fullPath + '/')) {
             toDelete.push(file.path);
           }
           cursor.continue();
@@ -224,11 +273,11 @@ class VirtualFileSystem {
   async mkdir(path: string): Promise<void> {
     await this.ensureReady();
 
-    const normalizedPath = this.normalizePath(path);
+    const fullPath = this.addWorkspacePrefix(path);
     const now = Date.now();
 
     const dir: VFSFile = {
-      path: normalizedPath,
+      path: fullPath,
       content: '',
       type: 'directory',
       createdAt: now,
@@ -254,10 +303,13 @@ class VirtualFileSystem {
 
   /**
    * List directory contents - includes subdirectories as virtual entries
+   * Only shows files from current workspace
    */
   async listDir(path: string = '/'): Promise<VFSEntry[]> {
     await this.ensureReady();
 
+    const workspacePrefix = this.getWorkspacePrefix();
+    const fullPath = this.addWorkspacePrefix(path);
     const normalizedPath = this.normalizePath(path);
     const prefix = normalizedPath === '/' ? '' : normalizedPath.slice(1) + '/';
 
@@ -270,19 +322,26 @@ class VirtualFileSystem {
         const allFiles = request.result as VFSFile[];
         const entryMap = new Map<string, VFSEntry>();
 
-        for (const file of allFiles) {
-          const relativePath = file.path.slice(1); // Remove leading /
+        // Filter files by workspace
+        const workspaceFiles = allFiles.filter(file => file.path.startsWith(workspacePrefix));
+
+        for (const file of workspaceFiles) {
+          // Remove workspace prefix for processing
+          const pathWithoutWorkspace = file.path.slice(workspacePrefix.length);
+          const relativePath = pathWithoutWorkspace.slice(1); // Remove leading /
 
           if (normalizedPath === '/') {
             // Root: collect first-level items
-            const parts = relativePath.split('/');
+            const parts = relativePath.split('/').filter(Boolean);
+            if (parts.length === 0) continue;
+
             const firstPart = parts[0];
 
             if (parts.length === 1) {
               // Direct file in root
               entryMap.set(firstPart, {
                 name: firstPart,
-                path: file.path,
+                path: '/' + firstPart,
                 type: file.type,
                 size: file.size,
                 updatedAt: file.updatedAt
@@ -310,7 +369,7 @@ class VirtualFileSystem {
                 // Direct child
                 entryMap.set(parts[0], {
                   name: parts[0],
-                  path: file.path,
+                  path: normalizedPath + '/' + parts[0],
                   type: file.type,
                   size: file.size,
                   updatedAt: file.updatedAt
@@ -357,7 +416,8 @@ class VirtualFileSystem {
   async exists(path: string): Promise<boolean> {
     await this.ensureReady();
 
-    const file = await this.getFile(this.normalizePath(path));
+    const fullPath = this.addWorkspacePrefix(path);
+    const file = await this.getFile(fullPath);
     return file !== undefined;
   }
 
@@ -368,7 +428,7 @@ class VirtualFileSystem {
     return new Promise((resolve, reject) => {
       const tx = this.getTransaction();
       const store = tx.objectStore(STORE_NAME);
-      const request = store.get(this.normalizePath(path));
+      const request = store.get(path);
 
       request.onsuccess = () => {
         resolve(request.result as VFSFile | undefined);

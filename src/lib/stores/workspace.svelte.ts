@@ -169,9 +169,8 @@ class WorkspaceStore {
     let vfsPath: string | undefined;
 
     if (isBinary) {
-      // For binary files, convert to base64 and store in VFS
-      const arrayBuffer = await file.arrayBuffer();
-      const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+      // For binary files, convert to base64 using FileReader
+      const base64 = await fileToBase64(file);
       vfsPath = `/uploads/${file.name}`;
       await vfs.writeFile(vfsPath, base64);
     } else {
@@ -310,6 +309,23 @@ class WorkspaceStore {
 
     this.saveToStorage();
   }
+}
+
+/**
+ * Convert File to base64 string using FileReader
+ */
+function fileToBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result as string;
+      // Remove data URL prefix (e.g., "data:application/pdf;base64,")
+      const base64 = result.split(',')[1];
+      resolve(base64);
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
 }
 
 export const workspaceStore = new WorkspaceStore();

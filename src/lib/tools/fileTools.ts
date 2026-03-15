@@ -56,6 +56,14 @@ export function clearAllFileCache(): void {
  * Process a file and cache the result
  */
 async function processAndCacheFile(file: File, fileId: string): Promise<FileContent> {
+  // Validate file object
+  if (!file) {
+    throw new Error('Cannot process file: file object is null or undefined');
+  }
+  if (!file.name) {
+    throw new Error('Cannot process file: file.name is missing');
+  }
+
   // Check cache first
   if (processedCache.has(fileId)) {
     return processedCache.get(fileId)!;
@@ -66,7 +74,7 @@ async function processAndCacheFile(file: File, fileId: string): Promise<FileCont
     processedCache.set(fileId, content);
     return content;
   } catch (error) {
-    console.error(`Failed to process file ${file.name}:`, error);
+    console.error(`Failed to process file ${file.name || '(unknown)'}:`, error);
     throw error;
   }
 }
@@ -146,6 +154,8 @@ export const fileReadTool: ToolExecutor = {
     const length = args.length as number | undefined;
     const files = workspaceStore.files;
 
+    console.log('file_read tool called for:', filename, 'available files:', files.map(f => f.name).join(', '));
+
     if (files.length === 0) {
       return '当前工作空间没有文件。用户需要先上传文件。';
     }
@@ -178,16 +188,18 @@ export const fileReadTool: ToolExecutor = {
         rawFile = matchedFile.rawFile;
       } else if (matchedFile.isBinary && matchedFile.vfsPath) {
         // For binary files stored in VFS as base64, reconstruct the File object
-        const base64Content = await vfs.readFile(matchedFile.vfsPath);
-        if (base64Content) {
-          try {
+        try {
+          const base64Content = await vfs.readFile(matchedFile.vfsPath);
+          if (base64Content) {
             // Use fetch to convert base64 to blob, then to File
-            const response = await fetch(`data:${matchedFile.type || 'application/octet-stream'};base64,${base64Content}`);
+            const mimeType = matchedFile.type && matchedFile.type.trim() !== '' ? matchedFile.type : 'application/octet-stream';
+            const response = await fetch(`data:${mimeType};base64,${base64Content}`);
             const blob = await response.blob();
-            rawFile = new File([blob], matchedFile.name, { type: matchedFile.type || 'application/octet-stream' });
-          } catch (e) {
-            console.error('Failed to reconstruct binary file:', e);
+            rawFile = new File([blob], matchedFile.name, { type: mimeType });
+            console.log('Reconstructed binary file:', matchedFile.name, 'type:', mimeType, 'size:', rawFile.size);
           }
+        } catch (e) {
+          console.error('Failed to reconstruct binary file:', e);
         }
       } else {
         // Try to get from uploading files (for recently uploaded)
@@ -200,9 +212,11 @@ export const fileReadTool: ToolExecutor = {
       }
 
       if (!rawFile) {
+        console.error('Failed to get raw file for:', matchedName, 'isBinary:', matchedFile.isBinary, 'vfsPath:', matchedFile.vfsPath);
         return `错误: 文件 "${matchedName}" 的原始数据不可用。请重新上传文件。`;
       }
 
+      console.log('Processing file with processAndCacheFile:', matchedName, 'rawFile size:', rawFile.size);
       const content = await processAndCacheFile(rawFile, matchedFile.id);
       const fullContent = content.content;
       const totalChars = fullContent.length;

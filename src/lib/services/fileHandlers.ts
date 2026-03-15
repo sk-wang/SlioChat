@@ -216,11 +216,63 @@ async function extractWordText(file: File): Promise<string> {
 async function extractImageBase64(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
-    reader.onload = () => {
-      const base64 = reader.result as string;
-      resolve(base64);
+    reader.onload = async () => {
+      try {
+        const dataUrl = reader.result as string;
+
+        // Validate image by trying to load it
+        const img = new Image();
+        await new Promise((resolveImg, rejectImg) => {
+          img.onload = resolveImg;
+          img.onerror = () => rejectImg(new Error('图片加载失败，可能已损坏'));
+          img.src = dataUrl;
+        });
+
+        console.log('[Image] Successfully validated image:', file.name);
+        console.log('[Image] Image dimensions:', img.width, 'x', img.height);
+        console.log('[Image] Data URL length:', dataUrl.length);
+
+        // Check if image is too large (> 4MB base64)
+        if (dataUrl.length > 5 * 1024 * 1024) {
+          // Resize image if too large
+          const canvas = document.createElement('canvas');
+          const ctx = canvas.getContext('2d');
+          if (!ctx) {
+            reject(new Error('无法创建 canvas context'));
+            return;
+          }
+
+          // Calculate new dimensions (max 2048px on longest side)
+          const maxSize = 2048;
+          let width = img.width;
+          let height = img.height;
+
+          if (width > maxSize || height > maxSize) {
+            if (width > height) {
+              height = (height / width) * maxSize;
+              width = maxSize;
+            } else {
+              width = (width / height) * maxSize;
+              height = maxSize;
+            }
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          ctx.drawImage(img, 0, 0, width, height);
+
+          // Convert to JPEG with quality 0.8
+          const resizedDataUrl = canvas.toDataURL('image/jpeg', 0.8);
+          console.log('[Image] Resized image from', dataUrl.length, 'to', resizedDataUrl.length, 'bytes');
+          resolve(resizedDataUrl);
+        } else {
+          resolve(dataUrl);
+        }
+      } catch (error) {
+        reject(error);
+      }
     };
-    reader.onerror = reject;
+    reader.onerror = () => reject(new Error('读取图片文件失败'));
     reader.readAsDataURL(file);
   });
 }

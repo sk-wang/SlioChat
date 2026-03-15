@@ -135,17 +135,42 @@
     const input = event.target as HTMLInputElement;
     if (!input.files?.length) return;
 
+    const uploadedFileNames: string[] = [];
+
     for (const file of input.files) {
       try {
         // Add file to workspace
         const workspaceFile = await workspaceStore.addFile(file);
         // Auto-pin the uploaded file
         workspaceStore.pinFile(workspaceFile.id);
+        uploadedFileNames.push(workspaceFile.name);
         uiStore.showToast(`已上传: ${file.name}`, 'success');
       } catch (error) {
         console.error('File processing error:', error);
         uiStore.showToast(`文件处理失败: ${file.name}`, 'error');
       }
+    }
+
+    // Auto-insert @ mentions for uploaded files
+    if (uploadedFileNames.length > 0) {
+      const mentions = uploadedFileNames.map(name => `@${name}`).join(' ');
+      const cursorPos = textareaEl?.selectionStart || inputValue.length;
+      const beforeCursor = inputValue.slice(0, cursorPos);
+      const afterCursor = inputValue.slice(cursorPos);
+
+      // Add space before if needed
+      const needsSpaceBefore = beforeCursor.length > 0 && !beforeCursor.endsWith(' ');
+      const prefix = needsSpaceBefore ? ' ' : '';
+
+      inputValue = beforeCursor + prefix + mentions + ' ' + afterCursor;
+
+      // Set cursor position after the inserted mentions
+      setTimeout(() => {
+        const newPos = cursorPos + prefix.length + mentions.length + 1;
+        textareaEl?.setSelectionRange(newPos, newPos);
+        textareaEl?.focus();
+        adjustHeight();
+      }, 0);
     }
 
     input.value = '';

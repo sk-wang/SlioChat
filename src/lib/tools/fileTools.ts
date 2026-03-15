@@ -1,42 +1,15 @@
 /**
  * File Tools - File reading and processing for Agent
- * Files are stored in workspace and processed on-demand when tools are called
+ * Files are stored in VFS and processed on-demand when tools are called
  */
 
 import type { ToolExecutor } from '$lib/types/tool';
 import { processFile, type FileContent } from '$lib/services/fileHandlers';
 import { workspaceStore } from '$lib/stores/workspace.svelte';
-import { vfs } from '$lib/services/sandbox.svelte';
-
-// Temporary store for raw files being uploaded (cleared after processing)
-const uploadingFiles: Map<string, File> = new Map();
+import { vfs, type VFSEntry } from '$lib/services/sandbox.svelte';
 
 // Cache for processed file contents
 const processedCache: Map<string, FileContent> = new Map();
-
-/**
- * Register a raw file being uploaded
- * This is temporary - file will be stored in workspace after upload
- */
-export function registerUploadingFile(file: File): string {
-  const tempId = `temp_${Date.now()}_${file.name}`;
-  uploadingFiles.set(tempId, file);
-  return tempId;
-}
-
-/**
- * Get uploading file by temp ID
- */
-export function getUploadingFile(tempId: string): File | undefined {
-  return uploadingFiles.get(tempId);
-}
-
-/**
- * Clear uploading files cache
- */
-export function clearUploadingFiles(): void {
-  uploadingFiles.clear();
-}
 
 /**
  * Clear processed cache for a specific file
@@ -80,13 +53,33 @@ async function processAndCacheFile(file: File, fileId: string): Promise<FileCont
 }
 
 /**
+ * Recursively get all files from VFS
+ */
+async function getAllFilesRecursively(dirPath: string = '/'): Promise<VFSEntry[]> {
+  const entries = await vfs.listDir(dirPath);
+  let allFiles: VFSEntry[] = [];
+
+  for (const entry of entries) {
+    if (entry.type === 'file') {
+      allFiles.push(entry);
+    } else if (entry.type === 'directory') {
+      // Recursively get files from subdirectory
+      const subFiles = await getAllFilesRecursively(entry.path);
+      allFiles = allFiles.concat(subFiles);
+    }
+  }
+
+  return allFiles;
+}
+
+/**
  * List available files tool
  */
 export const fileListTool: ToolExecutor = {
   name: 'file_list',
   definition: {
     name: 'file_list',
-    description: '列出当前工作空间中的所有文件。返回文件名列表、文件类型和大小信息。使用此工具查看有哪些文件可供读取。',
+    description: '列出当前工作空间中的所有文件（包括子目录）。返回文件名列表、文件类型和大小信息。使用此工具查看有哪些文件可供读取。',
     parameters: {
       type: 'object',
       properties: {},
@@ -94,16 +87,25 @@ export const fileListTool: ToolExecutor = {
     }
   },
   async execute() {
-    const files = workspaceStore.files;
+    // Ensure VFS is initialized
+    await vfs.init();
+
+    // Ensure workspace is set
+    const currentWorkspaceId = workspaceStore.currentWorkspaceId;
+    if (currentWorkspaceId && vfs.currentWorkspaceId !== currentWorkspaceId) {
+      vfs.setWorkspace(currentWorkspaceId);
+    }
+
+    // Get all files recursively from VFS
+    const files = await getAllFilesRecursively('/');
 
     if (files.length === 0) {
       return '当前工作空间没有文件。用户需要先上传文件到工作空间。';
     }
 
     const fileList = files.map(file => {
-      const sizeKB = (file.size / 1024).toFixed(1);
-      const type = file.type || '未知类型';
-      return `- ${file.name} (${sizeKB} KB, ${type})`;
+      const sizeKB = file.size ? (file.size / 1024).toFixed(1) : '0';
+      return `- ${file.name} (${sizeKB} KB, 路径: ${file.path})`;
     });
 
     const workspace = workspaceStore.currentWorkspace;
@@ -152,7 +154,18 @@ export const fileReadTool: ToolExecutor = {
     const endLine = args.end_line as number | undefined;
     const offset = args.offset as number | undefined;
     const length = args.length as number | undefined;
-    const files = workspaceStore.files;
+
+    // Ensure VFS is initialized
+    await vfs.init();
+
+    // Ensure workspace is set
+    const currentWorkspaceId = workspaceStore.currentWorkspaceId;
+    if (currentWorkspaceId && vfs.currentWorkspaceId !== currentWorkspaceId) {
+      vfs.setWorkspace(currentWorkspaceId);
+    }
+
+    // Get all files recursively from VFS
+    const files = await getAllFilesRecursively('/');
 
     console.log('file_read tool called for:', filename, 'available files:', files.map(f => f.name).join(', '));
 
@@ -160,16 +173,22 @@ export const fileReadTool: ToolExecutor = {
       return '当前工作空间没有文件。用户需要先上传文件。';
     }
 
-    // Try exact match first
+    // Try exact match first (by filename)
     let matchedFile = files.find(f => f.name === filename);
-    let matchedName = filename;
+
+    // Try matching by path (for cases like "uploads/filename")
+    if (!matchedFile) {
+      matchedFile = files.find(f => f.path === filename || f.path.endsWith('/' + filename));
+    }
 
     // Try partial match if exact match fails
     if (!matchedFile) {
+      // Remove @ prefix if present (from @ mention)
+      const cleanFilename = filename.startsWith('@') ? filename.slice(1) : filename;
+
       for (const file of files) {
-        if (file.name.includes(filename) || filename.includes(file.name)) {
+        if (file.name.includes(cleanFilename) || cleanFilename.includes(file.name)) {
           matchedFile = file;
-          matchedName = file.name;
           break;
         }
       }
@@ -181,124 +200,49 @@ export const fileReadTool: ToolExecutor = {
     }
 
     try {
-      // Get raw file - either from workspace file or from uploading cache
-      let rawFile: File | undefined;
+      // Read file content from VFS
+      const content = await vfs.readFile(matchedFile.path);
 
-      // Validate matchedFile has required properties
-      if (!matchedFile.name) {
-        console.error('matchedFile.name is missing:', matchedFile);
-        return `错误: 文件元数据损坏（缺少文件名）。请重新上传文件。`;
-      }
+      // Determine if file is binary based on extension
+      const isBinary = /\.(pdf|xlsx?|docx?|png|jpe?g|gif|webp)$/i.test(matchedFile.name);
 
-      // Check if rawFile is a valid File object (not just a truthy value)
-      if (matchedFile.rawFile && matchedFile.rawFile instanceof File) {
-        rawFile = matchedFile.rawFile;
-        console.log('Using existing rawFile:', matchedFile.name);
-      } else if (matchedFile.vfsPath) {
-        // Reconstruct File from VFS (for both binary and text files)
-        try {
-          const vfsContent = await vfs.readFile(matchedFile.vfsPath);
-          if (vfsContent) {
-            const mimeType = matchedFile.type && matchedFile.type.trim() !== '' ? matchedFile.type : 'application/octet-stream';
-            const fileName = matchedFile.name; // Ensure we have the filename
-
-            if (matchedFile.isBinary) {
-              // Binary file: vfsContent is base64, convert to blob
-              const response = await fetch(`data:${mimeType};base64,${vfsContent}`);
-              const blob = await response.blob();
-              rawFile = new File([blob], fileName, { type: mimeType });
-              console.log('Reconstructed binary file from VFS:', fileName, 'type:', mimeType, 'size:', rawFile.size, 'has name:', !!rawFile.name);
-            } else {
-              // Text file: vfsContent is plain text, create File directly
-              const blob = new Blob([vfsContent], { type: mimeType });
-              rawFile = new File([blob], fileName, { type: mimeType });
-              console.log('Reconstructed text file from VFS:', fileName, 'type:', mimeType, 'size:', rawFile.size, 'has name:', !!rawFile.name);
-            }
-
-            // Verify File object was created correctly
-            if (!rawFile || !rawFile.name) {
-              console.error('File reconstruction failed - name is missing. rawFile:', rawFile);
-              rawFile = undefined;
-            }
-          } else {
-            console.error('VFS content is empty for:', matchedFile.vfsPath);
-          }
-        } catch (e) {
-          console.error('Failed to reconstruct file from VFS:', e);
-        }
-      }
-
-      // Fallback: try to get from uploading files (for recently uploaded)
-      if (!rawFile) {
-        for (const [tempId, file] of uploadingFiles) {
-          if (file.name === matchedFile.name) {
-            rawFile = file;
-            console.log('Found file in uploadingFiles cache:', matchedFile.name);
-            break;
-          }
-        }
-      }
-
-      if (!rawFile) {
-        console.error('Failed to get raw file for:', matchedName, 'isBinary:', matchedFile.isBinary, 'vfsPath:', matchedFile.vfsPath);
-        return `错误: 文件 "${matchedName}" 的原始数据不可用。请重新上传文件。`;
-      }
-
-      console.log('Processing file with processAndCacheFile:', matchedName, 'rawFile size:', rawFile.size);
-      const content = await processAndCacheFile(rawFile, matchedFile.id);
-      const fullContent = content.content;
-      const totalChars = fullContent.length;
-      const lines = fullContent.split('\n');
-      const totalLines = lines.length;
-
-      const sizeKB = (matchedFile.size / 1024).toFixed(1);
-      let output = `文件: ${content.fileName}\n类型: ${content.type || '未知'}\n大小: ${sizeKB} KB\n总行数: ${totalLines}\n总字符: ${totalChars}\n\n`;
-
-      let resultContent: string;
-      let rangeInfo = '';
-
-      // Determine read mode: line-based or character-based
-      if (startLine !== undefined || endLine !== undefined) {
-        // Line-based reading
-        const start = Math.max(1, startLine || 1);
-        const end = Math.min(totalLines, endLine || totalLines);
-
-        if (start > totalLines) {
-          return output + `错误: 起始行 ${start} 超出文件总行数 ${totalLines}`;
-        }
-
-        const selectedLines = lines.slice(start - 1, end);
-        resultContent = selectedLines.join('\n');
-        rangeInfo = `[读取第 ${start} - ${end} 行，共 ${selectedLines.length} 行]\n\n`;
-      } else if (offset !== undefined || length !== undefined) {
-        // Character-based reading
-        const start = Math.max(0, offset || 0);
-        const readLength = Math.min(length || 8000, totalChars - start);
-
-        if (start >= totalChars) {
-          return output + `错误: 偏移量 ${start} 超出文件总字符数 ${totalChars}`;
-        }
-
-        resultContent = fullContent.slice(start, start + readLength);
-        rangeInfo = `[读取字符 ${start} - ${start + readLength}，共 ${readLength} 字符]\n\n`;
+      // Create File object for processing
+      let rawFile: File;
+      if (isBinary) {
+        // Binary file - content is base64, convert to blob
+        const response = await fetch(`data:application/octet-stream;base64,${content}`);
+        const blob = await response.blob();
+        rawFile = new File([blob], matchedFile.name, { type: 'application/octet-stream' });
       } else {
-        // Default: read first 8000 characters
-        const defaultLength = Math.min(8000, totalChars);
-        resultContent = fullContent.slice(0, defaultLength);
-        rangeInfo = `[读取前 ${defaultLength} 字符，共 ${totalChars} 字符]\n\n`;
+        // Text file - content is plain text
+        const blob = new Blob([content], { type: 'text/plain' });
+        rawFile = new File([blob], matchedFile.name, { type: 'text/plain' });
       }
 
-      // Add continuation hint if there's more content
-      if (resultContent.length < totalChars && !rangeInfo.includes('超出')) {
-        const readInfo = startLine !== undefined || endLine !== undefined
-          ? `如需继续读取，请使用 start_line=${(endLine || totalLines) + 1}`
-          : `如需继续读取，请使用 offset=${(offset || 0) + resultContent.length}`;
-        rangeInfo += `提示: ${readInfo}\n\n`;
+      console.log('Processing file:', matchedFile.name, 'size:', rawFile.size, 'isBinary:', isBinary);
+
+      // Use path as cache key
+      const cacheKey = matchedFile.path;
+      const processedFile = await processAndCacheFile(rawFile, cacheKey);
+      const processedContent = processedFile.content;
+
+      // Apply line/offset filtering if requested
+      if (startLine !== undefined || endLine !== undefined) {
+        const lines = processedContent.split('\n');
+        const start = (startLine || 1) - 1;
+        const end = endLine || lines.length;
+        return lines.slice(start, end).join('\n');
       }
 
-      return output + rangeInfo + `内容:\n${resultContent}`;
+      if (offset !== undefined) {
+        const maxLength = length || 8000;
+        return processedContent.slice(offset, offset + maxLength);
+      }
+
+      return processedContent;
     } catch (error) {
-      return `读取文件失败: ${(error as Error).message}`;
+      console.error('File read error:', error);
+      return `错误: 无法读取文件 "${matchedFile.name}": ${error instanceof Error ? error.message : String(error)}`;
     }
   }
 };

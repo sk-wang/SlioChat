@@ -100,7 +100,7 @@
             role="presentation"
           >
             {#if isThinking && parsedContent}
-              <ThinkingBlock thinking={parsedContent.thinking} content={parsedContent.content} toolCalls={message.toolCalls} />
+              <ThinkingBlock thinking={parsedContent.thinking} content={parsedContent.content} toolCalls={message.toolCalls} isHistorical={!isGeneratingThis} />
             {:else}
               {@html renderedContent}
             {/if}

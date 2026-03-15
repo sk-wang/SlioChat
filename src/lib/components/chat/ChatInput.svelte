@@ -4,14 +4,19 @@
   import { workspaceStore } from '$lib/stores/workspace.svelte';
   import { chatService } from '$lib/services/chat.svelte';
   import { uiStore } from '$lib/stores/ui.svelte';
-  import type { WorkspaceFile } from '$lib/types/workspace';
+  import { vfs } from '$lib/services/sandbox.svelte';
+
+  interface FileSuggestion {
+    name: string;
+    path: string;
+  }
 
   let inputValue = $state('');
   let textareaEl: HTMLTextAreaElement;
   let fileInputEl: HTMLInputElement;
   let showFileSuggestions = $state(false);
   let mentionStartPos = $state(-1);
-  let filteredFiles = $state<WorkspaceFile[]>([]);
+  let filteredFiles = $state<FileSuggestion[]>([]);
   let selectedSuggestionIndex = $state(0);
 
   function adjustHeight() {
@@ -51,23 +56,30 @@
     mentionStartPos = lastAtIndex;
     const searchQuery = textAfterAt.toLowerCase();
 
-    // Filter files based on search query
-    filteredFiles = workspaceStore.files.filter(file =>
-      file.name.toLowerCase().includes(searchQuery)
-    );
+    // Get all files from VFS (only files, not directories)
+    const suggestions: FileSuggestion[] = [];
+    vfs.files.forEach(entry => {
+      if (entry.type === 'file' && entry.name.toLowerCase().includes(searchQuery)) {
+        suggestions.push({
+          name: entry.name,
+          path: entry.path
+        });
+      }
+    });
 
+    filteredFiles = suggestions;
     showFileSuggestions = filteredFiles.length > 0;
     selectedSuggestionIndex = 0;
   }
 
-  function selectFile(file: WorkspaceFile) {
+  function selectFile(fileSuggestion: FileSuggestion) {
     // Pin the file
-    workspaceStore.pinFile(file.id);
+    workspaceStore.pinFile(fileSuggestion.path);
 
     // Replace @mention with file name
     const beforeMention = inputValue.slice(0, mentionStartPos);
     const afterCursor = inputValue.slice(textareaEl.selectionStart);
-    inputValue = beforeMention + `@${file.name} ` + afterCursor;
+    inputValue = beforeMention + `@${fileSuggestion.name} ` + afterCursor;
 
     // Close suggestions
     showFileSuggestions = false;
@@ -77,14 +89,14 @@
 
     // Set cursor position after the inserted text
     setTimeout(() => {
-      const newPos = beforeMention.length + file.name.length + 2;
+      const newPos = beforeMention.length + fileSuggestion.name.length + 2;
       textareaEl?.setSelectionRange(newPos, newPos);
     }, 0);
   }
 
   async function handleSend() {
     if (streamingStore.isGenerating) return;
-    if (!inputValue.trim() && workspaceStore.files.length === 0) return;
+    if (!inputValue.trim()) return;
 
     const message = inputValue.trim();
     inputValue = '';
@@ -139,11 +151,30 @@
 
     for (const file of input.files) {
       try {
-        // Add file to workspace
-        const workspaceFile = await workspaceStore.addFile(file);
+        // Write file directly to VFS /uploads/ directory
+        const filePath = `/uploads/${file.name}`;
+
+        // Read file content - handle both text and binary files
+        let content: string;
+        if (file.type.startsWith('text/') || file.name.endsWith('.txt') || file.name.endsWith('.md') || file.name.endsWith('.json') || file.name.endsWith('.csv')) {
+          // Text file
+          content = await file.text();
+        } else {
+          // Binary file - convert to base64
+          const arrayBuffer = await file.arrayBuffer();
+          const bytes = new Uint8Array(arrayBuffer);
+          let binary = '';
+          for (let i = 0; i < bytes.length; i++) {
+            binary += String.fromCharCode(bytes[i]);
+          }
+          content = btoa(binary);
+        }
+
+        await vfs.writeFile(filePath, content);
+
         // Auto-pin the uploaded file
-        workspaceStore.pinFile(workspaceFile.id);
-        uploadedFileNames.push(workspaceFile.name);
+        workspaceStore.pinFile(filePath);
+        uploadedFileNames.push(file.name);
         uiStore.showToast(`已上传: ${file.name}`, 'success');
       } catch (error) {
         console.error('File processing error:', error);
@@ -230,35 +261,19 @@
         <div class="absolute bottom-full left-0 right-0 mb-2 mx-2 bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg shadow-lg max-h-60 overflow-y-auto z-10">
           <div class="p-2">
             <div class="text-xs text-[var(--text-secondary)] px-2 py-1 mb-1">选择文件引用</div>
-            {#each filteredFiles as file, index}
+            {#each filteredFiles as fileSuggestion, index}
               <button
                 class="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-left transition-colors"
                 class:bg-[var(--hover-bg)]={index === selectedSuggestionIndex}
-                onclick={() => selectFile(file)}
+                onclick={() => selectFile(fileSuggestion)}
                 onmouseenter={() => selectedSuggestionIndex = index}
               >
-                <span class="text-lg">
-                  {#if file.type.startsWith('image/')}
-                    🖼️
-                  {:else if file.type.includes('pdf')}
-                    📄
-                  {:else if file.type.includes('word') || file.type.includes('document')}
-                    📝
-                  {:else if file.type.includes('excel') || file.type.includes('spreadsheet')}
-                    📊
-                  {:else if file.type.includes('text')}
-                    📃
-                  {:else}
-                    📎
-                  {/if}
-                </span>
+                <span class="text-lg">📄</span>
                 <div class="flex-1 min-w-0">
-                  <div class="text-sm text-[var(--text-primary)] truncate">{file.name}</div>
-                  <div class="text-xs text-[var(--text-secondary)]">
-                    {file.size < 1024 ? `${file.size} B` : file.size < 1024 * 1024 ? `${(file.size / 1024).toFixed(1)} KB` : `${(file.size / (1024 * 1024)).toFixed(1)} MB`}
-                  </div>
+                  <div class="text-sm text-[var(--text-primary)] truncate">{fileSuggestion.name}</div>
+                  <div class="text-xs text-[var(--text-secondary)] truncate">{fileSuggestion.path}</div>
                 </div>
-                {#if workspaceStore.isPinned(file.id)}
+                {#if workspaceStore.isPinned(fileSuggestion.path)}
                   <span class="text-xs text-blue-600 dark:text-blue-400">已引用</span>
                 {/if}
               </button>
@@ -292,7 +307,7 @@
 
         <button
           onclick={handleSend}
-          disabled={!inputValue.trim() && workspaceStore.files.length === 0}
+          disabled={!inputValue.trim()}
           class="p-2 bg-[var(--text-primary)] text-[var(--bg-primary)] rounded-full hover:opacity-90 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
           title="发送消息"
         >

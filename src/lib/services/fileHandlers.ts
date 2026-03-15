@@ -179,7 +179,7 @@ async function describeImageWithVLM(base64: string): Promise<string> {
 async function extractPdfText(file: File): Promise<string> {
   const arrayBuffer = await readFileAsArrayBuffer(file);
   const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-  
+
   let fullText = '';
   for (let i = 1; i <= pdf.numPages; i++) {
     const page = await pdf.getPage(i);
@@ -189,7 +189,68 @@ async function extractPdfText(file: File): Promise<string> {
       .join(' ');
     fullText += pageText + '\n';
   }
-  
+
+  const trimmedText = fullText.trim();
+
+  // 检测是否为扫描版PDF（文字内容少于100个字符）
+  if (trimmedText.length < 100) {
+    console.log('[PDF] Detected scanned PDF, using OCR...');
+    uiStore.showToast(`检测到扫描版PDF，正在使用OCR识别...`, 'info');
+
+    try {
+      const ocrText = await extractPdfWithOCR(pdf, file.name);
+      uiStore.showToast(`扫描版PDF识别完成`, 'success');
+      return ocrText;
+    } catch (error) {
+      console.error('[PDF] OCR failed:', error);
+      uiStore.showToast(`OCR识别失败，返回原始文本`, 'error');
+      return trimmedText || '[无法提取PDF内容]';
+    }
+  }
+
+  return trimmedText;
+}
+
+async function extractPdfWithOCR(pdf: pdfjsLib.PDFDocumentProxy, fileName: string): Promise<string> {
+  const numPages = pdf.numPages;
+  let fullText = `[扫描版PDF OCR识别结果]\n文件名: ${fileName}\n总页数: ${numPages}\n\n`;
+
+  for (let i = 1; i <= numPages; i++) {
+    try {
+      console.log(`[PDF OCR] Processing page ${i}/${numPages}`);
+      uiStore.showToast(`正在识别第 ${i}/${numPages} 页...`, 'info');
+
+      const page = await pdf.getPage(i);
+      const viewport = page.getViewport({ scale: 2.0 }); // 使用2倍缩放以提高清晰度
+
+      // 创建canvas渲染PDF页面
+      const canvas = document.createElement('canvas');
+      const context = canvas.getContext('2d');
+      if (!context) {
+        throw new Error('无法创建canvas context');
+      }
+
+      canvas.width = viewport.width;
+      canvas.height = viewport.height;
+
+      await page.render({
+        canvasContext: context,
+        viewport: viewport,
+      }).promise;
+
+      // 转换为base64
+      const base64 = canvas.toDataURL('image/jpeg', 0.9);
+
+      // 使用VLM进行OCR
+      const pageText = await describeImageWithVLM(base64);
+
+      fullText += `--- 第 ${i} 页 ---\n${pageText}\n\n`;
+    } catch (error) {
+      console.error(`[PDF OCR] Error processing page ${i}:`, error);
+      fullText += `--- 第 ${i} 页 ---\n[识别失败: ${error instanceof Error ? error.message : String(error)}]\n\n`;
+    }
+  }
+
   return fullText.trim();
 }
 

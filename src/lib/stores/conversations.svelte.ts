@@ -1,5 +1,6 @@
 import type { Conversation, Message, ChatType } from '$lib/types';
 import { storage } from '$lib/services/storage';
+import { workspaceStore } from './workspace.svelte';
 
 class ConversationsStore {
   private _conversations = $state<Record<string, Conversation>>(
@@ -9,6 +10,31 @@ class ConversationsStore {
 
   constructor() {
     const initial = this._conversations;
+
+    // Data migration: Add workspaceId to old conversations
+    let needsMigration = false;
+    const conversationIds: string[] = [];
+
+    Object.values(initial).forEach(conv => {
+      if (!conv.workspaceId) {
+        // Find default workspace
+        const defaultWorkspace = workspaceStore.workspaces.find(w => w.isDefault);
+        if (defaultWorkspace) {
+          conv.workspaceId = defaultWorkspace.id;
+          conversationIds.push(conv.id);
+          needsMigration = true;
+        }
+      }
+    });
+
+    if (needsMigration) {
+      this._save();
+      // Migrate conversation IDs to default workspace
+      if (conversationIds.length > 0) {
+        workspaceStore.migrateOldConversations(conversationIds);
+      }
+    }
+
     const lastSelected = storage.get<string | null>('lastSelectedConversation', null);
     this._currentId = lastSelected && initial[lastSelected] ? lastSelected : Object.keys(initial)[0] || null;
   }
@@ -43,6 +69,10 @@ class ConversationsStore {
     return Object.values(groups).filter((g) => g.items.length > 0);
   }
 
+  getByWorkspace(workspaceId: string): Conversation[] {
+    return this.list.filter((c) => c.workspaceId === workspaceId);
+  }
+
   private _save() {
     storage.set('conversations', this._conversations);
   }
@@ -53,9 +83,9 @@ class ConversationsStore {
     }
   }
 
-  create(type: ChatType, systemPrompt: string, typeName: string): string {
+  create(type: ChatType, systemPrompt: string, typeName: string, workspaceId: string): string {
     const id = `conv_${Date.now()}`;
-    const count = this.list.filter((c) => c.type === type).length + 1;
+    const count = this.list.filter((c) => c.type === type && c.workspaceId === workspaceId).length + 1;
 
     this._conversations[id] = {
       id,
@@ -64,6 +94,7 @@ class ConversationsStore {
       systemPrompt,
       type,
       createdAt: Date.now(),
+      workspaceId,
     };
 
     this._currentId = id;
@@ -91,6 +122,9 @@ class ConversationsStore {
       this._saveCurrentId();
     }
     this._save();
+
+    // Remove from workspace
+    workspaceStore.removeConversation(id);
   }
 
   updateTitle(id: string, title: string): void {

@@ -49,9 +49,10 @@ export async function processFile(file: File): Promise<FileContent> {
       content = await extractTextContent(file);
     }
   } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
     console.error('File processing error:', error);
-    uiStore.showToast(`文件处理失败: ${fileName}`, 'error');
-    throw error;
+    uiStore.showToast(`文件处理失败: ${fileName} - ${errorMessage}`, 'error');
+    throw new Error(`处理文件 ${fileName} 失败: ${errorMessage}`);
   }
 
   return {

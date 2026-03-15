@@ -180,12 +180,14 @@ export const fileReadTool: ToolExecutor = {
         // For binary files stored in VFS as base64, reconstruct the File object
         const base64Content = await vfs.readFile(matchedFile.vfsPath);
         if (base64Content) {
-          const binaryString = atob(base64Content);
-          const bytes = new Uint8Array(binaryString.length);
-          for (let i = 0; i < binaryString.length; i++) {
-            bytes[i] = binaryString.charCodeAt(i);
+          try {
+            // Use fetch to convert base64 to blob, then to File
+            const response = await fetch(`data:${matchedFile.type || 'application/octet-stream'};base64,${base64Content}`);
+            const blob = await response.blob();
+            rawFile = new File([blob], matchedFile.name, { type: matchedFile.type || 'application/octet-stream' });
+          } catch (e) {
+            console.error('Failed to reconstruct binary file:', e);
           }
-          rawFile = new File([bytes], matchedFile.name, { type: matchedFile.type });
         }
       } else {
         // Try to get from uploading files (for recently uploaded)

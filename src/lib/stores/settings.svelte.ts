@@ -59,6 +59,13 @@ export const API_PROVIDERS: ApiProvider[] = [
     keyHelp: '本地运行，无需 API Key',
   },
   {
+    id: 'lmstudio',
+    name: 'LM Studio (本地)',
+    url: 'http://localhost:1234/v1/chat/completions',
+    keyPlaceholder: '无需 Key',
+    keyHelp: '本地运行，无需 API Key',
+  },
+  {
     id: 'openrouter',
     name: 'OpenRouter',
     url: 'https://openrouter.ai/api/v1/chat/completions',

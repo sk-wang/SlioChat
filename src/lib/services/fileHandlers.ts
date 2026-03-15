@@ -97,6 +97,11 @@ async function describeImageWithVLM(base64: string): Promise<string> {
   console.log('[VLM] Base64 length:', base64.length);
   console.log('[VLM] Base64 prefix:', base64.substring(0, 50));
 
+  // Validate base64 format
+  if (!base64.startsWith('data:image/')) {
+    throw new Error('Invalid image format: base64 string must start with data:image/');
+  }
+
   try {
     const requestBody = {
       model: modelName,
@@ -117,6 +122,7 @@ async function describeImageWithVLM(base64: string): Promise<string> {
           ],
         },
       ],
+      max_tokens: 1000,
     };
 
     console.log('[VLM] Request body (truncated):', JSON.stringify(requestBody).substring(0, 500));
@@ -135,7 +141,15 @@ async function describeImageWithVLM(base64: string): Promise<string> {
     if (!response.ok) {
       const errorText = await response.text();
       console.error('[VLM] Error response:', errorText);
-      throw new Error(`VLM request failed: ${response.status} - ${errorText.substring(0, 200)}`);
+
+      // Parse error details if available
+      try {
+        const errorData = JSON.parse(errorText);
+        const errorMessage = errorData.error?.message || errorText;
+        throw new Error(`VLM request failed (${response.status}): ${errorMessage.substring(0, 200)}`);
+      } catch {
+        throw new Error(`VLM request failed: ${response.status} - ${errorText.substring(0, 200)}`);
+      }
     }
 
     const data = await response.json();
@@ -151,7 +165,14 @@ async function describeImageWithVLM(base64: string): Promise<string> {
     return content;
   } catch (error) {
     console.error('[VLM] Error:', error);
-    throw new Error(`图片解析服务请求失败: ${error instanceof Error ? error.message : String(error)}`);
+    const errorMessage = error instanceof Error ? error.message : String(error);
+
+    // Provide more helpful error messages
+    if (errorMessage.includes('Unable to process input image')) {
+      throw new Error(`图片格式不支持或图片损坏。请尝试：1) 使用 JPG/PNG 格式 2) 确保图片大小不超过 4MB 3) 检查图片是否完整`);
+    }
+
+    throw new Error(`图片解析服务请求失败: ${errorMessage}`);
   }
 }
 

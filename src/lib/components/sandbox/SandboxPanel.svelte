@@ -11,6 +11,12 @@
   let selectedFile = $state<string | null>(null);
   let isEditing = $state(false);
   let currentEntries = $state<VFSEntry[]>([]);
+  let previewImage = $state<{ path: string; data: string } | null>(null);
+
+  // Check if file is an image
+  function isImageFile(filename: string): boolean {
+    return /\.(jpg|jpeg|png|gif|bmp|webp|svg)$/i.test(filename);
+  }
 
   // Initialize VFS on mount and load initial entries
   onMount(async () => {
@@ -171,6 +177,22 @@
       uiStore.showToast('下载失败: ' + (e as Error).message, 'error');
     }
   }
+
+  async function handlePreviewImage(entry: VFSEntry) {
+    try {
+      const content = await vfs.readFile(entry.path);
+      // Check if content is base64 or data URL
+      const imageData = content.startsWith('data:') ? content : `data:image/png;base64,${content}`;
+      previewImage = { path: entry.path, data: imageData };
+    } catch (e) {
+      uiStore.showToast('预览失败: ' + (e as Error).message, 'error');
+    }
+  }
+
+  function closeImagePreview() {
+    previewImage = null;
+  }
+
 </script>
 
 {#if agentStore.showSandbox}
@@ -350,6 +372,20 @@
                           移动
                         </button>
                         {#if entry.type === 'file'}
+                          {#if isImageFile(entry.name)}
+                            <button
+                              class="flex-1 flex items-center justify-center gap-1 p-2 text-xs text-[var(--text-secondary)] hover:text-purple-500 hover:bg-purple-500/10 rounded transition-colors"
+                              onclick={() => handlePreviewImage(entry)}
+                              title="预览图片"
+                            >
+                              <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                                <circle cx="8.5" cy="8.5" r="1.5"/>
+                                <polyline points="21 15 16 10 5 21"/>
+                              </svg>
+                              预览
+                            </button>
+                          {/if}
                           <button
                             class="flex-1 flex items-center justify-center gap-1 p-2 text-xs text-[var(--text-secondary)] hover:text-green-500 hover:bg-green-500/10 rounded transition-colors"
                             onclick={() => handleDownload(entry)}
@@ -422,6 +458,45 @@
           {/if}
         </div>
       {/if}
+    </div>
+  </div>
+{/if}
+
+<!-- Image Preview Modal -->
+{#if previewImage}
+  <div
+    class="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 p-4"
+    onclick={closeImagePreview}
+  >
+    <div
+      class="relative max-w-[90vw] max-h-[90vh] bg-[var(--bg-primary)] rounded-lg shadow-2xl overflow-hidden"
+      onclick={(e) => e.stopPropagation()}
+    >
+      <!-- Header -->
+      <div class="flex items-center justify-between px-4 py-3 border-b border-[var(--border-color)] bg-[var(--bg-secondary)]">
+        <h3 class="text-sm font-medium truncate max-w-[300px]" title={previewImage.path}>
+          {previewImage.path.split('/').pop()}
+        </h3>
+        <button
+          class="p-2 text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--hover-bg)] rounded transition-colors"
+          onclick={closeImagePreview}
+          title="关闭"
+        >
+          <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"/>
+            <line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Image -->
+      <div class="p-4 overflow-auto max-h-[calc(90vh-60px)]">
+        <img
+          src={previewImage.data}
+          alt={previewImage.path}
+          class="max-w-full h-auto mx-auto"
+        />
+      </div>
     </div>
   </div>
 {/if}

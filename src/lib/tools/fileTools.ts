@@ -184,27 +184,43 @@ export const fileReadTool: ToolExecutor = {
       // Get raw file - either from workspace file or from uploading cache
       let rawFile: File | undefined;
 
+      // Validate matchedFile has required properties
+      if (!matchedFile.name) {
+        console.error('matchedFile.name is missing:', matchedFile);
+        return `错误: 文件元数据损坏（缺少文件名）。请重新上传文件。`;
+      }
+
       if (matchedFile.rawFile) {
         rawFile = matchedFile.rawFile;
+        console.log('Using existing rawFile:', matchedFile.name);
       } else if (matchedFile.vfsPath) {
         // Reconstruct File from VFS (for both binary and text files)
         try {
           const vfsContent = await vfs.readFile(matchedFile.vfsPath);
           if (vfsContent) {
             const mimeType = matchedFile.type && matchedFile.type.trim() !== '' ? matchedFile.type : 'application/octet-stream';
+            const fileName = matchedFile.name; // Ensure we have the filename
 
             if (matchedFile.isBinary) {
               // Binary file: vfsContent is base64, convert to blob
               const response = await fetch(`data:${mimeType};base64,${vfsContent}`);
               const blob = await response.blob();
-              rawFile = new File([blob], matchedFile.name, { type: mimeType });
-              console.log('Reconstructed binary file from VFS:', matchedFile.name, 'type:', mimeType, 'size:', rawFile.size);
+              rawFile = new File([blob], fileName, { type: mimeType });
+              console.log('Reconstructed binary file from VFS:', fileName, 'type:', mimeType, 'size:', rawFile.size, 'has name:', !!rawFile.name);
             } else {
               // Text file: vfsContent is plain text, create File directly
               const blob = new Blob([vfsContent], { type: mimeType });
-              rawFile = new File([blob], matchedFile.name, { type: mimeType });
-              console.log('Reconstructed text file from VFS:', matchedFile.name, 'type:', mimeType, 'size:', rawFile.size);
+              rawFile = new File([blob], fileName, { type: mimeType });
+              console.log('Reconstructed text file from VFS:', fileName, 'type:', mimeType, 'size:', rawFile.size, 'has name:', !!rawFile.name);
             }
+
+            // Verify File object was created correctly
+            if (!rawFile || !rawFile.name) {
+              console.error('File reconstruction failed - name is missing. rawFile:', rawFile);
+              rawFile = undefined;
+            }
+          } else {
+            console.error('VFS content is empty for:', matchedFile.vfsPath);
           }
         } catch (e) {
           console.error('Failed to reconstruct file from VFS:', e);

@@ -101,8 +101,13 @@ class ChatService {
           case 'tool_calls':
             // Save tool calls to the message so ToolCallDisplay can show them
             if (event.calls && event.calls.length > 0) {
+              // Append new tool calls to existing ones (for multi-round agent execution)
+              const currentMessages = conversationsStore.current?.messages;
+              const lastMessage = currentMessages?.[currentMessages.length - 1];
+              const existingToolCalls = lastMessage?.toolCalls || [];
+              const newToolCalls = [...existingToolCalls, ...event.calls];
               conversationsStore.updateLastMessageFields({
-                toolCalls: event.calls
+                toolCalls: newToolCalls
               });
             }
             break;
@@ -116,8 +121,13 @@ class ChatService {
             // Tool confirmation UI is shown via ToolConfirmation component
             // Also save tool calls to message for display
             if (event.calls && event.calls.length > 0) {
+              // Append new tool calls to existing ones (for multi-round agent execution)
+              const currentMessages = conversationsStore.current?.messages;
+              const lastMessage = currentMessages?.[currentMessages.length - 1];
+              const existingToolCalls = lastMessage?.toolCalls || [];
+              const newToolCalls = [...existingToolCalls, ...event.calls];
               conversationsStore.updateLastMessageFields({
-                toolCalls: event.calls
+                toolCalls: newToolCalls
               });
             }
             break;

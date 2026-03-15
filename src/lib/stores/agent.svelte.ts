@@ -85,7 +85,8 @@ class AgentStore {
   }
 
   addToolCalls(calls: ToolCall[]): void {
-    this._currentToolCalls = calls;
+    // Append new tool calls to existing ones (for multi-round execution)
+    this._currentToolCalls = [...this._currentToolCalls, ...calls];
     this._iteration++;
   }
 

@@ -10,8 +10,13 @@
 
   function handleNewConversation() {
     if (streamingStore.isGenerating) return;
+    const currentWorkspaceId = workspaceStore.currentWorkspaceId;
+    if (!currentWorkspaceId) {
+      uiStore.showToast('请先选择工作空间', 'error');
+      return;
+    }
     // Create conversation directly with agent system prompt
-    const id = conversationsStore.create('agent', AGENT_SYSTEM_PROMPT, '新对话');
+    const id = conversationsStore.create('agent', AGENT_SYSTEM_PROMPT, '新对话', currentWorkspaceId);
     // Add to current workspace
     workspaceStore.addConversation(id);
     // Close sidebar on mobile

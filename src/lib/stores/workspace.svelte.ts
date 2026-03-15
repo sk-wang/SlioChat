@@ -136,6 +136,13 @@ class WorkspaceStore {
       this.#files.delete(fileId);
     }
 
+    // Delete associated conversations
+    import('./conversations.svelte').then(({ conversationsStore }) => {
+      for (const convId of workspace.conversations) {
+        conversationsStore.delete(convId);
+      }
+    });
+
     this.#workspaces = this.#workspaces.filter(w => w.id !== id);
 
     // Switch to default workspace if current was deleted
@@ -150,6 +157,15 @@ class WorkspaceStore {
     if (this.#workspaces.find(w => w.id === id)) {
       this.#currentWorkspaceId = id;
       storage.set(CURRENT_WORKSPACE_KEY, id);
+
+      // Switch to the first conversation in the workspace (if any)
+      // Use dynamic import to avoid circular dependency
+      import('./conversations.svelte').then(({ conversationsStore }) => {
+        const workspaceConvs = conversationsStore.getByWorkspace(id);
+        if (workspaceConvs.length > 0) {
+          conversationsStore.select(workspaceConvs[0].id);
+        }
+      });
     }
   }
 

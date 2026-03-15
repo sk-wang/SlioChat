@@ -331,10 +331,16 @@ class ChatService {
         throw new Error('无效的对话文件格式');
       }
 
+      const currentWorkspaceId = workspaceStore.currentWorkspaceId;
+      if (!currentWorkspaceId) {
+        throw new Error('请先选择工作空间');
+      }
+
       const id = conversationsStore.create(
         data.type || 'normal',
         data.systemPrompt || '',
-        '导入对话'
+        '导入对话',
+        currentWorkspaceId
       );
 
       conversationsStore.updateTitle(id, data.title);

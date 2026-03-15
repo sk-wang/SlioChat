@@ -1,12 +1,21 @@
 <script lang="ts">
   import { uiStore } from '$lib/stores/ui.svelte';
   import { conversationsStore } from '$lib/stores/conversations.svelte';
+  import { workspaceStore } from '$lib/stores/workspace.svelte';
   import { settingsStore } from '$lib/stores/settings.svelte';
 
   function selectType(typeId: string) {
     const typeInfo = chatTypes[typeId];
+    const currentWorkspaceId = workspaceStore.currentWorkspaceId;
+
+    if (!currentWorkspaceId) {
+      uiStore.showToast('请先选择工作空间', 'error');
+      return;
+    }
+
     if (typeInfo) {
-      conversationsStore.create(typeId, typeInfo.systemPrompt, typeInfo.name);
+      const id = conversationsStore.create(typeId, typeInfo.systemPrompt, typeInfo.name, currentWorkspaceId);
+      workspaceStore.addConversation(id);
     }
     uiStore.closeModal('chatType');
     if (window.innerWidth < 768) {

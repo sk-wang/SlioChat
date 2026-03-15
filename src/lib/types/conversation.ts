@@ -9,6 +9,7 @@ export interface Conversation {
   systemPrompt: string;
   type: ChatType;
   createdAt: number;
+  workspaceId: string;
 }
 
 export interface ConversationGroup {

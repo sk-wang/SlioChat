@@ -21,12 +21,22 @@
   // Initialize VFS on mount and load initial entries
   onMount(async () => {
     await vfs.init();
+    // Set current workspace for VFS isolation
+    const currentWorkspaceId = workspaceStore.currentWorkspaceId;
+    if (currentWorkspaceId) {
+      vfs.setWorkspace(currentWorkspaceId);
+    }
     await refreshCurrentEntries();
   });
 
-  // Refresh entries when path changes
+  // Refresh entries when path changes or workspace changes
   $effect(() => {
     if (vfs.isReady) {
+      const currentWorkspaceId = workspaceStore.currentWorkspaceId;
+      if (currentWorkspaceId && vfs.currentWorkspaceId !== currentWorkspaceId) {
+        vfs.setWorkspace(currentWorkspaceId);
+        currentPath = '/'; // Reset to root when switching workspace
+      }
       refreshCurrentEntries();
     }
   });

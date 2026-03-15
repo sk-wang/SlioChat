@@ -9,6 +9,12 @@
   const status = $derived(result?.status || 'pending');
   const args = $derived(formatArgs(call.function.arguments));
 
+  // Fold state for long content
+  let isArgsExpanded = $state(false);
+  let isResultExpanded = $state(false);
+  const ARGS_FOLD_THRESHOLD = 200;
+  const RESULT_FOLD_THRESHOLD = 300;
+
   // Compute header class based on status
   const headerClass = $derived(() => {
     let cls = 'tool-header flex items-center gap-1.5 sm:gap-2 px-2 py-1.5 sm:px-3 sm:py-2 ';
@@ -39,6 +45,14 @@
     if (content.length <= maxLength) return content;
     return content.slice(0, maxLength) + '...\n[内容已截断，共 ' + content.length + ' 字符]';
   }
+
+  function toggleArgs() {
+    isArgsExpanded = !isArgsExpanded;
+  }
+
+  function toggleResult() {
+    isResultExpanded = !isResultExpanded;
+  }
 </script>
 
 <div class="tool-call-block border border-[var(--border-color)] rounded-lg overflow-hidden my-1.5 text-xs sm:text-sm min-w-0 w-full max-w-full">
@@ -68,16 +82,40 @@
   </div>
 
   <!-- Arguments -->
-  {#if args && args !== '{}'}
+  {#if args && args !== '{}' && args !== 'null'}
+    {@const argsTooLong = args.length > ARGS_FOLD_THRESHOLD}
     <div class="tool-args px-2 py-1.5 sm:px-3 sm:py-2 bg-[var(--bg-tertiary)] border-t border-[var(--border-color)]">
-      <pre class="text-[10px] sm:text-xs overflow-x-auto text-[var(--text-secondary)] font-mono whitespace-pre-wrap break-all">{args}</pre>
+      <pre class="text-[10px] sm:text-xs overflow-x-auto text-[var(--text-secondary)] font-mono whitespace-pre-wrap break-all">{isArgsExpanded || !argsTooLong ? args : args.slice(0, ARGS_FOLD_THRESHOLD) + '...'}</pre>
+      {#if argsTooLong}
+        <button
+          onclick={toggleArgs}
+          class="mt-1 text-[10px] text-[var(--text-secondary)] hover:text-[var(--button-primary-bg)] flex items-center gap-1 transition-colors"
+        >
+          <svg class="w-3 h-3 transition-transform" class:rotate-180={isArgsExpanded} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+          </svg>
+          {isArgsExpanded ? '收起' : '展开'} ({args.length} 字符)
+        </button>
+      {/if}
     </div>
   {/if}
 
   <!-- Result -->
   {#if result}
+    {@const resultTooLong = result.content.length > RESULT_FOLD_THRESHOLD}
     <div class={resultClass()}>
-      <pre class="text-[10px] sm:text-xs overflow-x-auto whitespace-pre-wrap text-[var(--text-secondary)] break-all">{truncateContent(result.content, 300)}</pre>
+      <pre class="text-[10px] sm:text-xs overflow-x-auto whitespace-pre-wrap text-[var(--text-secondary)] break-all">{isResultExpanded || !resultTooLong ? result.content : truncateContent(result.content, RESULT_FOLD_THRESHOLD)}</pre>
+      {#if resultTooLong}
+        <button
+          onclick={toggleResult}
+          class="mt-1 text-[10px] text-[var(--text-secondary)] hover:text-[var(--button-primary-bg)] flex items-center gap-1 transition-colors"
+        >
+          <svg class="w-3 h-3 transition-transform" class:rotate-180={isResultExpanded} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+          </svg>
+          {isResultExpanded ? '收起' : '展开'} ({result.content.length} 字符)
+        </button>
+      {/if}
     </div>
   {/if}
 </div>

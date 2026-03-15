@@ -6,6 +6,7 @@
 import type { ToolExecutor } from '$lib/types/tool';
 import { processFile, type FileContent } from '$lib/services/fileHandlers';
 import { workspaceStore } from '$lib/stores/workspace.svelte';
+import { vfs } from '$lib/services/sandbox.svelte';
 
 // Temporary store for raw files being uploaded (cleared after processing)
 const uploadingFiles: Map<string, File> = new Map();
@@ -175,6 +176,17 @@ export const fileReadTool: ToolExecutor = {
 
       if (matchedFile.rawFile) {
         rawFile = matchedFile.rawFile;
+      } else if (matchedFile.isBinary && matchedFile.vfsPath) {
+        // For binary files stored in VFS as base64, reconstruct the File object
+        const base64Content = await vfs.readFile(matchedFile.vfsPath);
+        if (base64Content) {
+          const binaryString = atob(base64Content);
+          const bytes = new Uint8Array(binaryString.length);
+          for (let i = 0; i < binaryString.length; i++) {
+            bytes[i] = binaryString.charCodeAt(i);
+          }
+          rawFile = new File([bytes], matchedFile.name, { type: matchedFile.type });
+        }
       } else {
         // Try to get from uploading files (for recently uploaded)
         for (const [tempId, file] of uploadingFiles) {

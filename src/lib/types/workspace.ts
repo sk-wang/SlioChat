@@ -12,6 +12,8 @@ export interface WorkspaceFile {
   vfsPath?: string;
   // Store raw File object for on-demand processing (backward compatibility)
   rawFile?: File;
+  // Whether this file is binary (PDF, images, etc.)
+  isBinary?: boolean;
 }
 
 export interface Workspace {

@@ -40,10 +40,6 @@
     chatService.stop();
   }
 
-  function handlePause() {
-    streamingStore.togglePause();
-  }
-
   async function handleFileSelect(event: Event) {
     const input = event.target as HTMLInputElement;
     if (!input.files?.length) return;
@@ -51,7 +47,9 @@
     for (const file of input.files) {
       try {
         // Add file to workspace
-        await workspaceStore.addFile(file);
+        const workspaceFile = await workspaceStore.addFile(file);
+        // Auto-pin the uploaded file
+        workspaceStore.pinFile(workspaceFile.id);
         uiStore.showToast(`已上传: ${file.name}`, 'success');
       } catch (error) {
         console.error('File processing error:', error);
@@ -123,23 +121,6 @@
         </button>
 
         {#if streamingStore.isGenerating}
-          <button
-            onclick={handlePause}
-            class="p-2 text-[var(--text-secondary)] hover:bg-[var(--hover-bg)] rounded-full transition-colors duration-200"
-            title={streamingStore.isPaused ? '继续' : '暂停'}
-          >
-            {#if streamingStore.isPaused}
-              <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            {:else}
-              <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            {/if}
-          </button>
-
           <button
             onclick={handleStop}
             class="p-2 text-[var(--text-secondary)] hover:bg-[var(--hover-bg)] rounded-full transition-colors duration-200"

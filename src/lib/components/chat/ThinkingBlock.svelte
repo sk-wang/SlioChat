@@ -3,7 +3,7 @@
   import type { ToolCall } from '$lib/types/tool';
   import ToolCallDisplay from '$lib/components/agent/ToolCallDisplay.svelte';
 
-  const { thinking, content, toolCalls }: { thinking: string; content: string; toolCalls?: ToolCall[] } = $props();
+  const { thinking, content, toolCalls, isHistorical = false }: { thinking: string; content: string; toolCalls?: ToolCall[]; isHistorical?: boolean } = $props();
 
   let isExpanded = $state(true);
   let contentEl: HTMLElement;
@@ -67,7 +67,7 @@
       <div class="tool-calls-in-thinking mt-3 border-t border-[var(--border-color)] pt-2">
         <div class="text-xs text-[var(--text-secondary)] mb-2">🛠️ 调用的工具</div>
         {#each toolCalls as call}
-          <ToolCallDisplay {call} />
+          <ToolCallDisplay {call} {isHistorical} />
         {/each}
       </div>
     {/if}

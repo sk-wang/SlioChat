@@ -26,7 +26,26 @@
 
     for (const file of input.files) {
       try {
-        const workspaceFile = await workspaceStore.addFile(file);
+        // Write file directly to VFS
+        const filePath = `/${file.name}`;
+
+        // Read file content - handle both text and binary files
+        let content: string;
+        if (file.type.startsWith('text/') || file.name.endsWith('.txt') || file.name.endsWith('.md') || file.name.endsWith('.json') || file.name.endsWith('.csv')) {
+          // Text file
+          content = await file.text();
+        } else {
+          // Binary file - convert to base64
+          const arrayBuffer = await file.arrayBuffer();
+          const bytes = new Uint8Array(arrayBuffer);
+          let binary = '';
+          for (let i = 0; i < bytes.length; i++) {
+            binary += String.fromCharCode(bytes[i]);
+          }
+          content = btoa(binary);
+        }
+
+        await vfs.writeFile(filePath, content);
         // Don't auto-pin files uploaded from sandbox
         uiStore.showToast(`已上传: ${file.name}`, 'success');
       } catch (error) {
@@ -46,17 +65,10 @@
   // Pin/reference file from sandbox
   async function handlePinFile(entry: VFSEntry) {
     try {
-      // Find the workspace file by VFS path
-      const workspaceFile = workspaceStore.files.find(f => f.vfsPath === entry.path);
-
-      if (workspaceFile) {
-        // Toggle pin status
-        workspaceStore.togglePinFile(workspaceFile.id);
-        const isPinned = workspaceStore.isPinned(workspaceFile.id);
-        uiStore.showToast(isPinned ? '已引用到对话' : '已取消引用', 'success');
-      } else {
-        uiStore.showToast('文件未关联到工作空间', 'error');
-      }
+      // Toggle pin status using file path
+      workspaceStore.togglePinFile(entry.path);
+      const isPinned = workspaceStore.isPinned(entry.path);
+      uiStore.showToast(isPinned ? '已引用到对话' : '已取消引用', 'success');
     } catch (error) {
       console.error('Pin file error:', error);
       uiStore.showToast('操作失败', 'error');
@@ -432,8 +444,7 @@
                     {#if isSelected && editingEntry?.path !== entry.path}
                       <div class="flex items-center gap-1 px-3 pb-2 border-b border-[var(--border-color)]/50">
                         {#if entry.type === 'file'}
-                          {@const workspaceFile = workspaceStore.files.find(f => f.vfsPath === entry.path)}
-                          {@const isPinned = workspaceFile ? workspaceStore.isPinned(workspaceFile.id) : false}
+                          {@const isPinned = workspaceStore.isPinned(entry.path)}
                           <button
                             class="flex-1 flex items-center justify-center gap-1 p-2 text-xs transition-colors rounded {isPinned ? 'text-blue-600 bg-blue-50 dark:text-blue-400 dark:bg-blue-900' : 'text-[var(--text-secondary)] hover:text-blue-600 hover:bg-blue-50 dark:hover:text-blue-400 dark:hover:bg-blue-900'}"
                             onclick={() => handlePinFile(entry)}

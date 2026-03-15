@@ -3,6 +3,7 @@ import { streamingStore } from '$lib/stores/streaming.svelte';
 import { settingsStore } from '$lib/stores/settings.svelte';
 import { uiStore } from '$lib/stores/ui.svelte';
 import { workspaceStore } from '$lib/stores/workspace.svelte';
+import { vfs } from './sandbox.svelte';
 import { generateTitle } from './api';
 import { agentService } from './agent.svelte';
 import type { Message } from '$lib/types';
@@ -15,19 +16,26 @@ class ChatService {
     if (!current) return;
 
     // Check workspace pinned files
-    const workspaceFiles = workspaceStore.pinnedFiles;
+    const pinnedPaths = workspaceStore.pinnedFilePaths;
 
     let content = text;
     let metadata: Message['metadata'] | undefined;
 
-    if (workspaceFiles.length > 0) {
+    if (pinnedPaths.length > 0) {
+      // Get file info from VFS
+      const fileInfos = pinnedPaths.map(path => {
+        const entry = vfs.files.find(f => f.path === path);
+        const name = entry?.name || path.split('/').pop() || path;
+        return {
+          fileName: name,
+          fileType: 'text/plain', // Default type
+          fileSize: entry?.size || 0
+        };
+      });
+
       metadata = {
         type: 'files',
-        files: workspaceFiles.map(f => ({
-          fileName: f.name,
-          fileType: f.type,
-          fileSize: f.size
-        }))
+        files: fileInfos
       };
       // Agent will use tools to discover and read files when needed
     }

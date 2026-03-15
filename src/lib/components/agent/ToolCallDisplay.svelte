@@ -2,11 +2,12 @@
   import type { ToolCall } from '$lib/types/tool';
   import { agentStore } from '$lib/stores/agent.svelte';
 
-  const { call }: { call: ToolCall } = $props();
+  const { call, isHistorical = false }: { call: ToolCall; isHistorical?: boolean } = $props();
 
   const result = $derived(agentStore.getToolResult(call.id));
-  const isExecuting = $derived(!result);
-  const status = $derived(result?.status || 'pending');
+  // 对于历史消息，如果没有result，说明是已完成的旧消息，显示为成功
+  const isExecuting = $derived(isHistorical ? false : !result);
+  const status = $derived(isHistorical && !result ? 'success' : (result?.status || 'pending'));
   const args = $derived(formatArgs(call.function.arguments));
 
   // Fold state for long content

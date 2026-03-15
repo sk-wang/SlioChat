@@ -7,14 +7,12 @@
   import ChatContainer from '$lib/components/chat/ChatContainer.svelte';
   import ChatInput from '$lib/components/chat/ChatInput.svelte';
   import SandboxPanel from '$lib/components/sandbox/SandboxPanel.svelte';
-  import FileReferencePanel from '$lib/components/workspace/FileReferencePanel.svelte';
 </script>
 
 <main class="main-content flex-1 flex h-[100dvh] bg-[var(--bg-primary)]" class:sidebar-collapsed={uiStore.sidebarCollapsed}>
   <div class="flex-1 flex flex-col min-w-0">
     <Header />
     <ChatContainer />
-    <FileReferencePanel />
     <ChatInput />
   </div>
 

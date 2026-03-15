@@ -7,7 +7,6 @@
   import { renderMarkdown } from '$lib/services/markdown';
   import type { Message } from '$lib/types';
   import ThinkingBlock from './ThinkingBlock.svelte';
-  import ToolCallDisplay from '$lib/components/agent/ToolCallDisplay.svelte';
   import { fade } from 'svelte/transition';
 
   const { message, index }: { message: Message; index: number } = $props();
@@ -27,7 +26,6 @@
   const renderedContent = $derived(isThinking ? null : renderMarkdown(message.content));
   const isLastAssistant = $derived(!isUser && index === (conversationsStore.current?.messages.length ?? 0) - 1);
   const isGeneratingThis = $derived(isLastAssistant && streamingStore.isGenerating);
-  const hasToolCalls = $derived(message.toolCalls && message.toolCalls.length > 0);
 
   function copyMessage() {
     navigator.clipboard.writeText(message.content);
@@ -95,15 +93,6 @@
 
     <div class="message-content-wrapper min-w-0" class:flex-1={!isUser}>
       <div class="flex flex-col">
-        <!-- Tool calls display -->
-        {#if hasToolCalls}
-          <div class="tool-calls-container mb-2 min-w-0 w-full">
-            {#each message.toolCalls || [] as call}
-              <ToolCallDisplay {call} />
-            {/each}
-          </div>
-        {/if}
-
         {#if !isTool}
           <div
             class="markdown-body text-[var(--text-primary)]"

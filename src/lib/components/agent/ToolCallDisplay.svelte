@@ -58,16 +58,17 @@
 <div class="tool-call-block border border-[var(--border-color)] rounded-lg overflow-hidden my-1.5 text-xs sm:text-sm min-w-0 w-full max-w-full">
   <!-- Header -->
   <div class={headerClass()}>
-    {#if isExecuting}
-      <div class="spinner animate-spin w-3 h-3 sm:w-4 sm:h-4 border-2 border-current border-t-transparent rounded-full"></div>
-    {:else if status === 'success'}
-      <svg class="w-3 h-3 sm:w-4 sm:h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    {#if status === 'success'}
+      <svg class="w-3 h-3 sm:w-4 sm:h-4 text-green-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
       </svg>
-    {:else}
-      <svg class="w-3 h-3 sm:w-4 sm:h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    {:else if status === 'error'}
+      <svg class="w-3 h-3 sm:w-4 sm:h-4 text-red-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
       </svg>
+    {:else}
+      <!-- Pending state - no spinner, just a dot -->
+      <div class="w-2 h-2 rounded-full bg-yellow-500 flex-shrink-0"></div>
     {/if}
 
     <span class="tool-name font-mono font-medium text-[var(--text-primary)] truncate">

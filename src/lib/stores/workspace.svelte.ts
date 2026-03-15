@@ -151,12 +151,35 @@ class WorkspaceStore {
     const currentWs = this.currentWorkspace;
     if (!currentWs) throw new Error('No current workspace');
 
-    // Read file content
-    const content = await file.text();
+    // Check if file is binary (PDF, images, Word, Excel, etc.)
+    const isBinary = file.type === 'application/pdf' ||
+                     file.type.startsWith('image/') ||
+                     file.type.includes('word') ||
+                     file.type.includes('excel') ||
+                     file.type.includes('spreadsheet') ||
+                     file.type.includes('powerpoint') ||
+                     file.name.endsWith('.pdf') ||
+                     file.name.endsWith('.docx') ||
+                     file.name.endsWith('.doc') ||
+                     file.name.endsWith('.xlsx') ||
+                     file.name.endsWith('.xls') ||
+                     file.name.endsWith('.pptx') ||
+                     /\.(jpg|jpeg|png|gif|bmp|webp|svg)$/i.test(file.name);
 
-    // Write to VFS (sandbox file system)
-    const vfsPath = `/uploads/${file.name}`;
-    await vfs.writeFile(vfsPath, content);
+    let vfsPath: string | undefined;
+
+    if (isBinary) {
+      // For binary files, convert to base64 and store in VFS
+      const arrayBuffer = await file.arrayBuffer();
+      const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+      vfsPath = `/uploads/${file.name}`;
+      await vfs.writeFile(vfsPath, base64);
+    } else {
+      // For text files, use text() as before
+      const content = await file.text();
+      vfsPath = `/uploads/${file.name}`;
+      await vfs.writeFile(vfsPath, content);
+    }
 
     const workspaceFile: WorkspaceFile = {
       id: generateFileId(),
@@ -164,8 +187,9 @@ class WorkspaceStore {
       type: file.type,
       size: file.size,
       uploadedAt: Date.now(),
-      vfsPath, // Store VFS path instead of rawFile
-      rawFile: file // Keep for backward compatibility
+      vfsPath,
+      rawFile: file, // Keep for backward compatibility
+      isBinary
     };
 
     this.#files.set(workspaceFile.id, workspaceFile);

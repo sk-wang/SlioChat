@@ -9,7 +9,10 @@
 
 [Live Demo](https://slio-chat.pages.dev/)
 
-<img src="imgs/img.png" alt="SlioChat Interface Preview" width="800"/>
+<div>
+  <img src="imgs/img_1.png" alt="SlioChat Light Mode" width="45%" style="display: inline-block;"/>
+  <img src="imgs/img_2.png" alt="SlioChat Dark Mode" width="45%" style="display: inline-block;"/>
+</div>
 
 </div>
 
@@ -82,6 +85,11 @@ Deploy `dist/index.html` to any static server:
 | `fs_mkdir` | Create directories |
 | `fs_move` | Move files |
 | `fs_rename` | Rename files |
+| `run_lua` | Execute Lua script code |
+| `web_search` | Search the web for information |
+| `web_fetch` | Fetch web page content |
+| `code_search` | Search content in code |
+| `update_plan` | Update task plan |
 
 ## 📝 Supported Models
 

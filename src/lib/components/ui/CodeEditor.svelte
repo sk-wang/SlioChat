@@ -131,16 +131,15 @@
   <!-- Transparent textarea layer (foreground) -->
   <textarea
     bind:this={textareaEl}
-    bind:value
     {disabled}
     class="code-textarea-layer"
     oninput={handleInput}
     onkeydown={handleKeyDown}
     onscroll={handleScroll}
-    {placeholder}
+    placeholder=""
     rows="1"
     spellcheck="false"
-  ></textarea>
+  >{value}</textarea>
 </div>
 
 <style>

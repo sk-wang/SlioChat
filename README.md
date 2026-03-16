@@ -85,6 +85,11 @@ npm run build
 | `fs_mkdir` | 创建目录 |
 | `fs_move` | 移动文件 |
 | `fs_rename` | 重命名文件 |
+| `run_lua` | 执行 Lua 脚本代码 |
+| `web_search` | 搜索互联网获取信息 |
+| `web_fetch` | 获取网页内容 |
+| `code_search` | 在代码中搜索内容 |
+| `update_plan` | 更新任务计划 |
 
 ## 📝 支持的模型
 

@@ -3,7 +3,9 @@
   import { conversationsStore } from '$lib/stores/conversations.svelte';
   import { streamingStore } from '$lib/stores/streaming.svelte';
   import { filesStore } from '$lib/stores/files.svelte';
+  import { agentStore } from '$lib/stores/agent.svelte';
   import MessageItem from './MessageItem.svelte';
+  import PlanDisplay from '$lib/components/plan/PlanDisplay.svelte';
 
   let chatContainer: HTMLElement;
   let autoScroll = $state(true);
@@ -61,6 +63,11 @@
       {#each conversationsStore.current.messages as message, index (index)}
         <MessageItem {message} {index} />
       {/each}
+
+      <!-- Plan display -->
+      {#if agentStore.hasPlan}
+        <PlanDisplay />
+      {/if}
     {/if}
 
     <!-- Loading indicator when waiting for first token -->

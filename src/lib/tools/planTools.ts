@@ -4,14 +4,10 @@
  */
 
 import type { ToolExecutor } from '$lib/types/tool';
+import { agentStore, type PlanItem } from '$lib/stores/agent.svelte';
 
-// In-memory plan storage (per session)
-let currentPlan: PlanItem[] = [];
-
-export interface PlanItem {
-  text: string;
-  status: 'pending' | 'in_progress' | 'completed';
-}
+// Re-export PlanItem for external use
+export type { PlanItem } from '$lib/stores/agent.svelte';
 
 /**
  * Update or get the current plan
@@ -69,8 +65,8 @@ export const updatePlanTool: ToolExecutor = {
     const items = args.items as PlanItem[];
     const explanation = args.explanation as string | undefined;
 
-    // Update plan
-    currentPlan = items;
+    // Update plan in agentStore (reactive)
+    agentStore.setPlan(items);
 
     // Format plan display
     const statusEmoji = {
@@ -79,24 +75,24 @@ export const updatePlanTool: ToolExecutor = {
       'completed': '✅'
     };
 
-    const planDisplay = currentPlan.map((item, i) => {
+    const planDisplay = items.map((item, i) => {
       const emoji = statusEmoji[item.status];
       return `${i + 1}. ${emoji} ${item.text}`;
     }).join('\n');
 
     // Count statuses
-    const completed = currentPlan.filter(i => i.status === 'completed').length;
-    const inProgress = currentPlan.filter(i => i.status === 'in_progress').length;
-    const pending = currentPlan.filter(i => i.status === 'pending').length;
+    const completed = items.filter(i => i.status === 'completed').length;
+    const inProgress = items.filter(i => i.status === 'in_progress').length;
+    const pending = items.filter(i => i.status === 'pending').length;
 
-    let response = `📋 当前计划 (${completed}/${currentPlan.length} 完成):\n\n${planDisplay}`;
+    let response = `📋 当前计划 (${completed}/${items.length} 完成):\n\n${planDisplay}`;
 
     if (explanation) {
       response += `\n\n💡 ${explanation}`;
     }
 
     // Add progress summary
-    if (completed === currentPlan.length && currentPlan.length > 0) {
+    if (completed === items.length && items.length > 0) {
       response += '\n\n🎉 所有任务已完成！';
     } else if (inProgress === 0 && pending > 0) {
       response += '\n\n👉 准备开始下一个任务...';
@@ -122,6 +118,8 @@ export const getPlanTool: ToolExecutor = {
   },
   isMutating: false,
   async execute() {
+    const currentPlan = agentStore.plan;
+
     if (currentPlan.length === 0) {
       return '当前没有活动计划。使用 update_plan 创建一个新计划。';
     }
@@ -159,7 +157,7 @@ export const clearPlanTool: ToolExecutor = {
   },
   isMutating: false,
   async execute() {
-    currentPlan = [];
+    agentStore.clearPlan();
     return '✅ 计划已清除。';
   }
 };
@@ -170,12 +168,3 @@ export const planTools: ToolExecutor[] = [
   getPlanTool,
   clearPlanTool
 ];
-
-// Export for external access to plan state
-export function getCurrentPlan(): PlanItem[] {
-  return [...currentPlan];
-}
-
-export function setCurrentPlan(plan: PlanItem[]): void {
-  currentPlan = plan;
-}

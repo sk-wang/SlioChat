@@ -7,6 +7,12 @@
 import type { ToolCall, ToolResult } from '$lib/types/tool';
 import type { ThreadItem, Turn, Thread, Usage } from '$lib/types/agent';
 
+// Plan item interface
+export interface PlanItem {
+  text: string;
+  status: 'pending' | 'in_progress' | 'completed';
+}
+
 class AgentStore {
   // Reactive state using Svelte 5 runes
   private _isProcessing = $state(false);
@@ -27,6 +33,9 @@ class AgentStore {
   // Streaming state
   private _streamingContent = $state('');
   private _streamingThinking = $state('');
+
+  // Plan state
+  private _plan = $state<PlanItem[]>([]);
 
   // Getters
   get isProcessing(): boolean {
@@ -84,6 +93,23 @@ class AgentStore {
 
   get streamingThinking(): string {
     return this._streamingThinking;
+  }
+
+  get plan(): PlanItem[] {
+    return this._plan;
+  }
+
+  get hasPlan(): boolean {
+    return this._plan.length > 0;
+  }
+
+  get planProgress(): { completed: number; total: number; percentage: number } {
+    const completed = this._plan.filter(i => i.status === 'completed').length;
+    return {
+      completed,
+      total: this._plan.length,
+      percentage: this._plan.length > 0 ? Math.round((completed / this._plan.length) * 100) : 0
+    };
   }
 
   // YOLO mode is always true now
@@ -237,6 +263,25 @@ class AgentStore {
     return this._currentToolCalls.every(call =>
       this._toolResults.has(call.id)
     );
+  }
+
+  // Plan management
+  setPlan(plan: PlanItem[]): void {
+    this._plan = plan;
+  }
+
+  updatePlanItem(index: number, item: PlanItem): void {
+    if (index >= 0 && index < this._plan.length) {
+      this._plan = [
+        ...this._plan.slice(0, index),
+        item,
+        ...this._plan.slice(index + 1)
+      ];
+    }
+  }
+
+  clearPlan(): void {
+    this._plan = [];
   }
 }
 

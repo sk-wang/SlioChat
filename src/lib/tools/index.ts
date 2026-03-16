@@ -7,6 +7,8 @@ import type { ToolDefinition, ToolExecutor, ToolCall, ToolResult } from '$lib/ty
 import { fileTools } from './fileTools';
 import { webTools } from './webTools';
 import { sandboxTools } from './sandboxTools';
+import { searchTools } from './searchTools';
+import { planTools } from './planTools';
 
 /**
  * Exponential backoff delay calculation
@@ -185,6 +187,16 @@ class ToolRegistry {
     for (const tool of sandboxTools) {
       const isMutating = ['fs_write', 'fs_delete', 'fs_mkdir'].includes(tool.name);
       this.register({ ...tool, isMutating });
+    }
+
+    // Register search tools (read-only)
+    for (const tool of searchTools) {
+      this.register({ ...tool, isMutating: false });
+    }
+
+    // Register plan tools (read-only, in-memory state)
+    for (const tool of planTools) {
+      this.register({ ...tool, isMutating: false });
     }
 
     this.initialized = true;

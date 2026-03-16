@@ -1,20 +1,234 @@
 /**
- * Agent type definitions
+ * Agent type definitions - Inspired by OpenAI Codex SDK
+ * Supports Thread/Turn lifecycle and Item-based event system
  */
 
 import type { ToolCall, ToolResult } from './tool';
 
-export interface AgentSession {
+// ============================================================================
+// Thread & Turn Types
+// ============================================================================
+
+/**
+ * Thread - A conversation session with the agent
+ */
+export interface Thread {
   id: string;
   conversationId: string;
-  startTime: number;
-  toolCallHistory: Array<{
-    call: ToolCall;
-    result: ToolResult;
-    timestamp: number;
-  }>;
+  createdAt: number;
+  updatedAt: number;
 }
 
+/**
+ * Turn - A single interaction cycle (user input → agent response)
+ */
+export interface Turn {
+  id: string;
+  threadId: string;
+  status: TurnStatus;
+  startedAt: number;
+  completedAt?: number;
+  usage?: Usage;
+}
+
+export type TurnStatus = 'in_progress' | 'completed' | 'failed';
+
+/**
+ * Token usage statistics
+ */
+export interface Usage {
+  inputTokens: number;
+  cachedInputTokens: number;
+  outputTokens: number;
+}
+
+// ============================================================================
+// Item Types - Unified item system for agent outputs
+// ============================================================================
+
+export type ItemStatus = 'in_progress' | 'completed' | 'failed';
+
+/**
+ * Base item interface
+ */
+interface BaseItem {
+  id: string;
+  status: ItemStatus;
+}
+
+/**
+ * Agent's text response
+ */
+export interface AgentMessageItem extends BaseItem {
+  type: 'agent_message';
+  text: string;
+}
+
+/**
+ * Agent's reasoning/thinking content
+ */
+export interface ReasoningItem extends BaseItem {
+  type: 'reasoning';
+  text: string;
+}
+
+/**
+ * Tool call execution with status tracking
+ */
+export interface ToolCallItem extends BaseItem {
+  type: 'tool_call';
+  call: ToolCall;
+  result?: ToolResult;
+}
+
+/**
+ * Error item
+ */
+export interface ErrorItem extends BaseItem {
+  type: 'error';
+  message: string;
+}
+
+/**
+ * Todo list item for task tracking
+ */
+export interface TodoItem {
+  text: string;
+  completed: boolean;
+}
+
+export interface TodoListItem extends BaseItem {
+  type: 'todo_list';
+  items: TodoItem[];
+}
+
+/**
+ * Union type for all thread items
+ */
+export type ThreadItem =
+  | AgentMessageItem
+  | ReasoningItem
+  | ToolCallItem
+  | ErrorItem
+  | TodoListItem;
+
+// ============================================================================
+// Event Types - Lifecycle events for thread, turn, and items
+// ============================================================================
+
+/**
+ * Emitted when a new thread is started
+ */
+export interface ThreadStartedEvent {
+  type: 'thread.started';
+  threadId: string;
+}
+
+/**
+ * Emitted when a turn starts
+ */
+export interface TurnStartedEvent {
+  type: 'turn.started';
+  turnId: string;
+}
+
+/**
+ * Emitted when a turn completes successfully
+ */
+export interface TurnCompletedEvent {
+  type: 'turn.completed';
+  turnId: string;
+  usage: Usage;
+}
+
+/**
+ * Emitted when a turn fails
+ */
+export interface TurnFailedEvent {
+  type: 'turn.failed';
+  turnId: string;
+  error: string;
+}
+
+/**
+ * Emitted when a new item is added (initially in_progress)
+ */
+export interface ItemStartedEvent {
+  type: 'item.started';
+  item: ThreadItem;
+}
+
+/**
+ * Emitted when an item is updated
+ */
+export interface ItemUpdatedEvent {
+  type: 'item.updated';
+  item: ThreadItem;
+}
+
+/**
+ * Emitted when an item reaches terminal state
+ */
+export interface ItemCompletedEvent {
+  type: 'item.completed';
+  item: ThreadItem;
+}
+
+/**
+ * Streaming content event (for real-time display)
+ */
+export interface ContentStreamEvent {
+  type: 'content.stream';
+  delta: string;
+}
+
+/**
+ * Streaming thinking event (for real-time display)
+ */
+export interface ThinkingStreamEvent {
+  type: 'thinking.stream';
+  delta: string;
+}
+
+/**
+ * Max iterations reached
+ */
+export interface MaxIterationsEvent {
+  type: 'max_iterations';
+  iterations: number;
+}
+
+/**
+ * Thread error event
+ */
+export interface ThreadErrorEvent {
+  type: 'error';
+  message: string;
+}
+
+/**
+ * Union type for all agent events
+ */
+export type AgentEvent =
+  | ThreadStartedEvent
+  | TurnStartedEvent
+  | TurnCompletedEvent
+  | TurnFailedEvent
+  | ItemStartedEvent
+  | ItemUpdatedEvent
+  | ItemCompletedEvent
+  | ContentStreamEvent
+  | ThinkingStreamEvent
+  | MaxIterationsEvent
+  | ThreadErrorEvent;
+
+// ============================================================================
+// Legacy types (for backward compatibility)
+// ============================================================================
+
+/**
+ * @deprecated Use AgentEvent instead
+ */
 export type AgentEventType =
   | 'start'
   | 'thinking'
@@ -29,7 +243,10 @@ export type AgentEventType =
   | 'error'
   | 'max_iterations';
 
-export interface AgentEvent {
+/**
+ * @deprecated Use specific event types instead
+ */
+export interface LegacyAgentEvent {
   type: AgentEventType;
   content?: string;
   calls?: ToolCall[];
@@ -37,6 +254,17 @@ export interface AgentEvent {
   result?: ToolResult;
   error?: string;
   messages?: import('$lib/types').Message[];
+}
+
+export interface AgentSession {
+  id: string;
+  conversationId: string;
+  startTime: number;
+  toolCallHistory: Array<{
+    call: ToolCall;
+    result: ToolResult;
+    timestamp: number;
+  }>;
 }
 
 export interface AgentCallbacks {
@@ -47,6 +275,10 @@ export interface AgentCallbacks {
   onToolResult?: (call: ToolCall, result: ToolResult) => void;
   onError?: (error: string) => void;
 }
+
+// ============================================================================
+// System Prompt
+// ============================================================================
 
 /**
  * Default system prompt for agent

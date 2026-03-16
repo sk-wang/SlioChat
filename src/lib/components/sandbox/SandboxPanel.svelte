@@ -3,6 +3,7 @@
   import { agentStore } from '$lib/stores/agent.svelte';
   import { workspaceStore } from '$lib/stores/workspace.svelte';
   import { uiStore } from '$lib/stores/ui.svelte';
+  import CodeEditor from '$lib/components/ui/CodeEditor.svelte';
   import { onMount } from 'svelte';
 
   let activeTab = $state<'files' | 'editor'>('files');
@@ -17,6 +18,37 @@
   // Check if file is an image
   function isImageFile(filename: string): boolean {
     return /\.(jpg|jpeg|png|gif|bmp|webp|svg)$/i.test(filename);
+  }
+
+  // Get language for syntax highlighting based on file extension
+  function getLanguageFromFilename(filename: string): string {
+    const ext = filename.split('.').pop()?.toLowerCase() || '';
+    const langMap: Record<string, string> = {
+      'js': 'javascript',
+      'ts': 'typescript',
+      'jsx': 'javascript',
+      'tsx': 'typescript',
+      'html': 'html',
+      'css': 'css',
+      'json': 'json',
+      'md': 'markdown',
+      'py': 'python',
+      'lua': 'lua',
+      'sh': 'bash',
+      'bash': 'bash',
+      'yml': 'yaml',
+      'yaml': 'yaml',
+      'xml': 'xml',
+      'sql': 'sql',
+      'go': 'go',
+      'rs': 'rust',
+      'java': 'java',
+      'c': 'c',
+      'cpp': 'cpp',
+      'h': 'c',
+      'hpp': 'cpp'
+    };
+    return langMap[ext] || 'plaintext';
   }
 
   // Handle file upload from sandbox
@@ -557,12 +589,14 @@
                 </svg>
               </button>
             </div>
-            <textarea
-              class="flex-1 w-full p-4 bg-transparent text-base font-mono resize-none focus:outline-none"
-              bind:value={fileContent}
-              oninput={() => isEditing = true}
-              placeholder="文件内容..."
-            ></textarea>
+            <div class="flex-1 overflow-hidden relative">
+              <CodeEditor
+                bind:value={fileContent}
+                oninput={() => isEditing = true}
+                language={getLanguageFromFilename(currentFileName)}
+                fill={true}
+              />
+            </div>
           {:else}
             <div class="flex-1 flex items-center justify-center text-[var(--text-secondary)] text-base">
               选择一个文件来编辑

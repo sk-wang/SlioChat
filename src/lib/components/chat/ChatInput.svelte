@@ -5,7 +5,6 @@
   import { chatService } from '$lib/services/chat.svelte';
   import { uiStore } from '$lib/stores/ui.svelte';
   import { vfs } from '$lib/services/sandbox.svelte';
-  import CodeEditor from '$lib/components/ui/CodeEditor.svelte';
 
   interface FileSuggestion {
     name: string;
@@ -13,7 +12,7 @@
   }
 
   let inputValue = $state('');
-  let editorEl: CodeEditor;
+  let textareaEl: HTMLTextAreaElement;
   let fileInputEl: HTMLInputElement;
   let showFileSuggestions = $state(false);
   let mentionStartPos = $state(-1);
@@ -21,16 +20,18 @@
   let selectedSuggestionIndex = $state(0);
 
   function adjustHeight() {
-    // CodeEditor handles its own height
+    if (!textareaEl) return;
+    textareaEl.style.height = 'auto';
+    textareaEl.style.height = Math.min(textareaEl.scrollHeight, 200) + 'px';
   }
 
-  function handleInput(value: string) {
-    inputValue = value;
+  function handleInput() {
+    adjustHeight();
     checkForMention();
   }
 
   function checkForMention() {
-    const cursorPos = editorEl?.getSelectionStart() || 0;
+    const cursorPos = textareaEl?.selectionStart || 0;
     const textBeforeCursor = inputValue.slice(0, cursorPos);
 
     // Find the last @ symbol before cursor
@@ -73,7 +74,7 @@
     workspaceStore.pinFile(fileSuggestion.path);
 
     // Replace @mention with file name
-    const cursorPos = editorEl?.getSelectionStart() || inputValue.length;
+    const cursorPos = textareaEl?.selectionStart || inputValue.length;
     const beforeMention = inputValue.slice(0, mentionStartPos);
     const afterCursor = inputValue.slice(cursorPos);
     inputValue = beforeMention + `@${fileSuggestion.name} ` + afterCursor;
@@ -81,13 +82,13 @@
     // Close suggestions
     showFileSuggestions = false;
 
-    // Focus back on editor
-    editorEl?.focus();
+    // Focus back on textarea
+    textareaEl?.focus();
 
     // Set cursor position after the inserted text
     setTimeout(() => {
       const newPos = beforeMention.length + fileSuggestion.name.length + 2;
-      editorEl?.setSelectionRange(newPos, newPos);
+      textareaEl?.setSelectionRange(newPos, newPos);
     }, 0);
   }
 
@@ -182,7 +183,7 @@
     // Auto-insert @ mentions for uploaded files
     if (uploadedFileNames.length > 0) {
       const mentions = uploadedFileNames.map(name => `@${name}`).join(' ');
-      const cursorPos = editorEl?.getSelectionStart() || inputValue.length;
+      const cursorPos = textareaEl?.selectionStart || inputValue.length;
       const beforeCursor = inputValue.slice(0, cursorPos);
       const afterCursor = inputValue.slice(cursorPos);
 
@@ -195,8 +196,8 @@
       // Set cursor position after the inserted mentions
       setTimeout(() => {
         const newPos = cursorPos + prefix.length + mentions.length + 1;
-        editorEl?.setSelectionRange(newPos, newPos);
-        editorEl?.focus();
+        textareaEl?.setSelectionRange(newPos, newPos);
+        textareaEl?.focus();
       }, 0);
     }
 
@@ -218,9 +219,9 @@
 
 <div class="input-area">
   <div class="max-w-3xl mx-auto flex flex-col space-y-4">
-    
+
     <div class="relative bg-[var(--bg-secondary)] rounded-2xl border border-[var(--border-color)] shadow-sm focus-within:ring-1 focus-within:ring-[var(--border-color)] focus-within:border-[var(--border-color)]">
-      
+
       <div class="absolute bottom-2 left-2">
         <input
           bind:this={fileInputEl}
@@ -241,14 +242,15 @@
         </button>
       </div>
 
-      <CodeEditor
-        bind:this={editorEl}
+      <textarea
+        bind:this={textareaEl}
         bind:value={inputValue}
         oninput={handleInput}
         onkeydown={handleKeydown}
         placeholder="给 AI 发送消息..."
-        language="markdown"
-      />
+        rows="1"
+        class="w-full px-12 py-3 bg-transparent text-base resize-none focus:outline-none max-h-[200px]"
+      ></textarea>
 
       <!-- File mention suggestions -->
       {#if showFileSuggestions}

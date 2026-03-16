@@ -12,7 +12,8 @@
     language = 'plaintext',
     oninput,
     onkeydown,
-    disabled = false
+    disabled = false,
+    fill = false
   }: {
     value?: string;
     placeholder?: string;
@@ -20,6 +21,7 @@
     oninput?: (value: string) => void;
     onkeydown?: (event: KeyboardEvent) => void;
     disabled?: boolean;
+    fill?: boolean;
   } = $props();
 
   let textareaEl: HTMLTextAreaElement;
@@ -127,6 +129,7 @@
   bind:this={containerEl}
   class="code-editor-container"
   class:disabled
+  class:fill
 >
   <!-- Highlighted code layer (background) -->
   <pre
@@ -224,5 +227,27 @@
 
   .disabled .code-textarea-layer {
     cursor: not-allowed;
+  }
+
+  .fill {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    min-height: 100%;
+    height: 100%;
+    border-radius: 0;
+  }
+
+  .fill .code-highlight-layer,
+  .fill .code-textarea-layer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 100%;
+    padding: 12px;
   }
 </style>

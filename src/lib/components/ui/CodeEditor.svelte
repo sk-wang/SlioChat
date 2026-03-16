@@ -99,6 +99,13 @@
     }
   });
 
+  // Sync textarea value when parent changes value prop
+  $effect(() => {
+    if (textareaEl && textareaEl.value !== value) {
+      textareaEl.value = value;
+    }
+  });
+
   onMount(() => {
     adjustHeight();
   });

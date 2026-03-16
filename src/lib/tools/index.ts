@@ -9,6 +9,7 @@ import { webTools } from './webTools';
 import { sandboxTools } from './sandboxTools';
 import { searchTools } from './searchTools';
 import { planTools } from './planTools';
+import { pythonTools } from './pythonTools';
 
 /**
  * Exponential backoff delay calculation
@@ -197,6 +198,13 @@ class ToolRegistry {
     // Register plan tools (read-only, in-memory state)
     for (const tool of planTools) {
       this.register({ ...tool, isMutating: false });
+    }
+
+    // Register Python tools
+    // run_python can be mutating if Python code writes to VFS
+    for (const tool of pythonTools) {
+      const isMutating = tool.name === 'run_python';
+      this.register({ ...tool, isMutating });
     }
 
     this.initialized = true;

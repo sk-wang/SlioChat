@@ -1,11 +1,22 @@
 /**
  * Tool Registry - Central management for all agent tools
+ * Inspired by Codex ToolRegistry and Orchestrator patterns
  */
 
 import type { ToolDefinition, ToolExecutor, ToolCall, ToolResult } from '$lib/types/tool';
 import { fileTools } from './fileTools';
 import { webTools } from './webTools';
 import { sandboxTools } from './sandboxTools';
+
+/**
+ * Exponential backoff delay calculation
+ * @param attempt Current attempt number (0-indexed)
+ * @param baseDelay Base delay in milliseconds
+ * @returns Delay in milliseconds
+ */
+function calculateBackoff(attempt: number, baseDelay: number = 1000): number {
+  return Math.min(baseDelay * Math.pow(2, attempt), 10000);
+}
 
 class ToolRegistry {
   private tools: Map<string, ToolExecutor> = new Map();
@@ -43,6 +54,14 @@ class ToolRegistry {
   }
 
   /**
+   * Check if a tool is mutating (modifies environment)
+   */
+  isMutating(name: string): boolean {
+    const executor = this.tools.get(name);
+    return executor?.isMutating ?? false;
+  }
+
+  /**
    * Get all registered tool executors
    */
   getAll(): ToolExecutor[] {
@@ -57,7 +76,8 @@ class ToolRegistry {
   }
 
   /**
-   * Execute a tool call
+   * Execute a tool call with retry support
+   * Inspired by Codex orchestrator pattern
    */
   async executeToolCall(call: ToolCall): Promise<ToolResult> {
     const executor = this.tools.get(call.function.name);
@@ -72,35 +92,55 @@ class ToolRegistry {
     }
 
     const startTime = Date.now();
+    const maxRetries = executor.maxRetries ?? 0;
+    let lastError: Error | null = null;
 
-    try {
-      const args = JSON.parse(call.function.arguments);
-      const timeout = executor.timeout || 60000;
+    // Try execution with optional retry
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      try {
+        const args = JSON.parse(call.function.arguments);
+        const timeout = executor.timeout || 60000;
 
-      // Execute with timeout
-      const result = await Promise.race([
-        executor.execute(args),
-        new Promise<string>((_, reject) =>
-          setTimeout(() => reject(new Error('Tool execution timeout')), timeout)
-        )
-      ]);
+        // Execute with timeout
+        const result = await Promise.race([
+          executor.execute(args),
+          new Promise<string>((_, reject) =>
+            setTimeout(() => reject(new Error('Tool execution timeout')), timeout)
+          )
+        ]);
 
-      return {
-        tool_call_id: call.id,
-        role: 'tool',
-        content: result,
-        status: 'success',
-        executionTime: Date.now() - startTime
-      };
-    } catch (error) {
-      return {
-        tool_call_id: call.id,
-        role: 'tool',
-        content: `Error: ${error instanceof Error ? error.message : String(error)}`,
-        status: 'error',
-        executionTime: Date.now() - startTime
-      };
+        return {
+          tool_call_id: call.id,
+          role: 'tool',
+          content: result,
+          status: 'success',
+          executionTime: Date.now() - startTime
+        };
+      } catch (error) {
+        lastError = error instanceof Error ? error : new Error(String(error));
+
+        // Don't retry on certain errors
+        if (lastError.message.includes('timeout') || lastError.message.includes('Unknown tool')) {
+          break;
+        }
+
+        // Wait before retry (exponential backoff)
+        if (attempt < maxRetries) {
+          const delay = calculateBackoff(attempt);
+          console.log(`[ToolRegistry] Retrying ${call.function.name} in ${delay}ms (attempt ${attempt + 1}/${maxRetries})`);
+          await new Promise(resolve => setTimeout(resolve, delay));
+        }
+      }
     }
+
+    // All retries failed
+    return {
+      tool_call_id: call.id,
+      role: 'tool',
+      content: `Error: ${lastError?.message || 'Unknown error'}`,
+      status: 'error',
+      executionTime: Date.now() - startTime
+    };
   }
 
   /**
@@ -130,19 +170,21 @@ class ToolRegistry {
   initializeDefaults(): void {
     if (this.initialized) return;
 
-    // Register file tools
+    // Register file tools (read-only)
     for (const tool of fileTools) {
-      this.register(tool);
+      this.register({ ...tool, isMutating: false });
     }
 
-    // Register web tools
+    // Register web tools (read-only)
     for (const tool of webTools) {
-      this.register(tool);
+      this.register({ ...tool, isMutating: false });
     }
 
-    // Register sandbox tools (file system operations)
+    // Register sandbox tools
+    // Write/delete operations are mutating, read/list are not
     for (const tool of sandboxTools) {
-      this.register(tool);
+      const isMutating = ['fs_write', 'fs_delete', 'fs_mkdir'].includes(tool.name);
+      this.register({ ...tool, isMutating });
     }
 
     this.initialized = true;

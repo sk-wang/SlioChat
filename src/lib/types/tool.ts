@@ -41,12 +41,31 @@ export interface ToolResult {
   executionTime?: number;
 }
 
+/**
+ * Tool executor interface
+ * Inspired by Codex ToolHandler design
+ */
 export interface ToolExecutor {
   name: string;
   definition: ToolDefinition;
   execute(args: Record<string, unknown>): Promise<string>;
+  /**
+   * Whether this tool mutates the environment (writes files, etc.)
+   * Used for approval and logging decisions
+   */
+  isMutating?: boolean;
+  /**
+   * Whether this tool requires sandbox isolation
+   */
   requiresSandbox?: boolean;
+  /**
+   * Execution timeout in milliseconds
+   */
   timeout?: number;
+  /**
+   * Maximum retry attempts on failure
+   */
+  maxRetries?: number;
 }
 
 /**

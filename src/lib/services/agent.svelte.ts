@@ -7,16 +7,11 @@
 import type { Message } from '$lib/types';
 import type {
   AgentEvent,
-  ThreadItem,
-  AgentMessageItem,
-  ReasoningItem,
-  ToolCallItem,
-  Turn,
-  Usage,
   Thread,
-  ItemStatus
+  Turn
 } from '$lib/types/agent';
 import type { ToolCall, ToolResult } from '$lib/types/tool';
+import type { StreamResult } from './api';
 import { toolRegistry } from '$lib/tools';
 import { agentStore } from '$lib/stores/agent.svelte';
 import { streamingStore } from '$lib/stores/streaming.svelte';
@@ -38,7 +33,6 @@ function generateId(): string {
 class AgentService {
   private currentThread: Thread | null = null;
   private currentTurn: Turn | null = null;
-  private currentItems: Map<string, ThreadItem> = new Map();
   private currentMessages: Message[] = [];
   private currentSystemPrompt: string = '';
 
@@ -60,15 +54,15 @@ class AgentService {
     const threadId = options.threadId || generateId();
     this.currentThread = {
       id: threadId,
-      conversationId: messages[0]?.conversationId || '',
+      conversationId: '',
       createdAt: Date.now(),
       updatedAt: Date.now()
     };
 
     agentStore.startProcessing();
 
-    // Yield thread started event
-    yield { type: 'thread.started', threadId };
+    // Emit start event (legacy)
+    yield { type: 'start' };
 
     // Combine custom system prompt with agent system prompt
     const fullSystemPrompt = systemPrompt
@@ -90,137 +84,57 @@ class AgentService {
         startedAt: Date.now()
       };
 
-      // Yield turn started event
-      yield { type: 'turn.started', turnId };
       console.log(`[Agent] Starting turn ${iteration}/${maxIterations}`);
 
       try {
+        // Collect streaming data
+        let accumulatedThinking = '';
+        let accumulatedContent = '';
+
         // Stream LLM response with tools
-        let streamResult: { thinking: string; content: string; toolCalls?: ToolCall[]; usage?: Usage } | null = null;
-        const eventQueue: AgentEvent[] = [];
-
-        let resolveStreamComplete: () => void;
-        const streamCompletePromise = new Promise<void>((resolve) => {
-          resolveStreamComplete = resolve;
-        });
-
-        // Create streaming items for tracking
-        let reasoningItem: ReasoningItem | null = null;
-        let messageItem: AgentMessageItem | null = null;
-        const toolCallItems: Map<string, ToolCallItem> = new Map();
-
-        streamChatCompletionWithTools(
+        const result = await streamChatCompletionWithTools(
           this.currentMessages,
           fullSystemPrompt,
           tools,
           {
             onThinking: (thinking) => {
-              // Create or update reasoning item
-              if (!reasoningItem) {
-                reasoningItem = {
-                  id: generateId(),
-                  type: 'reasoning',
-                  status: 'in_progress',
-                  text: ''
-                };
-                eventQueue.push({ type: 'item.started', item: reasoningItem });
-              }
-              reasoningItem.text += thinking;
-              eventQueue.push({ type: 'thinking.stream', delta: thinking });
+              accumulatedThinking += thinking;
             },
             onContent: (content) => {
-              // Create or update message item
-              if (!messageItem) {
-                messageItem = {
-                  id: generateId(),
-                  type: 'agent_message',
-                  status: 'in_progress',
-                  text: ''
-                };
-                eventQueue.push({ type: 'item.started', item: messageItem });
-              }
-              messageItem.text += content;
-              eventQueue.push({ type: 'content.stream', delta: content });
+              accumulatedContent += content;
             },
-            onToolCalls: (calls) => {
-              // Tool calls are handled after streaming completes
+            onToolCalls: (_calls) => {
+              // Tool calls handled after streaming
             }
           }
-        ).then((result) => {
-          streamResult = result ? {
-            thinking: result.thinking,
-            content: result.content,
-            toolCalls: result.toolCalls,
-            usage: result.usage ? {
-              inputTokens: result.usage.input_tokens || 0,
-              cachedInputTokens: result.usage.cached_input_tokens || 0,
-              outputTokens: result.usage.output_tokens || 0
-            } : undefined
-          } : null;
-          resolveStreamComplete!();
-        }).catch((err) => {
-          eventQueue.push({ type: 'error', message: err.message });
-          streamResult = null;
-          resolveStreamComplete!();
-        });
+        );
 
-        // Process events as they come in
-        let isStreamComplete = false;
-        while (!isStreamComplete || eventQueue.length > 0) {
-          if (streamResult !== undefined) {
-            isStreamComplete = true;
-          }
-
-          while (eventQueue.length > 0) {
-            const event = eventQueue.shift()!;
-            yield event;
-          }
-
-          if (!isStreamComplete) {
-            await Promise.race([
-              streamCompletePromise,
-              new Promise((r) => setTimeout(r, 10))
-            ]);
-          }
+        // Emit thinking event if there was thinking
+        if (accumulatedThinking) {
+          yield { type: 'thinking', content: accumulatedThinking };
         }
 
-        const result = streamResult;
-
-        // Complete reasoning item
-        if (reasoningItem) {
-          reasoningItem.status = 'completed';
-          yield { type: 'item.completed', item: reasoningItem };
-        }
-
+        // Handle null result (aborted)
         if (!result) {
-          // Stream was aborted
           yield { type: 'error', message: 'Generation was stopped' };
-          yield { type: 'turn.failed', turnId, error: 'Generation was stopped' };
           agentStore.stopProcessing();
           return;
         }
 
+        // Emit content event
+        if (result.content || accumulatedContent) {
+          yield { type: 'content', content: result.content || accumulatedContent };
+        }
+
         // Check for tool calls
         if (result.toolCalls && result.toolCalls.length > 0) {
-          console.log(`[Agent] Tool calls found:`, result.toolCalls.map(t => t.function.name));
+          console.log(`[Agent] Tool calls found:`, result.toolCalls.map((t: ToolCall) => t.function.name));
 
-          // Complete message item if exists
-          if (messageItem) {
-            messageItem.status = 'completed';
-            yield { type: 'item.completed', item: messageItem };
-          }
+          // Emit tool_calls event (legacy)
+          yield { type: 'tool_calls', calls: result.toolCalls };
 
           // Process each tool call
           for (const call of result.toolCalls) {
-            const toolCallItem: ToolCallItem = {
-              id: generateId(),
-              type: 'tool_call',
-              status: 'in_progress',
-              call
-            };
-
-            // Yield tool call started
-            yield { type: 'item.started', item: toolCallItem };
             agentStore.addToolCalls([call]);
 
             try {
@@ -228,11 +142,10 @@ class AgentService {
               const toolResult = await this.executeToolCall(call);
               console.log(`[Agent] Tool result:`, toolResult.status);
 
-              // Update item with result
-              toolCallItem.status = 'completed';
-              toolCallItem.result = toolResult;
-              yield { type: 'item.completed', item: toolCallItem };
               agentStore.addToolResult(call.id, toolResult);
+
+              // Emit tool_result event (legacy)
+              yield { type: 'tool_result', call, result: toolResult };
             } catch (toolError) {
               console.error(`[Agent] Tool execution error:`, toolError);
               const errorResult: ToolResult = {
@@ -241,17 +154,17 @@ class AgentService {
                 content: `Error: ${toolError instanceof Error ? toolError.message : String(toolError)}`,
                 status: 'error'
               };
-              toolCallItem.status = 'failed';
-              toolCallItem.result = errorResult;
-              yield { type: 'item.completed', item: toolCallItem };
               agentStore.addToolResult(call.id, errorResult);
+
+              // Emit tool_result event (legacy)
+              yield { type: 'tool_result', call, result: errorResult };
             }
           }
 
           // Add assistant message with tool calls
           this.currentMessages.push({
             role: 'assistant',
-            content: result.content || null,
+            content: result.content || '',
             toolCalls: result.toolCalls
           });
 
@@ -269,30 +182,24 @@ class AgentService {
 
           console.log(`[Agent] After tool execution, messages count:`, this.currentMessages.length);
 
-          // Complete turn and continue to next iteration
-          const usage = result.usage || { inputTokens: 0, cachedInputTokens: 0, outputTokens: 0 };
-          yield { type: 'turn.completed', turnId, usage };
+          // Emit messages_updated event (legacy)
+          yield { type: 'messages_updated', messages: [...this.currentMessages] };
         } else {
           // No tool calls - this is the final response
           console.log(`[Agent] No more tool calls, returning final response`);
 
-          // Complete message item
-          if (messageItem) {
-            messageItem.status = 'completed';
-            yield { type: 'item.completed', item: messageItem };
-          }
-
-          const usage = result.usage || { inputTokens: 0, cachedInputTokens: 0, outputTokens: 0 };
-          yield { type: 'turn.completed', turnId, usage };
+          // Emit final_response event (legacy)
+          yield { type: 'final_response', content: result.content || accumulatedContent };
 
           agentStore.stopProcessing();
           streamingStore.stop();
           return;
         }
       } catch (error) {
+        console.error('[Agent] Error in turn:', error);
+        console.error('[Agent] Stack trace:', error instanceof Error ? error.stack : 'No stack trace');
         const errorMessage = error instanceof Error ? error.message : String(error);
         yield { type: 'error', message: errorMessage };
-        yield { type: 'turn.failed', turnId, error: errorMessage };
         agentStore.setError(errorMessage);
         streamingStore.stop();
         return;
@@ -346,21 +253,17 @@ class AgentService {
   ): Promise<void> {
     for await (const event of this.runAgentConversation(messages, systemPrompt, options)) {
       switch (event.type) {
-        case 'thinking.stream':
-          callbacks.onThinking?.(event.delta);
+        case 'thinking':
+          callbacks.onThinking?.(event.content);
           break;
-        case 'content.stream':
-          callbacks.onContent?.(event.delta);
+        case 'content':
+          callbacks.onContent?.(event.content);
           break;
-        case 'item.started':
-        case 'item.completed':
-          if (event.item.type === 'tool_call') {
-            if (event.item.status === 'in_progress') {
-              callbacks.onToolExecuting?.(event.item.call);
-            } else if (event.item.result) {
-              callbacks.onToolResult?.(event.item.call, event.item.result);
-            }
-          }
+        case 'tool_calls':
+          callbacks.onToolCalls?.(event.calls);
+          break;
+        case 'tool_result':
+          callbacks.onToolResult?.(event.call, event.result);
           break;
         case 'error':
           callbacks.onError?.(event.message);

@@ -9,7 +9,7 @@ import { webTools } from './webTools';
 import { sandboxTools } from './sandboxTools';
 import { searchTools } from './searchTools';
 import { planTools } from './planTools';
-import { pythonTools } from './pythonTools';
+import { luaTools } from './luaTools';
 
 /**
  * Exponential backoff delay calculation
@@ -200,10 +200,10 @@ class ToolRegistry {
       this.register({ ...tool, isMutating: false });
     }
 
-    // Register Python tools
-    // run_python can be mutating if Python code writes to VFS
-    for (const tool of pythonTools) {
-      const isMutating = tool.name === 'run_python';
+    // Register Lua tools
+    // run_lua can be mutating if Lua code writes to VFS
+    for (const tool of luaTools) {
+      const isMutating = tool.name === 'run_lua';
       this.register({ ...tool, isMutating });
     }
 

@@ -160,7 +160,7 @@ class ChatService {
             break;
 
           case 'error':
-            conversationsStore.updateLastMessage('发生错误: ' + (event.error || '未知错误'));
+            conversationsStore.updateLastMessage('发生错误: ' + (event.message || '未知错误'));
             // Ensure processing state is cleared on error
             streamingStore.finish();
             break;
@@ -287,7 +287,7 @@ class ChatService {
             break;
 
           case 'error':
-            conversationsStore.updateLastMessage('发生错误: ' + (event.error || '未知错误'));
+            conversationsStore.updateLastMessage('发生错误: ' + (event.message || '未知错误'));
             // Ensure processing state is cleared on error
             streamingStore.finish();
             break;

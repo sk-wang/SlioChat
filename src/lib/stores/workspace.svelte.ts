@@ -213,6 +213,42 @@ class WorkspaceStore {
     this.#pinnedFiles.set(this.#currentWorkspaceId, new Set());
     this.saveToStorage();
   }
+
+  // Conversation management
+  addConversation(conversationId: string): void {
+    if (!this.#currentWorkspaceId) return;
+
+    this.#workspaces = this.#workspaces.map(w =>
+      w.id === this.#currentWorkspaceId
+        ? { ...w, conversations: [...w.conversations, conversationId], updatedAt: Date.now() }
+        : w
+    );
+    this.saveToStorage();
+  }
+
+  removeConversation(conversationId: string): void {
+    this.#workspaces = this.#workspaces.map(w =>
+      w.conversations.includes(conversationId)
+        ? { ...w, conversations: w.conversations.filter(id => id !== conversationId), updatedAt: Date.now() }
+        : w
+    );
+    this.saveToStorage();
+  }
+
+  // Migration helper
+  migrateOldConversations(conversations: Array<{ id: string; workspaceId?: string }>): void {
+    for (const conv of conversations) {
+      const targetWorkspaceId = conv.workspaceId || this.#currentWorkspaceId;
+      if (!targetWorkspaceId) continue;
+
+      this.#workspaces = this.#workspaces.map(w =>
+        w.id === targetWorkspaceId && !w.conversations.includes(conv.id)
+          ? { ...w, conversations: [...w.conversations, conv.id], updatedAt: Date.now() }
+          : w
+      );
+    }
+    this.saveToStorage();
+  }
 }
 
 // Global workspace store instance

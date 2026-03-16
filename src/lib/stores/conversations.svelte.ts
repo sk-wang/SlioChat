@@ -31,7 +31,7 @@ class ConversationsStore {
       this._save();
       // Migrate conversation IDs to default workspace
       if (conversationIds.length > 0) {
-        workspaceStore.migrateOldConversations(conversationIds);
+        workspaceStore.migrateOldConversations(conversationIds.map(id => ({ id })));
       }
     }
 

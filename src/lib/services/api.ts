@@ -8,6 +8,11 @@ export interface StreamResult {
   content: string;
   type: 'thinking' | 'normal';
   toolCalls?: ToolCall[];
+  usage?: {
+    input_tokens?: number;
+    cached_input_tokens?: number;
+    output_tokens?: number;
+  };
 }
 
 export interface ModelInfo {
@@ -152,10 +157,10 @@ async function parseSSEStream(
 
           if (delta.reasoning_content) {
             thinkingContent += content;
-            callbacks?.onThinking?.(thinkingContent);
+            callbacks?.onThinking?.(content); // Send delta, not accumulated
           } else {
             finalContent += content;
-            callbacks?.onContent?.(finalContent);
+            callbacks?.onContent?.(content); // Send delta, not accumulated
           }
         }
       } catch {
@@ -355,10 +360,10 @@ async function parseSSEStreamWithTools(
 
           if (delta.reasoning_content) {
             thinkingContent += content;
-            callbacks?.onThinking?.(thinkingContent);
+            callbacks?.onThinking?.(content); // Send delta, not accumulated
           } else {
             finalContent += content;
-            callbacks?.onContent?.(finalContent);
+            callbacks?.onContent?.(content); // Send delta, not accumulated
           }
         }
 

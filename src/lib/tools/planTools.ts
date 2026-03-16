@@ -41,6 +41,7 @@ export const updatePlanTool: ToolExecutor = {
           description: '计划项列表，每项包含 text 和 status',
           items: {
             type: 'object',
+            description: '单个计划项',
             properties: {
               text: {
                 type: 'string',

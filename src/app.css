@@ -685,3 +685,191 @@ body {
   animation: pulse-slow 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
+/* ===========================================
+   Highlight.js Syntax Highlighting - GitHub Dark Theme
+   =========================================== */
+
+.hljs {
+  color: #c9d1d9;
+  background: transparent;
+}
+
+/* Comments */
+.hljs-comment,
+.hljs-quote {
+  color: #8b949e;
+  font-style: italic;
+}
+
+/* Keywords (if, else, for, function, etc.) */
+.hljs-keyword,
+.hljs-selector-tag,
+.hljs-literal,
+.hljs-section,
+.hljs-link {
+  color: #ff7b72;
+}
+
+/* Strings */
+.hljs-string,
+.hljs-title,
+.hljs-name,
+.hljs-type,
+.hljs-attribute,
+.hljs-symbol,
+.hljs-bullet,
+.hljs-addition,
+.hljs-variable,
+.hljs-template-tag,
+.hljs-template-variable {
+  color: #a5d6ff;
+}
+
+/* Numbers, booleans, etc. */
+.hljs-number,
+.hljs-meta {
+  color: #79c0ff;
+}
+
+/* Built-ins, functions */
+.hljs-built_in,
+.hljs-params {
+  color: #ffa657;
+}
+
+/* Class names, types */
+.hljs-title.class_,
+.hljs-class .hljs-title,
+.hljs-type {
+  color: #ffa657;
+}
+
+/* Function calls */
+.hljs-function {
+  color: #d2a8ff;
+}
+
+.hljs-function .hljs-keyword {
+  color: #ff7b72;
+}
+
+.hljs-function .hljs-title {
+  color: #d2a8ff;
+}
+
+/* Operators, punctuation */
+.hljs-operator,
+.hljs-punctuation {
+  color: #c9d1d9;
+}
+
+/* Tags (HTML/XML) */
+.hljs-tag {
+  color: #7ee787;
+}
+
+.hljs-tag .hljs-name {
+  color: #7ee787;
+}
+
+.hljs-tag .hljs-attr {
+  color: #79c0ff;
+}
+
+/* Properties, attributes */
+.hljs-property,
+.hljs-attr {
+  color: #79c0ff;
+}
+
+/* Regular expressions */
+.hljs-regexp {
+  color: #7ee787;
+}
+
+/* Special characters */
+.hljs-char.escape_ {
+  color: #7ee787;
+}
+
+/* Deletions (diff) */
+.hljs-deletion {
+  color: #ffa198;
+  background-color: #490202;
+}
+
+/* Additions (diff) */
+.hljs-addition {
+  color: #7ee787;
+  background-color: #04260f;
+}
+
+/* Emphasis */
+.hljs-emphasis {
+  font-style: italic;
+}
+
+/* Strong */
+.hljs-strong {
+  font-weight: bold;
+}
+
+/* Language specific: JavaScript/TypeScript */
+.language-javascript .hljs-title,
+.language-typescript .hljs-title,
+.language-js .hljs-title,
+.language-ts .hljs-title {
+  color: #d2a8ff;
+}
+
+/* Language specific: Python */
+.language-python .hljs-title,
+.language-py .hljs-title {
+  color: #ffa657;
+}
+
+/* Language specific: CSS */
+.language-css .hljs-attribute {
+  color: #79c0ff;
+}
+
+.language-css .hljs-value {
+  color: #a5d6ff;
+}
+
+/* Code block container improvements */
+.code-block-wrapper {
+  position: relative;
+  margin: 0.75rem 0;
+}
+
+.code-block-wrapper pre {
+  margin: 0;
+  padding: 1rem 1rem 1rem 3rem;
+}
+
+/* Line numbers style (if needed) */
+.code-block-wrapper .line-numbers {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 2.5rem;
+  background-color: rgba(255, 255, 255, 0.05);
+  border-right: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Language badge */
+.code-block-wrapper::before {
+  content: attr(data-lang);
+  position: absolute;
+  top: 0.25rem;
+  left: 0.75rem;
+  font-size: 0.65rem;
+  color: #8b949e;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  z-index: 5;
+  pointer-events: none;
+}
+

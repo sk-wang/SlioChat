@@ -62,11 +62,44 @@ export const updatePlanTool: ToolExecutor = {
   },
   isMutating: false,
   async execute(args) {
-    const items = args.items as PlanItem[];
-    const explanation = args.explanation as string | undefined;
+    try {
+      console.log('[update_plan] Received args:', JSON.stringify(args, null, 2));
 
-    // Update plan in agentStore (reactive)
-    agentStore.setPlan(items);
+      // Validate items parameter - be more lenient
+      let items: PlanItem[] = [];
+
+      if (args.items && Array.isArray(args.items)) {
+        items = args.items.map((item: any, index: number) => {
+          // Handle various item formats
+          let text = '';
+          let status: 'pending' | 'in_progress' | 'completed' = 'pending';
+
+          if (typeof item === 'string') {
+            text = item;
+          } else if (item && typeof item === 'object') {
+            text = String(item.text || item.content || item.description || '');
+            const s = String(item.status || 'pending').toLowerCase();
+            if (['pending', 'in_progress', 'completed'].includes(s)) {
+              status = s as 'pending' | 'in_progress' | 'completed';
+            }
+          }
+
+          return {
+            text: text.slice(0, 50),
+            status
+          };
+        }).filter(item => item.text.length > 0);
+      }
+
+      if (items.length === 0) {
+        return '⚠️ 计划为空，请提供至少一个任务项';
+      }
+
+      const explanation = args.explanation as string | undefined;
+
+      // Update plan in agentStore (reactive)
+      agentStore.setPlan(items);
+      console.log('[update_plan] Plan updated successfully:', items.length, 'items');
 
     // Format plan display
     const statusEmoji = {
@@ -99,6 +132,10 @@ export const updatePlanTool: ToolExecutor = {
     }
 
     return response;
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      return `❌ 更新计划失败: ${errorMessage}`;
+    }
   }
 };
 

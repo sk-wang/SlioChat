@@ -10,6 +10,7 @@
   let chatContainer: HTMLElement;
   let autoScroll = $state(true);
   let resizeObserver: ResizeObserver;
+  let isUserScrolling = $state(false);
 
   function scrollToBottom(force = false) {
     if (!chatContainer) return;
@@ -21,6 +22,12 @@
 
   function handleScroll() {
     if (!chatContainer) return;
+
+    // Don't disable autoScroll during generation
+    if (streamingStore.isGenerating || streamingStore.isWaitingForFirstToken) {
+      return;
+    }
+
     const isNearBottom = chatContainer.scrollHeight - chatContainer.scrollTop - chatContainer.clientHeight < 100;
     autoScroll = isNearBottom;
   }
@@ -35,7 +42,14 @@
     const messagesEl = document.getElementById('messages');
     if (messagesEl) {
       resizeObserver = new ResizeObserver(() => {
-        scrollToBottom();
+        // During generation, always scroll to bottom if autoScroll is enabled
+        if (streamingStore.isGenerating || streamingStore.isWaitingForFirstToken) {
+          if (autoScroll) {
+            scrollToBottom();
+          }
+        } else {
+          scrollToBottom();
+        }
       });
       resizeObserver.observe(messagesEl);
     }
@@ -43,6 +57,13 @@
     return () => {
       if (resizeObserver) resizeObserver.disconnect();
     };
+  });
+
+  // Reset autoScroll when starting generation
+  $effect(() => {
+    if (streamingStore.isGenerating || streamingStore.isWaitingForFirstToken) {
+      autoScroll = true;
+    }
   });
 
   $effect(() => {

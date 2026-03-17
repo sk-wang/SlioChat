@@ -1,6 +1,26 @@
 import type { Conversation, Message, ChatType } from '$lib/types';
 import { storage } from '$lib/services/storage';
 import { workspaceStore } from './workspace.svelte';
+import {
+  getContextStats,
+  getMessagesForContextWindow,
+  type ContextStats
+} from '$lib/services/contextManager';
+
+// Helper to format stats
+function formatContextStats(stats: ContextStats): string {
+  const percent = Math.round(stats.utilization * 100);
+  const usedK = (stats.estimatedTokens / 1000).toFixed(1);
+  const maxK = (stats.maxTokens / 1000).toFixed(0);
+
+  if (stats.utilization < 0.5) {
+    return `${usedK}k / ${maxK}k tokens (${percent}%)`;
+  } else if (stats.utilization < 0.8) {
+    return `${usedK}k / ${maxK}k tokens (${percent}%) ⚠️`;
+  } else {
+    return `${usedK}k / ${maxK}k tokens (${percent}%) 🔴`;
+  }
+}
 
 class ConversationsStore {
   private _conversations = $state<Record<string, Conversation>>(
@@ -220,6 +240,56 @@ class ConversationsStore {
     const msgs = current.messages;
     if (msgs.length <= contextCount) return [...msgs];
     return msgs.slice(-contextCount);
+  }
+
+  /**
+   * Get messages optimized for context window (with compression if needed)
+   */
+  getMessagesForContextWindow(maxTokens: number = 128000): {
+    messages: Message[];
+    stats: ContextStats;
+  } {
+    const current = this.current;
+    if (!current) {
+      return {
+        messages: [],
+        stats: {
+          totalMessages: 0,
+          estimatedTokens: 0,
+          maxTokens: maxTokens - 4000,
+          utilization: 0,
+          needsCompression: false
+        }
+      };
+    }
+
+    return getMessagesForContextWindow(current.messages, maxTokens, 4000);
+  }
+
+  /**
+   * Get current context statistics
+   */
+  getContextStats(maxTokens: number = 128000): ContextStats {
+    const current = this.current;
+    if (!current) {
+      return {
+        totalMessages: 0,
+        estimatedTokens: 0,
+        maxTokens: maxTokens - 4000,
+        utilization: 0,
+        needsCompression: false
+      };
+    }
+
+    return getContextStats(current.messages, maxTokens, 4000);
+  }
+
+  /**
+   * Get formatted context stats string for display
+   */
+  getContextStatsFormatted(maxTokens: number = 128000): string {
+    const stats = this.getContextStats(maxTokens);
+    return formatContextStats(stats);
   }
 }
 

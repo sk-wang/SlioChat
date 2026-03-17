@@ -51,8 +51,14 @@ class ChatService {
     // Add empty assistant message
     conversationsStore.addMessage({ role: 'assistant', content: '', type: 'normal' });
 
-    const contextMessages = conversationsStore.getMessagesForContext(settingsStore.config.contextCount);
+    // Use smart context management with token-based compression
+    const { messages: contextMessages, stats } = conversationsStore.getMessagesForContextWindow(128000);
     const messagesToSend = contextMessages.slice(0, -1);
+
+    // Log context stats for debugging
+    if (stats.needsCompression) {
+      console.log('Context compressed:', stats);
+    }
 
     const systemPrompt = current.systemPrompt || settingsStore.config.defaultSystemPrompt;
 

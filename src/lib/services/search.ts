@@ -9,7 +9,7 @@ export interface SearchResult {
 
 export async function performSearch(query: string): Promise<SearchResult[]> {
   const searchConfig = settingsStore.config.search;
-  
+
   if (!searchConfig.enabled || !searchConfig.token) {
     return [];
   }
@@ -23,16 +23,20 @@ export async function performSearch(query: string): Promise<SearchResult[]> {
       },
       body: JSON.stringify({
         query,
-        freshness: 'oneWeek',
         summary: true,
+        freshness: 'noLimit', // 不限制时间范围
+        count: 10,
       }),
     });
 
     if (!response.ok) {
-      throw new Error('Search request failed');
+      const errorText = await response.text();
+      console.error('Search API error:', response.status, errorText);
+      throw new Error(`Search request failed: ${response.status}`);
     }
 
     const data = await response.json();
+    console.log('[Search] API response:', data);
     return data.data?.webPages?.value || [];
   } catch (error) {
     console.error('Search error:', error);

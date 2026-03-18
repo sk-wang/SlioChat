@@ -720,6 +720,11 @@ body {
     padding: 0.5rem 0.75rem;
     border-radius: 1rem;
   }
+
+  .message-container[data-role="assistant"] .message-content-wrapper {
+    padding-left: 0.25rem;
+    padding-right: 0.25rem;
+  }
 }
 
 .message-container[data-role="assistant"] .message-content-wrapper {

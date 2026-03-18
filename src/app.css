@@ -941,3 +941,22 @@ body {
   pointer-events: none;
 }
 
+/* Mobile responsive for all markdown content */
+@media (max-width: 640px) {
+  .markdown-body {
+    max-width: 100%;
+    font-size: 0.9rem;
+    line-height: 1.5;
+  }
+
+  .markdown-body * {
+    max-width: 100% !important;
+    overflow-wrap: break-word !important;
+    word-wrap: break-word !important;
+  }
+
+  .message-content-wrapper {
+    max-width: 100% !important;
+  }
+}
+

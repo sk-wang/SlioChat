@@ -11,11 +11,13 @@
     "check:watch": "svelte-check --tsconfig ./tsconfig.json --watch"
   },
   "devDependencies": {
+    "@playwright/test": "^1.58.2",
     "@sveltejs/vite-plugin-svelte": "^5.0.3",
     "@tailwindcss/typography": "^0.5.15",
     "@tsconfig/svelte": "^5.0.4",
     "@types/node": "^22.10.5",
     "autoprefixer": "^10.4.20",
+    "playwright": "^1.58.2",
     "postcss": "^8.4.49",
     "svelte": "^5.16.0",
     "svelte-check": "^4.1.1",

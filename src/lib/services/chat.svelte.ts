@@ -166,7 +166,16 @@ class ChatService {
             break;
 
           case 'error':
-            conversationsStore.updateLastMessage('发生错误: ' + (event.message || '未知错误'));
+            let errorMsg = event.message || '未知错误';
+            // 友好化网络错误
+            if (errorMsg.includes('network error') || errorMsg.includes('Failed to fetch')) {
+              errorMsg = '网络连接失败，请检查网络或 API 服务是否正常';
+            } else if (errorMsg.includes('timeout')) {
+              errorMsg = '请求超时，请稍后重试';
+            } else if (errorMsg.includes('QUIC')) {
+              errorMsg = '网络连接不稳定，请刷新页面重试';
+            }
+            conversationsStore.updateLastMessage('❌ ' + errorMsg);
             // Ensure processing state is cleared on error
             streamingStore.finish();
             break;
@@ -293,7 +302,16 @@ class ChatService {
             break;
 
           case 'error':
-            conversationsStore.updateLastMessage('发生错误: ' + (event.message || '未知错误'));
+            let errorMsg = event.message || '未知错误';
+            // 友好化网络错误
+            if (errorMsg.includes('network error') || errorMsg.includes('Failed to fetch')) {
+              errorMsg = '网络连接失败，请检查网络或 API 服务是否正常';
+            } else if (errorMsg.includes('timeout')) {
+              errorMsg = '请求超时，请稍后重试';
+            } else if (errorMsg.includes('QUIC')) {
+              errorMsg = '网络连接不稳定，请刷新页面重试';
+            }
+            conversationsStore.updateLastMessage('❌ ' + errorMsg);
             // Ensure processing state is cleared on error
             streamingStore.finish();
             break;

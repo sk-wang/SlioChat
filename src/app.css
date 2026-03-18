@@ -122,9 +122,14 @@ body {
 
 /* Mobile responsive headings */
 @media (max-width: 640px) {
-  .markdown-body h1 { font-size: 1.4em; }
-  .markdown-body h2 { font-size: 1.25em; }
-  .markdown-body h3 { font-size: 1.1em; }
+  .markdown-body h1,
+  .markdown-body h2,
+  .markdown-body h3 {
+    font-size: 1.1em;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    max-width: 100%;
+  }
 }
 
 .think-container {
@@ -633,6 +638,8 @@ body {
   margin-bottom: 1rem;
   font-weight: 600;
   line-height: 1.25;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
 }
 
 .markdown-body h1 { font-size: 1.75em; }

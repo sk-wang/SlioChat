@@ -76,10 +76,10 @@
 <div
   bind:this={chatContainer}
   id="chat-container"
-  class="flex-1 overflow-y-auto px-2 md:px-4 py-6"
+  class="flex-1 overflow-y-auto px-1 sm:px-2 md:px-4 py-4 md:py-6"
   onscroll={handleScroll}
 >
-  <div id="messages" class="max-w-4xl mx-auto space-y-6">
+  <div id="messages" class="max-w-3xl mx-auto space-y-4 md:space-y-6">
     {#if conversationsStore.current}
       {#each conversationsStore.current.messages as message, index (index)}
         <MessageItem {message} {index} />

@@ -80,17 +80,6 @@
   data-role={message.role}
 >
   <div class="flex max-w-[92%] md:max-w-[80%] gap-2 md:gap-4" class:flex-row-reverse={isUser}>
-    {#if !isUser}
-      <div class="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center bg-[var(--button-primary-bg)]">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5">
-          <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 11c.9 0 1.8-.1 2.6-.4"/>
-          <path d="M17.6 14.2c-.8.8-1.3 2-1.1 3.2.2 1.2 1.1 2.2 2.3 2.4 1.2.2 2.4-.3 3.2-1.1.8-.8 1.3-2 1.1-3.2-.2-1.2-1.1-2.2-2.3-2.4-1.2-.2-2.4.3-3.2 1.1z"/>
-          <path d="M9.4 9.8c.8-.8 1.3-2 1.1-3.2-.2-1.2-1.1-2.2-2.3-2.4-1.2-.2-2.4.3-3.2 1.1-.8.8-1.3 2-1.1 3.2.2 1.2 1.1 2.2 2.3 2.4 1.2.2 2.4-.3 3.2-1.1z"/>
-          <path d="M14.5 8.5l-5 7"/>
-        </svg>
-      </div>
-    {/if}
-
     <div class="message-content-wrapper min-w-0" class:flex-1={!isUser}>
       <div class="flex flex-col">
         {#if !isTool}

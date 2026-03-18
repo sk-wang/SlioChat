@@ -715,6 +715,13 @@ body {
   border: 1px solid var(--border-color);
 }
 
+@media (max-width: 640px) {
+  .message-container[data-role="user"] .message-content-wrapper {
+    padding: 0.5rem 0.75rem;
+    border-radius: 1rem;
+  }
+}
+
 .message-container[data-role="assistant"] .message-content-wrapper {
   background-color: transparent;
   padding: 0;

@@ -58,8 +58,24 @@ body {
   max-width: 100%;
   white-space: pre-wrap;
   word-wrap: break-word;
+  word-break: break-all;
   position: relative;
   color: #fff;
+  font-size: 0.85rem;
+}
+
+/* Mobile responsive for code blocks */
+@media (max-width: 640px) {
+  .markdown-body pre {
+    padding: 0.75rem;
+    margin: 0.5rem 0;
+    font-size: 0.8rem;
+    border-radius: 0.375rem;
+  }
+
+  .markdown-body pre code {
+    font-size: 0.75rem;
+  }
 }
 
 .dark .markdown-body pre {
@@ -79,12 +95,16 @@ body {
   margin: 0.5rem 0;
   line-height: 1.7;
   max-width: 100%;
+  overflow-wrap: break-word;
+  word-wrap: break-word;
 }
 
 .markdown-body ul,
 .markdown-body ol {
   margin: 0.5rem 0;
   padding-left: 1.5rem;
+  max-width: 100%;
+  overflow-wrap: break-word;
 }
 
 .markdown-body li {
@@ -96,6 +116,15 @@ body {
   padding-left: 1rem;
   margin: 1rem 0;
   color: var(--text-secondary);
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+}
+
+/* Mobile responsive headings */
+@media (max-width: 640px) {
+  .markdown-body h1 { font-size: 1.4em; }
+  .markdown-body h2 { font-size: 1.25em; }
+  .markdown-body h3 { font-size: 1.1em; }
 }
 
 .think-container {
@@ -481,10 +510,40 @@ body {
 .markdown-body table {
   display: block;
   width: 100%;
-  overflow-x: auto;
   max-width: 100%;
+  overflow-x: auto;
   border-spacing: 0;
   border-collapse: collapse;
+}
+
+/* Mobile responsive for tables */
+@media (max-width: 640px) {
+  .markdown-body table {
+    font-size: 0.85rem;
+  }
+
+  .markdown-body table th,
+  .markdown-body table td {
+    padding: 0.5rem;
+    display: block;
+    width: 100%;
+  }
+
+  .markdown-body table th {
+    display: none;
+  }
+
+  .markdown-body table td {
+    border: none;
+    border-bottom: 1px solid var(--border-color);
+  }
+
+  .markdown-body table tr {
+    display: block;
+    margin-bottom: 0.5rem;
+    border: 1px solid var(--border-color);
+    border-radius: 0.375rem;
+  }
 }
 
 .markdown-body table th,
@@ -511,6 +570,15 @@ body {
   max-width: 100%;
   height: auto;
   border-radius: 0.5rem;
+}
+
+/* Mobile responsive images */
+@media (max-width: 640px) {
+  .markdown-body img {
+    max-width: 100%;
+    width: 100%;
+    height: auto;
+  }
 }
 
 .markdown-body code {

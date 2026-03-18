@@ -80,11 +80,12 @@
       {:else}
         <h1
           id="current-conversation-title"
-          class="text-sm md:text-lg font-medium text-[var(--text-primary)] truncate max-w-[200px] md:max-w-none cursor-pointer hover:text-[var(--button-primary-bg)]"
+          class="text-sm md:text-lg font-medium text-[var(--text-primary)] truncate max-w-[150px] sm:max-w-[200px] md:max-w-none cursor-pointer hover:text-[var(--button-primary-bg)]"
           onclick={startEditingTitle}
           onkeydown={(e) => e.key === 'Enter' && startEditingTitle()}
           role="button"
           tabindex="0"
+          title={conversationsStore.current?.title}
         >
           {conversationsStore.current?.title || '新对话'}
         </h1>

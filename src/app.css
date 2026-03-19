@@ -725,6 +725,11 @@ body {
     padding-left: 0.5rem;
     padding-right: 0.5rem;
   }
+
+  /* Assistant message needs left margin since avatar was removed */
+  .message-container[data-role="assistant"] {
+    padding-left: 1rem;
+  }
 }
 
 .message-container[data-role="assistant"] .message-content-wrapper {

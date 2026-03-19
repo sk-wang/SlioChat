@@ -210,14 +210,9 @@
         // Delete from VFS
         await vfs.delete(entry.path);
 
-        // Also remove from workspace file references
-        const fileToRemove = workspaceStore.currentWorkspace?.files.find(fileId => {
-          const file = workspaceStore.getFile(fileId);
-          return file?.vfsPath === entry.path;
-        });
-
-        if (fileToRemove) {
-          await workspaceStore.removeFile(fileToRemove);
+        // Unpin file if it was pinned
+        if (workspaceStore.isPinned(entry.path)) {
+          workspaceStore.unpinFile(entry.path);
         }
 
         if (selectedFile === entry.path) {

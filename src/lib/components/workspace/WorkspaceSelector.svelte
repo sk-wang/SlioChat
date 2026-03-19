@@ -43,6 +43,17 @@
       cancelCreating();
     }
   }
+
+  function deleteWorkspace(id: string, event: MouseEvent) {
+    event.stopPropagation();
+    const workspace = workspaceStore.workspaces.find(w => w.id === id);
+    if (!workspace || workspace.isDefault) return;
+
+    if (confirm(`确定要删除工作空间 "${workspace.name}" 吗？其中的对话将被删除。`)) {
+      workspaceStore.deleteWorkspace(id);
+      uiStore.showToast(`工作空间 "${workspace.name}" 已删除`, 'success');
+    }
+  }
 </script>
 
 <div class="workspace-selector">
@@ -79,24 +90,37 @@
       <!-- Workspace list -->
       <div class="max-h-48 overflow-y-auto py-1">
         {#each workspaceStore.workspaces as workspace}
-          <button
-            onclick={() => selectWorkspace(workspace.id)}
-            class="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-[var(--hover-bg)] transition-colors"
-            class:bg-[var(--hover-bg)]={workspace.id === workspaceStore.currentWorkspaceId}
-          >
-            <svg class="w-4 h-4 text-[var(--text-secondary)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
-            </svg>
-            <span class="truncate text-[var(--text-primary)]">{workspace.name}</span>
-            {#if workspace.isDefault}
-              <span class="text-xs text-[var(--text-secondary)]">(默认)</span>
-            {/if}
-            {#if workspace.id === workspaceStore.currentWorkspaceId}
-              <svg class="w-4 h-4 text-[var(--button-primary-bg)] ml-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+          <div class="flex items-center group">
+            <button
+              onclick={() => selectWorkspace(workspace.id)}
+              class="flex-1 flex items-center gap-2 px-3 py-2 text-sm hover:bg-[var(--hover-bg)] transition-colors"
+              class:bg-[var(--hover-bg)]={workspace.id === workspaceStore.currentWorkspaceId}
+            >
+              <svg class="w-4 h-4 text-[var(--text-secondary)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
               </svg>
+              <span class="truncate text-[var(--text-primary)]">{workspace.name}</span>
+              {#if workspace.isDefault}
+                <span class="text-xs text-[var(--text-secondary)]">(默认)</span>
+              {/if}
+              {#if workspace.id === workspaceStore.currentWorkspaceId}
+                <svg class="w-4 h-4 text-[var(--button-primary-bg)] ml-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+              {/if}
+            </button>
+            {#if !workspace.isDefault}
+              <button
+                onclick={(e) => deleteWorkspace(workspace.id, e)}
+                class="px-2 py-2 text-[var(--text-secondary)] hover:text-red-500 hover:bg-red-500/10 transition-colors"
+                title="删除工作空间"
+              >
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+              </button>
             {/if}
-          </button>
+          </div>
         {/each}
       </div>
 

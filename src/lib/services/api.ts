@@ -74,8 +74,13 @@ export async function streamChatCompletion(
   streamingStore.start();
 
   try {
+    // Add current date to system prompt (appended to end to preserve KV cache for prefix)
+    const today = new Date();
+    const dateStr = `${today.getFullYear()}年${today.getMonth() + 1}月${today.getDate()}日`;
+    const systemPromptWithDate = systemPrompt + `\n\n今天是${dateStr}。`;
+
     const requestMessages = [
-      { role: 'system', content: systemPrompt },
+      { role: 'system', content: systemPromptWithDate },
       ...messages.map((m) => ({ role: m.role, content: m.content })),
     ];
 
@@ -263,8 +268,13 @@ export async function streamChatCompletionWithTools(
   streamingStore.start();
 
   try {
+    // Add current date to system prompt (appended to end to preserve KV cache for prefix)
+    const today = new Date();
+    const dateStr = `${today.getFullYear()}年${today.getMonth() + 1}月${today.getDate()}日`;
+    const systemPromptWithDate = systemPrompt + `\n\n今天是${dateStr}。`;
+
     const requestMessages = [
-      { role: 'system', content: systemPrompt },
+      { role: 'system', content: systemPromptWithDate },
       ...messages.map(formatMessageForAPI),
     ];
 

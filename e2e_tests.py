@@ -5,6 +5,11 @@ Run with: python3.11 e2e_tests.py
 Prerequisites:
 1. Start dev server: npm run dev
 2. Server must be running at http://localhost:5173
+3. Set environment variables:
+   export AIHUBMIX_API_KEY="your-api-key"
+   export AIHUBMIX_BASE_URL="https://api.aihubmix.com/v1"  # optional, has default
+
+Or create a .env file in the project root (will be loaded automatically).
 """
 
 from playwright.sync_api import sync_playwright, Page, expect
@@ -14,10 +19,38 @@ import os
 import sys
 import tempfile
 from datetime import datetime
+from pathlib import Path
 
-# Test configuration
-API_KEY = "sk-0Dis8QLsuP1LsKw87bBd021fD4Ac49E3B93b70D1A8E78d4e"
-AIHUBMIX_BASE_URL = "https://api.aihubmix.com/v1"
+# Load environment variables from .env file if present
+def load_env_file():
+    env_path = Path(__file__).parent / '.env'
+    if env_path.exists():
+        with open(env_path) as f:
+            for line in f:
+                line = line.strip()
+                if line and not line.startswith('#') and '=' in line:
+                    key, value = line.split('=', 1)
+                    os.environ.setdefault(key.strip(), value.strip())
+
+load_env_file()
+
+# Test configuration from environment variables
+API_KEY = os.environ.get('AIHUBMIX_API_KEY', '')
+AIHUBMIX_BASE_URL = os.environ.get('AIHUBMIX_BASE_URL', 'https://api.aihubmix.com/v1')
+
+# Validate configuration
+if not API_KEY:
+    print("=" * 60)
+    print("ERROR: AIHUBMIX_API_KEY environment variable not set!")
+    print()
+    print("Please set your API key:")
+    print("  export AIHUBMIX_API_KEY='your-api-key'")
+    print()
+    print("Or create a .env file in the project root:")
+    print("  AIHUBMIX_API_KEY=your-api-key")
+    print("  AIHUBMIX_BASE_URL=https://api.aihubmix.com/v1")
+    print("=" * 60)
+    sys.exit(1)
 
 # Test colors for visual feedback
 GREEN = "\033[92m"
@@ -81,16 +114,12 @@ def create_test_image():
     return buffer.read()
 
 def setup_api_key(page: Page):
-    """Configure the API key in settings"""
+    """Configure the API key in settings via localStorage injection"""
     log_info("Setting up API key...")
 
-    # Method 1: Use localStorage to inject config directly (most reliable)
     log_info("Injecting config via localStorage...")
 
-    # The settings store uses these localStorage keys:
-    # - 'models' - JSON object of model configs
-    # - 'preferred-model' - selected model ID
-    # - 'vlmModel' - VLM model ID
+    # Build complete models config matching DEFAULT_CONFIG structure
     models_config = {
         'gemini-2.5-flash': {
             'name': 'gemini-2.5-flash',
@@ -106,20 +135,37 @@ def setup_api_key(page: Page):
         }
     }
 
+    # Inject all required localStorage keys
     page.evaluate(f"""
+        // Clear existing localStorage first
+        localStorage.clear();
+
+        // Set models config
         localStorage.setItem('models', JSON.stringify({models_config}));
+
+        // Set preferred model
         localStorage.setItem('preferred-model', 'gemini-2.5-flash');
+
+        // Set VLM model
         localStorage.setItem('vlmModel', 'gemini-2.5-flash');
-        console.log('Config injected');
+
+        // Set title generation model
+        localStorage.setItem('titleGenerationModel', 'gemini-2.5-flash');
+
+        // Set search judger model
+        localStorage.setItem('searchJudgerModel', 'gemini-2.5-flash');
+
+        console.log('Full config injected');
         console.log('models:', localStorage.getItem('models'));
         console.log('preferred-model:', localStorage.getItem('preferred-model'));
+        console.log('vlmModel:', localStorage.getItem('vlmModel'));
     """)
-    log_info("Config injected via localStorage")
+    log_info("Full config injected via localStorage")
 
     # Reload to apply
     page.reload()
     page.wait_for_load_state('networkidle')
-    page.wait_for_timeout(1000)
+    page.wait_for_timeout(2000)
     log_info("Page reloaded with new config")
 
 def close_modals(page: Page):
@@ -127,6 +173,12 @@ def close_modals(page: Page):
     # Press Escape to close modals
     page.keyboard.press("Escape")
     page.wait_for_timeout(300)
+
+    # Close workspace selector overlay if present
+    close_workspace = page.locator('[aria-label="Close workspace selector"]')
+    if close_workspace.count() > 0 and close_workspace.first.is_visible():
+        close_workspace.first.click()
+        page.wait_for_timeout(300)
 
     # Check if there's a modal and close it
     modal = page.locator('[role="dialog"]')
@@ -138,32 +190,55 @@ def close_modals(page: Page):
 
 def select_chat_type_if_needed(page: Page):
     """Select a chat type if ChatTypeModal is open"""
-    modal = page.locator('[role="dialog"]')
-    if modal.count() > 0:
-        # Check if this is the chat type modal (has "选择对话类型" text)
+    # Wait for potential modals to appear
+    page.wait_for_timeout(1000)
+
+    # First check if the chat type modal title exists
+    try:
         title = page.locator('text=选择对话类型')
-        if title.count() > 0:
-            log_info("ChatTypeModal detected, selecting first option...")
-            # Find all buttons and skip the cancel button
-            buttons = modal.locator('button')
+        if title.count() > 0 and title.first.is_visible():
+            log_info("ChatTypeModal title detected, looking for buttons...")
+            # Find the modal container
+            modal = page.locator('[role="dialog"]')
+            if modal.count() == 0:
+                # Try to find any visible dialog-like element
+                modal = page.locator('[class*="fixed"], [class*="inset-0"]')
+
+            buttons = page.locator('button')
             count = buttons.count()
-            log_info(f"Found {count} buttons in modal")
+            log_info(f"Found {count} total buttons on page")
+
+            # Find the first non-cancel button
             for i in range(count):
                 btn = buttons.nth(i)
                 try:
-                    text = btn.inner_text()
-                    log_info(f"  Button {i}: '{text}'")
-                    if '取消' not in text and text.strip():
+                    if btn.is_visible():
+                        text = btn.inner_text()
+                        log_info(f"  Button {i}: '{text}' (visible)")
+                        if '取消' not in text and text.strip() and len(text.strip()) > 0:
+                            btn.click()
+                            page.wait_for_timeout(1000)
+                            log_info(f"Clicked: '{text[:50]}'")
+                            return
+                except:
+                    pass
+
+            # If we get here, try clicking the second visible button
+            log_info("Trying to click second visible button...")
+            for i in range(count):
+                btn = buttons.nth(i)
+                try:
+                    if btn.is_visible():
                         btn.click()
-                        page.wait_for_timeout(500)
-                        log_info(f"Selected chat type: {text[:30]}")
+                        page.wait_for_timeout(1000)
+                        log_info(f"Clicked button {i}")
                         return
                 except:
                     pass
-            # If we get here, click the second button (first might be cancel)
-            if count > 1:
-                buttons.nth(1).click()
-                page.wait_for_timeout(500)
+    except Exception as e:
+        log_info(f"Error in select_chat_type_if_needed: {e}")
+
+    log_info("No chat type modal detected")
 
 def test_page_loads(page: Page):
     """Test 1: Page loads correctly"""
@@ -193,6 +268,58 @@ def test_send_message(page: Page):
     result = TestResult("Send and receive message")
 
     try:
+        # First, take a screenshot to see what's on screen
+        page.screenshot(path='/Users/wanghao/git/slio-chat/test_before_send.png')
+        log_info("Screenshot saved for debugging")
+
+        # Try to handle chat type modal immediately
+        try:
+            # Check if modal title exists
+            title_locator = page.locator('text=选择对话类型')
+            if title_locator.count() > 0 and title_locator.first.is_visible():
+                log_info("ChatTypeModal detected, looking for buttons inside modal...")
+
+                # Find buttons within the modal dialog specifically
+                modal_buttons = page.locator('[role="dialog"] button')
+                if modal_buttons.count() == 0:
+                    # Try finding by text content of buttons in modal
+                    modal = page.locator('[role="dialog"]')
+                    modal_html = modal.inner_html() if modal.count() > 0 else ""
+                    log_info(f"Modal HTML length: {len(modal_html)}")
+
+                    # Look for common chat type options
+                    for option_text in ['普通对话', '智能对话', 'Agent']:
+                        option_btn = page.locator(f'text={option_text}')
+                        if option_btn.count() > 0 and option_btn.first.is_visible():
+                            option_btn.first.click()
+                            page.wait_for_timeout(1000)
+                            log_info(f"Clicked: '{option_text}'")
+                            break
+                else:
+                    # Click the first button in the modal
+                    for i in range(modal_buttons.count()):
+                        btn = modal_buttons.nth(i)
+                        try:
+                            text = btn.inner_text()
+                            if '取消' not in text and text.strip():
+                                btn.click()
+                                page.wait_for_timeout(1000)
+                                log_info(f"Clicked modal button: '{text[:30]}'")
+                                break
+                        except:
+                            pass
+
+            # Close any workspace selector that might have opened
+            close_workspace = page.locator('[aria-label="Close workspace selector"]')
+            if close_workspace.count() > 0 and close_workspace.first.is_visible():
+                log_info("Closing workspace selector...")
+                close_workspace.first.click()
+                page.wait_for_timeout(500)
+        except Exception as e:
+            log_info(f"Modal handling error: {e}")
+            import traceback
+            traceback.print_exc()
+
         # Wait for any modals to settle
         page.wait_for_timeout(1000)
 

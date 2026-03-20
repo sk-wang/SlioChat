@@ -177,8 +177,17 @@ async function describeImageWithVLM(base64: string): Promise<string> {
 }
 
 async function extractPdfText(file: File): Promise<string> {
+  console.log('[PDF] Starting PDF extraction for:', file.name, 'type:', file.type, 'size:', file.size);
+
   const arrayBuffer = await readFileAsArrayBuffer(file);
+  console.log('[PDF] Read array buffer, length:', arrayBuffer.byteLength);
+
+  if (arrayBuffer.byteLength === 0) {
+    throw new Error('PDF文件为空或读取失败');
+  }
+
   const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+  console.log('[PDF] Loaded PDF, numPages:', pdf.numPages);
 
   let fullText = '';
   for (let i = 1; i <= pdf.numPages; i++) {
@@ -191,10 +200,16 @@ async function extractPdfText(file: File): Promise<string> {
   }
 
   const trimmedText = fullText.trim();
+  console.log('[PDF] Extracted text length:', trimmedText.length);
+  console.log('[PDF] Extracted text preview:', trimmedText.substring(0, 200));
 
-  // 检测是否为扫描版PDF（文字内容少于100个字符）
-  if (trimmedText.length < 100) {
-    console.log('[PDF] Detected scanned PDF, using OCR...');
+  // 检测是否为扫描版PDF（文字内容少于200个字符，或包含大量无意义字符）
+  // 同时也检查文字密度：如果页数多但文字少，也可能是扫描版
+  const isScanned = trimmedText.length < 200 ||
+    (trimmedText.length < 500 && numPages > 5 && trimmedText.length / numPages < 50);
+
+  if (isScanned) {
+    console.log('[PDF] Detected scanned PDF (text length < 100), using OCR...');
     uiStore.showToast(`检测到扫描版PDF，正在使用OCR识别...`, 'info');
 
     try {
@@ -213,6 +228,8 @@ async function extractPdfText(file: File): Promise<string> {
 
 async function extractPdfWithOCR(pdf: pdfjsLib.PDFDocumentProxy, fileName: string): Promise<string> {
   const numPages = pdf.numPages;
+  console.log('[PDF OCR] Starting OCR for:', fileName, 'pages:', numPages);
+
   let fullText = `[扫描版PDF OCR识别结果]\n文件名: ${fileName}\n总页数: ${numPages}\n\n`;
 
   for (let i = 1; i <= numPages; i++) {
@@ -222,6 +239,7 @@ async function extractPdfWithOCR(pdf: pdfjsLib.PDFDocumentProxy, fileName: strin
 
       const page = await pdf.getPage(i);
       const viewport = page.getViewport({ scale: 2.0 }); // 使用2倍缩放以提高清晰度
+      console.log(`[PDF OCR] Page ${i} viewport:`, viewport.width, 'x', viewport.height);
 
       // 创建canvas渲染PDF页面
       const canvas = document.createElement('canvas');
@@ -240,9 +258,11 @@ async function extractPdfWithOCR(pdf: pdfjsLib.PDFDocumentProxy, fileName: strin
 
       // 转换为base64
       const base64 = canvas.toDataURL('image/jpeg', 0.9);
+      console.log(`[PDF OCR] Page ${i} converted to base64, length:`, base64.length);
 
       // 使用VLM进行OCR
       const pageText = await describeImageWithVLM(base64);
+      console.log(`[PDF OCR] Page ${i} OCR result length:`, pageText.length);
 
       fullText += `--- 第 ${i} 页 ---\n${pageText}\n\n`;
     } catch (error) {
@@ -251,6 +271,7 @@ async function extractPdfWithOCR(pdf: pdfjsLib.PDFDocumentProxy, fileName: strin
     }
   }
 
+  console.log('[PDF OCR] Complete, total length:', fullText.length);
   return fullText.trim();
 }
 

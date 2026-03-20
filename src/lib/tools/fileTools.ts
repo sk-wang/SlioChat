@@ -210,9 +210,23 @@ export const fileReadTool: ToolExecutor = {
       let rawFile: File;
       if (isBinary) {
         // Binary file - content is base64, convert to blob
-        const response = await fetch(`data:application/octet-stream;base64,${content}`);
+        // Determine correct MIME type based on file extension
+        let mimeType = 'application/octet-stream';
+        const ext = matchedFile.name.toLowerCase();
+        if (ext.endsWith('.pdf')) mimeType = 'application/pdf';
+        else if (ext.endsWith('.docx')) mimeType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+        else if (ext.endsWith('.doc')) mimeType = 'application/msword';
+        else if (ext.endsWith('.xlsx')) mimeType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+        else if (ext.endsWith('.xls')) mimeType = 'application/vnd.ms-excel';
+        else if (ext.endsWith('.png')) mimeType = 'image/png';
+        else if (ext.endsWith('.jpg') || ext.endsWith('.jpeg')) mimeType = 'image/jpeg';
+        else if (ext.endsWith('.gif')) mimeType = 'image/gif';
+        else if (ext.endsWith('.webp')) mimeType = 'image/webp';
+
+        const response = await fetch(`data:${mimeType};base64,${content}`);
         const blob = await response.blob();
-        rawFile = new File([blob], matchedFile.name, { type: 'application/octet-stream' });
+        rawFile = new File([blob], matchedFile.name, { type: mimeType });
+        console.log('[file_read] Created File with MIME type:', mimeType, 'size:', rawFile.size);
       } else {
         // Text file - content is plain text
         const blob = new Blob([content], { type: 'text/plain' });

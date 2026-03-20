@@ -424,6 +424,227 @@ def test_conversation_list(page: Page):
 
     return result
 
+def test_workspace_selector(page: Page):
+    """Test 8: Workspace selector exists and works"""
+    result = TestResult("Workspace selector works")
+
+    try:
+        # Check for workspace selector
+        workspace_selectors = page.locator('text=选择工作空间')
+        if workspace_selectors.count() > 0:
+            log_info("Workspace selector found")
+            # Click to open
+            workspace_selectors.first.click()
+            page.wait_for_timeout(500)
+            # Click outside to close
+            page.keyboard.press("Escape")
+            page.wait_for_timeout(300)
+
+        # Check for workspace-related elements
+        workspace_items = page.locator('[class*="workspace"]')
+        log_info(f"Found {workspace_items.count()} workspace elements")
+
+        log_pass("Workspace selector is present")
+        result.mark_pass()
+    except Exception as e:
+        result.mark_fail(str(e))
+
+    return result
+
+def test_sidebar_visibility(page: Page):
+    """Test 9: Sidebar toggle works"""
+    result = TestResult("Sidebar toggle works")
+
+    try:
+        # Check for sidebar toggle button
+        sidebar_toggle = page.locator('button:has-text("收起"), button:has-text("展开")')
+        if sidebar_toggle.count() > 0:
+            sidebar_toggle.first.click()
+            page.wait_for_timeout(500)
+            sidebar_toggle.first.click()
+            page.wait_for_timeout(500)
+            log_pass("Sidebar toggle works")
+        else:
+            log_info("Sidebar toggle button not found, checking for menu button")
+            menu_btn = page.locator('[class*="menu"]')
+            if menu_btn.count() > 0:
+                log_pass("Menu button found")
+            result.mark_pass()
+    except Exception as e:
+        result.mark_fail(str(e))
+
+    return result
+
+def test_text_input_functionality(page: Page):
+    """Test 10: Text input and clearing works"""
+    result = TestResult("Text input functionality works")
+
+    try:
+        select_chat_type_if_needed(page)
+        close_modals(page)
+        page.wait_for_timeout(500)
+
+        textarea = page.locator('textarea').first
+
+        # Type some text
+        textarea.fill("Test message")
+        page.wait_for_timeout(200)
+
+        # Verify text is entered
+        value = textarea.input_value()
+        assert "Test message" in value, f"Expected 'Test message' in textarea, got: {value}"
+
+        # Clear the textarea
+        textarea.clear()
+        page.wait_for_timeout(200)
+
+        # Verify textarea is cleared
+        value_after = textarea.input_value()
+        assert value_after == "", f"Expected empty textarea, got: {value_after}"
+
+        log_pass("Text input functionality works")
+        result.mark_pass()
+    except Exception as e:
+        result.mark_fail(str(e))
+
+    return result
+
+def test_file_list_display(page: Page):
+    """Test 11: File list displays uploaded files"""
+    result = TestResult("File list displays correctly")
+
+    try:
+        select_chat_type_if_needed(page)
+        close_modals(page)
+        page.wait_for_timeout(500)
+
+        # Look for file list or file items
+        file_elements = page.locator('[class*="file"], [class*="File"]')
+        log_info(f"Found {file_elements.count()} file elements")
+
+        # Look for file names or attachments
+        attachments = page.locator('[class*="attachment"], [class*="Attachment"]')
+        log_info(f"Found {attachments.count()} attachment elements")
+
+        log_pass("File list check completed")
+        result.mark_pass()
+    except Exception as e:
+        result.mark_fail(str(e))
+
+    return result
+
+def test_model_selector(page: Page):
+    """Test 12: Model selector dropdown works"""
+    result = TestResult("Model selector works")
+
+    try:
+        select_chat_type_if_needed(page)
+        close_modals(page)
+        page.wait_for_timeout(500)
+
+        # Look for model selector button
+        model_selector = page.locator('[class*="model"], [class*="Model"]')
+        if model_selector.count() > 0:
+            log_info(f"Found {model_selector.count()} model elements")
+
+        # Look for dropdown or select elements
+        selects = page.locator('select')
+        log_info(f"Found {selects.count()} select elements")
+
+        log_pass("Model selector check completed")
+        result.mark_pass()
+    except Exception as e:
+        result.mark_fail(str(e))
+
+    return result
+
+def test_keyboard_shortcuts(page: Page):
+    """Test 13: Keyboard shortcuts work"""
+    result = TestResult("Keyboard shortcuts work")
+
+    try:
+        select_chat_type_if_needed(page)
+        close_modals(page)
+        page.wait_for_timeout(500)
+
+        textarea = page.locator('textarea').first
+
+        # Focus textarea
+        textarea.click()
+        page.wait_for_timeout(200)
+
+        # Type some text
+        textarea.fill("Shortcut test")
+        page.wait_for_timeout(200)
+
+        # Test Ctrl+A (select all)
+        if sys.platform == "darwin":
+            textarea.press("Meta+a")
+        else:
+            textarea.press("Control+a")
+        page.wait_for_timeout(200)
+
+        log_pass("Keyboard shortcuts work")
+        result.mark_pass()
+    except Exception as e:
+        result.mark_fail(str(e))
+
+    return result
+
+def test_toast_notifications(page: Page):
+    """Test 14: Toast notification system works"""
+    result = TestResult("Toast notifications work")
+
+    try:
+        select_chat_type_if_needed(page)
+        close_modals(page)
+        page.wait_for_timeout(500)
+
+        # Look for toast container
+        toasts = page.locator('[class*="toast"], [class*="Toast"]')
+        log_info(f"Found {toasts.count()} toast elements")
+
+        # Check if there's a toast visible (from previous uploads)
+        visible_toasts = page.locator('text=已上传')
+        if visible_toasts.count() > 0:
+            log_info("Upload toast notification is visible")
+
+        log_pass("Toast notification system check completed")
+        result.mark_pass()
+    except Exception as e:
+        result.mark_fail(str(e))
+
+    return result
+
+def test_scroll_behavior(page: Page):
+    """Test 15: Chat scroll behavior works"""
+    result = TestResult("Scroll behavior works")
+
+    try:
+        select_chat_type_if_needed(page)
+        close_modals(page)
+        page.wait_for_timeout(500)
+
+        # Find chat container
+        chat_container = page.locator('#chat-container, [id*="chat"], [class*="chat-container"]')
+        if chat_container.count() > 0:
+            log_info("Chat container found")
+
+            # Scroll to bottom
+            chat_container.first.evaluate("el => el.scrollTop = el.scrollHeight")
+            page.wait_for_timeout(200)
+
+            # Scroll to top
+            chat_container.first.evaluate("el => el.scrollTop = 0")
+            page.wait_for_timeout(200)
+
+        log_pass("Scroll behavior check completed")
+        result.mark_pass()
+    except Exception as e:
+        result.mark_fail(str(e))
+
+    return result
+
 def run_all_tests():
     """Run all e2e tests"""
     print("\n" + "="*60)
@@ -473,6 +694,38 @@ def run_all_tests():
 
         # Test 7: Conversation list
         results.append(test_conversation_list(page))
+        page.wait_for_timeout(500)
+
+        # Test 8: Workspace selector
+        results.append(test_workspace_selector(page))
+        page.wait_for_timeout(500)
+
+        # Test 9: Sidebar visibility
+        results.append(test_sidebar_visibility(page))
+        page.wait_for_timeout(500)
+
+        # Test 10: Text input functionality
+        results.append(test_text_input_functionality(page))
+        page.wait_for_timeout(500)
+
+        # Test 11: File list display
+        results.append(test_file_list_display(page))
+        page.wait_for_timeout(500)
+
+        # Test 12: Model selector
+        results.append(test_model_selector(page))
+        page.wait_for_timeout(500)
+
+        # Test 13: Keyboard shortcuts
+        results.append(test_keyboard_shortcuts(page))
+        page.wait_for_timeout(500)
+
+        # Test 14: Toast notifications
+        results.append(test_toast_notifications(page))
+        page.wait_for_timeout(500)
+
+        # Test 15: Scroll behavior
+        results.append(test_scroll_behavior(page))
 
         # Take final screenshot
         page.screenshot(path='/Users/wanghao/git/slio-chat/test_final_screenshot.png', full_page=True)

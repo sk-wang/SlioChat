@@ -45,11 +45,11 @@
 </script>
 
 <header class="flex items-center justify-between px-2 md:px-4 py-2 md:py-3 border-b border-[var(--border-color)] bg-[var(--bg-primary)]">
-  <div class="flex items-center gap-2 md:gap-3">
+  <div class="flex items-center gap-2 md:gap-3 min-w-0 flex-1">
     <button
       id="menu-toggle"
       onclick={toggleMobileSidebar}
-      class="md:hidden p-1.5 text-[var(--text-secondary)] hover:bg-[var(--hover-bg)] rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--button-primary-bg)] focus:ring-inset"
+      class="md:hidden p-1.5 text-[var(--text-secondary)] hover:bg-[var(--hover-bg)] rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--button-primary-bg)] focus:ring-inset flex-shrink-0"
       aria-label="Toggle sidebar"
     >
       <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -59,7 +59,7 @@
 
     <button
       onclick={togglePCSidebar}
-      class="hidden md:block p-2 text-[var(--text-secondary)] hover:bg-[var(--hover-bg)] rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--button-primary-bg)] focus:ring-inset"
+      class="hidden md:block p-2 text-[var(--text-secondary)] hover:bg-[var(--hover-bg)] rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--button-primary-bg)] focus:ring-inset flex-shrink-0"
       aria-label="Toggle sidebar"
     >
       <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -67,7 +67,7 @@
       </svg>
     </button>
 
-    <div class="flex items-center gap-1 md:gap-2">
+    <div class="flex items-center gap-1 md:gap-2 min-w-0 flex-1 overflow-hidden">
       {#if isEditingTitle}
         <input
           bind:this={titleInputEl}
@@ -80,7 +80,7 @@
       {:else}
         <h1
           id="current-conversation-title"
-          class="text-sm md:text-lg font-medium text-[var(--text-primary)] truncate max-w-[180px] sm:max-w-[250px] md:max-w-none cursor-pointer hover:text-[var(--button-primary-bg)] focus:outline-none focus:ring-2 focus:ring-[var(--button-primary-bg)] focus:ring-offset-1 rounded"
+          class="text-sm md:text-lg font-medium text-[var(--text-primary)] truncate max-w-[120px] sm:max-w-[180px] md:max-w-[300px] cursor-pointer hover:text-[var(--button-primary-bg)] focus:outline-none focus:ring-2 focus:ring-[var(--button-primary-bg)] focus:ring-offset-1 rounded"
           onclick={startEditingTitle}
           onkeydown={(e) => e.key === 'Enter' && startEditingTitle()}
           role="button"
@@ -93,7 +93,7 @@
     </div>
   </div>
 
-  <div class="flex items-center gap-1 md:gap-2">
+  <div class="flex items-center gap-1 md:gap-2 flex-shrink-0">
     <!-- YOLO Mode Toggle -->
     <button
       class="p-1.5 md:p-2 rounded-lg transition-colors {agentStore.yoloMode ? 'text-orange-500 bg-orange-100 dark:bg-orange-900/30' : 'text-[var(--text-secondary)] hover:bg-[var(--hover-bg)]'} focus:outline-none focus:ring-2 focus:ring-[var(--button-primary-bg)] focus:ring-inset"

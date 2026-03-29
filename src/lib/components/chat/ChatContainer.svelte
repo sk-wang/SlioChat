@@ -80,7 +80,23 @@
   onscroll={handleScroll}
 >
   <div id="messages" class="max-w-3xl mx-auto space-y-4 md:space-y-6">
-    {#if conversationsStore.current}
+    {#if !conversationsStore.current || conversationsStore.current.messages.length === 0}
+      <!-- Empty state / Welcome message -->
+      <div class="flex flex-col items-center justify-center py-16 text-center">
+        <div class="w-20 h-20 mb-6 rounded-full bg-gradient-to-br from-purple-500/20 to-pink-500/20 flex items-center justify-center">
+          <svg class="w-10 h-10 text-[var(--text-secondary)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+          </svg>
+        </div>
+        <h3 class="text-lg font-medium text-[var(--text-primary)] mb-2">开始新对话</h3>
+        <p class="text-sm text-[var(--text-secondary)] max-w-xs">输入消息开始聊天，支持文件上传和多轮对话</p>
+        <div class="mt-6 flex flex-wrap gap-2 justify-center">
+          <span class="px-3 py-1 text-xs bg-[var(--bg-secondary)] text-[var(--text-secondary)] rounded-full">支持 PDF</span>
+          <span class="px-3 py-1 text-xs bg-[var(--bg-secondary)] text-[var(--text-secondary)] rounded-full">支持图片</span>
+          <span class="px-3 py-1 text-xs bg-[var(--bg-secondary)] text-[var(--text-secondary)] rounded-full">Agent 模式</span>
+        </div>
+      </div>
+    {:else}
       {#each conversationsStore.current.messages as message, index (index)}
         <MessageItem {message} {index} />
       {/each}

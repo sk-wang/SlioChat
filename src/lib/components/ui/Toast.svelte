@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
+  import { fly } from 'svelte/transition';
   import { uiStore } from '$lib/stores/ui.svelte';
   import type { ToastMessage } from '$lib/types';
 
@@ -24,6 +25,9 @@
 <div
   class="toast flex items-center gap-3 px-4 py-3 rounded-lg shadow-lg border border-[var(--border-color)] {bgColor} {textColor}"
   role="alert"
+  aria-live="polite"
+  in:fly={{ y: -20, duration: 200 }}
+  out:fly={{ y: -20, duration: 150 }}
 >
   {#if toast.type === 'success'}
     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -42,9 +46,9 @@
   <span class="flex-1">{toast.message}</span>
 
   <button
-    class="p-1 hover:opacity-70 transition-opacity"
+    class="p-1 hover:opacity-70 transition-opacity focus:outline-none focus:ring-2 focus:ring-[var(--button-primary-bg)] focus:ring-inset rounded"
     onclick={handleClose}
-    aria-label="Close"
+    aria-label="关闭提示"
   >
     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />

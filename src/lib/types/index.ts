@@ -5,6 +5,7 @@ export * from './config';
 export * from './tool';
 export * from './agent';
 export * from './workspace';
+export * from './memory';
 
 export interface PendingFile {
   fileName: string;

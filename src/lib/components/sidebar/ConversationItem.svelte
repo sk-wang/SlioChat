@@ -22,12 +22,14 @@
 </script>
 
 <div
-  class="conversation-item p-3 flex justify-between items-center rounded-lg cursor-pointer group"
+  class="conversation-item p-3 flex justify-between items-center rounded-lg cursor-pointer group border-l-2"
   class:active={isActive}
   class:bg-[var(--hover-bg)]={isActive}
   class:hover:bg-[var(--hover-bg)]={!isActive}
   class:opacity-50={isDisabled}
   class:cursor-not-allowed={isDisabled}
+  class:border-transparent={!isActive}
+  class:border-[var(--button-primary-bg)]={isActive}
   data-id={id}
   onclick={handleClick}
   onkeydown={(e) => e.key === 'Enter' && handleClick()}

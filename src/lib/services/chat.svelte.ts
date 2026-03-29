@@ -3,6 +3,7 @@ import { streamingStore } from '$lib/stores/streaming.svelte';
 import { settingsStore } from '$lib/stores/settings.svelte';
 import { uiStore } from '$lib/stores/ui.svelte';
 import { workspaceStore } from '$lib/stores/workspace.svelte';
+import { memoryStore } from '$lib/stores/memory.svelte';
 import { vfs } from './sandbox.svelte';
 import { generateTitle } from './api';
 import { agentService } from './agent.svelte';
@@ -60,7 +61,16 @@ class ChatService {
       console.log('Context compressed:', stats);
     }
 
-    const systemPrompt = current.systemPrompt || settingsStore.config.defaultSystemPrompt;
+    let systemPrompt = current.systemPrompt || settingsStore.config.defaultSystemPrompt;
+
+    // Inject memory into system prompt if enabled
+    if (memoryStore.enabled && memoryStore.autoInject) {
+      const relevantMemories = memoryStore.getRelevantMemories(text, 5);
+      if (relevantMemories.length > 0) {
+        const memoryContext = memoryStore.formatMemoriesForPrompt(relevantMemories);
+        systemPrompt = `${systemPrompt}\n\n【用户记忆】\n${memoryContext}\n\n请参考以上记忆信息，结合当前对话内容给出更准确的回答。`;
+      }
+    }
 
     try {
       let finalContent = '';
@@ -176,6 +186,7 @@ class ChatService {
               errorMsg = '网络连接不稳定，请刷新页面重试';
             }
             conversationsStore.updateLastMessage('❌ ' + errorMsg);
+            uiStore.showToast(errorMsg, 'error');
             // Ensure processing state is cleared on error
             streamingStore.finish();
             break;
@@ -192,7 +203,9 @@ class ChatService {
       }
     } catch (error) {
       console.error('Send message error:', error);
-      conversationsStore.updateLastMessage('发生错误: ' + (error as Error).message);
+      const errorMessage = (error as Error).message;
+      conversationsStore.updateLastMessage('发生错误: ' + errorMessage);
+      uiStore.showToast(errorMessage, 'error');
     }
   }
 
@@ -215,7 +228,16 @@ class ChatService {
     conversationsStore.deleteMessage(index);
 
     const contextMessages = conversationsStore.getMessagesForContext(settingsStore.config.contextCount);
-    const systemPrompt = current.systemPrompt || settingsStore.config.defaultSystemPrompt;
+    let systemPrompt = current.systemPrompt || settingsStore.config.defaultSystemPrompt;
+
+    // Inject memory into system prompt if enabled
+    if (memoryStore.enabled && memoryStore.autoInject && userMessage) {
+      const relevantMemories = memoryStore.getRelevantMemories(userMessage.content, 5);
+      if (relevantMemories.length > 0) {
+        const memoryContext = memoryStore.formatMemoriesForPrompt(relevantMemories);
+        systemPrompt = `${systemPrompt}\n\n【用户记忆】\n${memoryContext}\n\n请参考以上记忆信息，结合当前对话内容给出更准确的回答。`;
+      }
+    }
 
     conversationsStore.addMessage({ role: 'assistant', content: '', type: 'normal' });
 
@@ -312,6 +334,7 @@ class ChatService {
               errorMsg = '网络连接不稳定，请刷新页面重试';
             }
             conversationsStore.updateLastMessage('❌ ' + errorMsg);
+            uiStore.showToast(errorMsg, 'error');
             // Ensure processing state is cleared on error
             streamingStore.finish();
             break;
@@ -319,7 +342,9 @@ class ChatService {
       }
     } catch (error) {
       console.error('Regenerate message error:', error);
-      conversationsStore.updateLastMessage('发生错误: ' + (error as Error).message);
+      const errorMessage = (error as Error).message;
+      conversationsStore.updateLastMessage('发生错误: ' + errorMessage);
+      uiStore.showToast(errorMessage, 'error');
     }
   }
 

@@ -104,7 +104,7 @@
             transition:fade={{ duration: 200 }}
           >
             <button
-              class="p-1 text-[var(--text-secondary)] hover:bg-[var(--hover-bg)] rounded transition-colors"
+              class="p-1 text-[var(--text-secondary)] hover:bg-[var(--hover-bg)] rounded transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--button-primary-bg)] focus:ring-offset-1"
               title="复制消息"
               onclick={copyMessage}
             >
@@ -115,7 +115,7 @@
 
             {#if isLastAssistant}
               <button
-                class="p-1 text-[var(--text-secondary)] hover:bg-[var(--hover-bg)] rounded transition-colors"
+                class="p-1 text-[var(--text-secondary)] hover:bg-[var(--hover-bg)] rounded transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--button-primary-bg)] focus:ring-offset-1"
                 title="重新生成"
                 onclick={regenerateMessage}
               >
@@ -126,7 +126,7 @@
             {/if}
 
             <button
-              class="p-1 text-[var(--text-secondary)] hover:bg-[var(--hover-bg)] rounded transition-colors"
+              class="p-1 text-[var(--text-secondary)] hover:bg-[var(--hover-bg)] rounded transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--button-primary-bg)] focus:ring-offset-1"
               title="编辑消息"
               onclick={editMessage}
             >
@@ -136,7 +136,7 @@
             </button>
 
             <button
-              class="p-1 text-[var(--text-secondary)] hover:text-red-500 hover:bg-[var(--hover-bg)] rounded transition-colors"
+              class="p-1 text-[var(--text-secondary)] hover:text-red-500 hover:bg-[var(--hover-bg)] rounded transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-1"
               title="删除消息"
               onclick={deleteMessage}
             >

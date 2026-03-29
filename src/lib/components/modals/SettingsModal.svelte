@@ -5,6 +5,7 @@
   import { conversationsStore } from '$lib/stores/conversations.svelte';
   import { fetchModelList, type ModelInfo } from '$lib/services/api';
   import type { ModelConfig } from '$lib/types';
+  import MemoryPanel from '$lib/components/memory/MemoryPanel.svelte';
 
   let activeTab = $state('general');
   let fileInput: HTMLInputElement;
@@ -131,7 +132,7 @@
     <div class="flex items-center justify-between p-4 border-b border-[var(--border-color)]">
       <h2 class="text-xl font-semibold text-[var(--text-primary)]">设置</h2>
       <button
-        class="p-2 text-[var(--text-secondary)] hover:bg-[var(--hover-bg)] rounded-lg transition-colors"
+        class="p-2 text-[var(--text-secondary)] hover:bg-[var(--hover-bg)] rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--button-primary-bg)] focus:ring-inset"
         onclick={handleClose}
       >
         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -142,7 +143,7 @@
 
     <div class="flex border-b border-[var(--border-color)]">
       <button
-        class="px-4 py-3 text-sm font-medium transition-colors"
+        class="px-4 py-3 text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--button-primary-bg)] focus:ring-inset rounded-t"
         class:text-[var(--button-primary-bg)]={activeTab === 'general'}
         class:border-b-2={activeTab === 'general'}
         class:border-[var(--button-primary-bg)]={activeTab === 'general'}
@@ -152,7 +153,7 @@
         通用设置
       </button>
       <button
-        class="px-4 py-3 text-sm font-medium transition-colors"
+        class="px-4 py-3 text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--button-primary-bg)] focus:ring-inset rounded-t"
         class:text-[var(--button-primary-bg)]={activeTab === 'models'}
         class:border-b-2={activeTab === 'models'}
         class:border-[var(--button-primary-bg)]={activeTab === 'models'}
@@ -162,7 +163,7 @@
         模型设置
       </button>
       <button
-        class="px-4 py-3 text-sm font-medium transition-colors"
+        class="px-4 py-3 text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--button-primary-bg)] focus:ring-inset rounded-t"
         class:text-[var(--button-primary-bg)]={activeTab === 'search'}
         class:border-b-2={activeTab === 'search'}
         class:border-[var(--button-primary-bg)]={activeTab === 'search'}
@@ -170,6 +171,16 @@
         onclick={() => activeTab = 'search'}
       >
         搜索设置
+      </button>
+      <button
+        class="px-4 py-3 text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--button-primary-bg)] focus:ring-inset rounded-t"
+        class:text-[var(--button-primary-bg)]={activeTab === 'memory'}
+        class:border-b-2={activeTab === 'memory'}
+        class:border-[var(--button-primary-bg)]={activeTab === 'memory'}
+        class:text-[var(--text-secondary)]={activeTab !== 'memory'}
+        onclick={() => activeTab = 'memory'}
+      >
+        记忆
       </button>
     </div>
 
@@ -195,7 +206,7 @@
               <div class="flex items-center justify-between mb-3">
                 <span class="font-medium text-[var(--text-primary)]">{modelInfo.name}</span>
                 <button
-                  class="p-1 text-red-500 hover:bg-red-500/10 rounded transition-colors"
+                  class="p-1 text-red-500 hover:bg-red-500/10 rounded transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-1"
                   onclick={() => removeModel(modelId)}
                   title="删除模型"
                 >
@@ -270,12 +281,20 @@
                     oninput={(e) => updateModel(modelId, 'url', (e.target as HTMLInputElement).value)}
                   />
                   <button
-                    class="px-3 py-2 text-sm bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-lg text-[var(--text-primary)] hover:bg-[var(--hover-bg)] transition-colors whitespace-nowrap"
+                    class="px-3 py-2 text-sm bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-lg text-[var(--text-primary)] hover:bg-[var(--hover-bg)] transition-colors whitespace-nowrap flex items-center gap-2 focus:outline-none focus:ring-2 focus:ring-[var(--button-primary-bg)] focus:ring-offset-1"
                     onclick={() => fetchModels(modelId)}
                     disabled={loadingModels[modelId] || !modelInfo.url}
                     title="获取可用模型列表"
                   >
-                    {loadingModels[modelId] ? '加载中...' : '获取模型'}
+                    {#if loadingModels[modelId]}
+                      <svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      <span>加载中</span>
+                    {:else}
+                      <span>获取模型</span>
+                    {/if}
                   </button>
                 </div>
 
@@ -289,7 +308,7 @@
           {/each}
           
           <button
-            class="w-full p-3 border-2 border-dashed border-[var(--border-color)] rounded-lg text-[var(--text-secondary)] hover:border-[var(--button-primary-bg)] hover:text-[var(--button-primary-bg)] transition-colors"
+            class="w-full p-3 border-2 border-dashed border-[var(--border-color)] rounded-lg text-[var(--text-secondary)] hover:border-[var(--button-primary-bg)] hover:text-[var(--button-primary-bg)] transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--button-primary-bg)] focus:ring-offset-1"
             onclick={addModel}
           >
             + 添加模型
@@ -345,7 +364,7 @@
               <div class="text-sm text-[var(--text-secondary)]">允许AI在需要时进行网络搜索</div>
             </div>
             <button
-              class="relative w-12 h-6 rounded-full transition-colors"
+              class="relative w-12 h-6 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--button-primary-bg)] focus:ring-offset-2"
               class:bg-[var(--button-primary-bg)]={searchConfig.enabled}
               class:bg-[var(--border-color)]={!searchConfig.enabled}
               onclick={() => updateSearch('enabled', !searchConfig.enabled)}
@@ -369,6 +388,8 @@
             />
           </div>
         </div>
+      {:else if activeTab === 'memory'}
+        <MemoryPanel />
       {/if}
     </div>
 
@@ -383,20 +404,20 @@
         />
         <button
           onclick={handleImportClick}
-          class="px-4 py-2 text-sm text-[var(--text-primary)] bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg hover:bg-[var(--hover-bg)] transition-colors"
+          class="px-4 py-2 text-sm text-[var(--text-primary)] bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg hover:bg-[var(--hover-bg)] transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--button-primary-bg)] focus:ring-offset-1"
         >
           导入对话
         </button>
         <button
           onclick={handleExport}
-          class="px-4 py-2 text-sm text-[var(--text-primary)] bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg hover:bg-[var(--hover-bg)] transition-colors"
+          class="px-4 py-2 text-sm text-[var(--text-primary)] bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg hover:bg-[var(--hover-bg)] transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--button-primary-bg)] focus:ring-offset-1"
         >
           导出对话
         </button>
       </div>
       <button
         onclick={handleClose}
-        class="px-4 py-2 text-sm text-white bg-[var(--button-primary-bg)] hover:bg-[var(--button-primary-hover)] rounded-lg transition-colors"
+        class="px-4 py-2 text-sm text-white bg-[var(--button-primary-bg)] hover:bg-[var(--button-primary-hover)] rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--button-primary-bg)] focus:ring-offset-1"
       >
         关闭
       </button>

@@ -32,7 +32,7 @@
 <div class="model-selector relative">
   <button
     id="model-select-btn"
-    class="flex items-center gap-1 md:gap-2 px-2 md:px-3 py-1.5 md:py-2 rounded-lg hover:bg-[var(--hover-bg)] transition-colors"
+    class="flex items-center gap-1 md:gap-2 px-2 md:px-3 py-1.5 md:py-2 rounded-lg hover:bg-[var(--hover-bg)] transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--button-primary-bg)] focus:ring-inset"
     onclick={toggleDropdown}
   >
     <span id="model-select-label" class="text-xs md:text-sm text-[var(--text-primary)] font-medium truncate max-w-[60px] md:max-w-[120px]">
@@ -53,11 +53,11 @@
   {#if isOpen}
     <div
       id="model-dropdown"
-      class="absolute right-0 mt-2 w-64 bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-xl shadow-xl z-50 overflow-hidden"
+      class="absolute right-0 mt-2 w-[200px] sm:w-64 bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-xl shadow-xl z-50 overflow-hidden"
     >
       {#each models as [modelId, modelInfo]}
         <button
-          class="w-full text-left px-4 py-3 hover:bg-[var(--hover-bg)] flex items-start space-x-3 transition-colors group border-b border-[var(--border-color)] last:border-0"
+          class="w-full text-left px-4 py-3 hover:bg-[var(--hover-bg)] flex items-start space-x-3 transition-colors group border-b border-[var(--border-color)] last:border-0 focus:outline-none focus:ring-2 focus:ring-[var(--button-primary-bg)] focus:ring-inset"
           onclick={() => selectModel(modelId)}
         >
           <div class="flex-shrink-0">

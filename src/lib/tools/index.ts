@@ -10,6 +10,7 @@ import { sandboxTools } from './sandboxTools';
 import { searchTools } from './searchTools';
 import { planTools } from './planTools';
 import { luaTools } from './luaTools';
+import { commandTools } from './commandTools';
 
 /**
  * Exponential backoff delay calculation
@@ -207,6 +208,12 @@ class ToolRegistry {
       this.register({ ...tool, isMutating });
     }
 
+    // Register command tools (shell-like commands)
+    // Most are mutating as they can modify the VFS
+    for (const tool of commandTools) {
+      this.register({ ...tool });
+    }
+
     this.initialized = true;
   }
 }
@@ -219,4 +226,4 @@ toolRegistry.initializeDefaults();
 
 // Re-export types and tools
 export type { ToolExecutor, ToolDefinition, ToolCall, ToolResult };
-export { fileTools, webTools, sandboxTools };
+export { fileTools, webTools, sandboxTools, commandTools };

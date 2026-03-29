@@ -85,13 +85,13 @@
               <div class="ml-auto flex items-center gap-1">
                 <button
                   onclick={() => handleApprove(confirmation.call.id)}
-                  class="px-2 py-1 text-xs bg-green-500 hover:bg-green-600 text-white rounded transition-colors"
+                  class="px-2 py-1 text-xs bg-green-500 hover:bg-green-600 text-white rounded transition-colors focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-1"
                 >
                   批准
                 </button>
                 <button
                   onclick={() => handleReject(confirmation.call.id)}
-                  class="px-2 py-1 text-xs bg-red-500 hover:bg-red-600 text-white rounded transition-colors"
+                  class="px-2 py-1 text-xs bg-red-500 hover:bg-red-600 text-white rounded transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-1"
                 >
                   拒绝
                 </button>
@@ -113,19 +113,19 @@
     <div class="flex items-center justify-end gap-2 px-4 py-3 border-t border-yellow-300 dark:border-yellow-700 bg-yellow-50 dark:bg-yellow-900/10">
       <button
         onclick={handleRejectAll}
-        class="px-3 py-1.5 text-sm border border-red-300 dark:border-red-700 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors"
+        class="px-3 py-1.5 text-sm border border-red-300 dark:border-red-700 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-1"
       >
         全部拒绝
       </button>
       <button
         onclick={handleApproveAll}
-        class="px-3 py-1.5 text-sm border border-green-300 dark:border-green-700 text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/30 rounded-lg transition-colors"
+        class="px-3 py-1.5 text-sm border border-green-300 dark:border-green-700 text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/30 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-1"
       >
         全部批准
       </button>
       <button
         onclick={handleConfirm}
-        class="px-4 py-1.5 text-sm bg-yellow-500 hover:bg-yellow-600 text-white rounded-lg transition-colors font-medium"
+        class="px-4 py-1.5 text-sm bg-yellow-500 hover:bg-yellow-600 text-white rounded-lg transition-colors font-medium focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-offset-1"
       >
         确认执行
       </button>

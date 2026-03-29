@@ -34,13 +34,13 @@
     
     <div class="flex justify-end gap-3">
       <button
-        class="px-4 py-2 text-[var(--text-secondary)] hover:bg-[var(--hover-bg)] rounded-lg transition-colors"
+        class="px-4 py-2 text-[var(--text-secondary)] hover:bg-[var(--hover-bg)] rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--button-primary-bg)] focus:ring-offset-2 focus:ring-offset-[var(--bg-secondary)]"
         onclick={handleCancel}
       >
         取消
       </button>
       <button
-        class="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors"
+        class="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:ring-offset-[var(--bg-secondary)]"
         onclick={handleConfirm}
       >
         确定

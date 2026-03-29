@@ -325,6 +325,23 @@ class VirtualFileSystem {
         // Filter files by workspace
         const workspaceFiles = allFiles.filter(file => file.path.startsWith(workspacePrefix));
 
+        // Check if the path itself exists (as file or directory)
+        const pathEntry = workspaceFiles.find(file => file.path === fullPath);
+        if (!pathEntry && normalizedPath !== '/') {
+          // Check if there are any files under this path (meaning it's a directory)
+          const hasChildren = workspaceFiles.some(file =>
+            file.path.startsWith(fullPath + '/')
+          );
+          if (!hasChildren) {
+            reject(new Error(`Directory not found: ${path}`));
+            return;
+          }
+        }
+        if (pathEntry && pathEntry.type === 'file') {
+          reject(new Error(`Cannot list directory: ${path} is a file`));
+          return;
+        }
+
         for (const file of workspaceFiles) {
           // Remove workspace prefix for processing
           const pathWithoutWorkspace = file.path.slice(workspacePrefix.length);

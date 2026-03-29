@@ -30,7 +30,14 @@ export async function fetchModelList(url: string, apiKey: string): Promise<Model
   try {
     // Derive models URL from chat completions URL
     const baseUrl = url.replace('/chat/completions', '');
-    const modelsUrl = `${baseUrl}/models`;
+    let modelsUrl = `${baseUrl}/models`;
+
+    // Use proxy to avoid CORS issues with aihubmix
+    // Proxy maps /api/aihubmix -> https://api.aihubmix.com/v1
+    if (baseUrl.includes('aihubmix.com')) {
+      modelsUrl = modelsUrl.replace('https://api.aihubmix.com/v1/models', '/api/aihubmix/models');
+      modelsUrl = modelsUrl.replace('https://aihubmix.com/v1/models', '/api/aihubmix/models');
+    }
 
     const response = await fetch(modelsUrl, {
       method: 'GET',

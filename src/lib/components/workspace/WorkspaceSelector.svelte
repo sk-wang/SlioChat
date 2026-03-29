@@ -60,7 +60,7 @@
   <!-- Current workspace display -->
   <button
     onclick={toggleExpanded}
-    class="w-full flex items-center justify-between px-3 py-2 text-sm hover:bg-[var(--hover-bg)] rounded-lg transition-colors"
+    class="w-full flex items-center justify-between px-3 py-2 text-sm hover:bg-[var(--hover-bg)] rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--button-primary-bg)] focus:ring-inset"
   >
     <div class="flex items-center gap-2 min-w-0">
       <svg class="w-4 h-4 text-[var(--text-secondary)] flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -93,7 +93,7 @@
           <div class="flex items-center group">
             <button
               onclick={() => selectWorkspace(workspace.id)}
-              class="flex-1 flex items-center gap-2 px-3 py-2 text-sm hover:bg-[var(--hover-bg)] transition-colors"
+              class="flex-1 flex items-center gap-2 px-3 py-2 text-sm hover:bg-[var(--hover-bg)] transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--button-primary-bg)] focus:ring-inset"
               class:bg-[var(--hover-bg)]={workspace.id === workspaceStore.currentWorkspaceId}
             >
               <svg class="w-4 h-4 text-[var(--text-secondary)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -112,7 +112,7 @@
             {#if !workspace.isDefault}
               <button
                 onclick={(e) => deleteWorkspace(workspace.id, e)}
-                class="px-2 py-2 text-[var(--text-secondary)] hover:text-red-500 hover:bg-red-500/10 transition-colors"
+                class="px-2 py-2 text-[var(--text-secondary)] hover:text-red-500 hover:bg-red-500/10 transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-inset"
                 title="删除工作空间"
               >
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -140,14 +140,14 @@
           <div class="flex gap-2 mt-2">
             <button
               onclick={cancelCreating}
-              class="flex-1 px-3 py-1.5 text-sm border border-[var(--border-color)] rounded-lg hover:bg-[var(--hover-bg)] transition-colors"
+              class="flex-1 px-3 py-1.5 text-sm border border-[var(--border-color)] rounded-lg hover:bg-[var(--hover-bg)] transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--button-primary-bg)] focus:ring-offset-1"
             >
               取消
             </button>
             <button
               onclick={createWorkspace}
               disabled={!newWorkspaceName.trim()}
-              class="flex-1 px-3 py-1.5 text-sm bg-[var(--button-primary-bg)] text-white rounded-lg hover:bg-[var(--button-primary-hover)] transition-colors disabled:opacity-50"
+              class="flex-1 px-3 py-1.5 text-sm bg-[var(--button-primary-bg)] text-white rounded-lg hover:bg-[var(--button-primary-hover)] transition-colors disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-[var(--button-primary-bg)] focus:ring-offset-1"
             >
               创建
             </button>
@@ -156,7 +156,7 @@
       {:else}
         <button
           onclick={startCreating}
-          class="w-full flex items-center gap-2 px-3 py-2 text-sm text-[var(--text-secondary)] hover:bg-[var(--hover-bg)] transition-colors"
+          class="w-full flex items-center gap-2 px-3 py-2 text-sm text-[var(--text-secondary)] hover:bg-[var(--hover-bg)] transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--button-primary-bg)] focus:ring-inset"
         >
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />

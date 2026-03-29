@@ -43,5 +43,12 @@ export default defineConfig({
   server: {
     port: 5173,
     host: true,
+    proxy: {
+      '/api/aihubmix': {
+        target: 'https://api.aihubmix.com/v1',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/aihubmix/, ''),
+      },
+    },
   },
 });

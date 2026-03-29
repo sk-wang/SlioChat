@@ -247,9 +247,11 @@
         bind:value={inputValue}
         oninput={handleInput}
         onkeydown={handleKeydown}
-        placeholder="给 AI 发送消息..."
+        placeholder={streamingStore.isGenerating ? '等待 AI 响应...' : '给 AI 发送消息...'}
         rows="1"
         class="w-full px-12 py-3 bg-transparent text-base resize-none focus:outline-none max-h-[200px]"
+        class:opacity-60={streamingStore.isGenerating}
+        disabled={streamingStore.isGenerating}
       ></textarea>
 
       <!-- File mention suggestions -->
@@ -281,7 +283,8 @@
       <div class="absolute bottom-2 right-2 flex items-center space-x-1">
         <button
           onclick={handleClearChat}
-          class="p-2 text-[var(--text-secondary)] hover:bg-[var(--hover-bg)] rounded-full transition-colors duration-200"
+          disabled={streamingStore.isGenerating}
+          class="p-2 text-[var(--text-secondary)] hover:bg-[var(--hover-bg)] rounded-full transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
           title="清空对话"
         >
           <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">

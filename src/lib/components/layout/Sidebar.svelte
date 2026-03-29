@@ -36,7 +36,7 @@
     <span class="font-semibold text-lg text-[var(--text-primary)]">菜单</span>
     <button
       onclick={() => uiStore.closeSidebar()}
-      class="p-1 text-[var(--text-secondary)] hover:text-[var(--text-primary)] rounded-lg hover:bg-[var(--hover-bg)] transition-colors"
+      class="p-1 text-[var(--text-secondary)] hover:text-[var(--text-primary)] rounded-lg hover:bg-[var(--hover-bg)] transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--button-primary-bg)] focus:ring-inset"
       aria-label="Close sidebar"
     >
       <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -53,7 +53,7 @@
   <div class="p-3 m-2">
     <button
       onclick={handleNewConversation}
-      class="w-full px-4 py-3 bg-[var(--bg-primary)] text-[var(--text-primary)] border border-[var(--border-color)] rounded-lg hover:bg-[var(--hover-bg)] transition-colors flex items-center justify-between group"
+      class="w-full px-4 py-3 bg-[var(--bg-primary)] text-[var(--text-primary)] border border-[var(--border-color)] rounded-lg hover:bg-[var(--hover-bg)] transition-colors flex items-center justify-between group focus:outline-none focus:ring-2 focus:ring-[var(--button-primary-bg)] focus:ring-inset"
     >
       <span class="font-medium">新建对话</span>
       <svg class="w-5 h-5 text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -69,7 +69,7 @@
   <div class="p-2 border-t border-[var(--border-color)]">
     <button
       onclick={() => themeStore.toggle()}
-      class="w-full flex items-center space-x-3 px-3 py-3 rounded-lg hover:bg-[var(--hover-bg)] text-[var(--text-primary)] transition-colors"
+      class="w-full flex items-center space-x-3 px-3 py-3 rounded-lg hover:bg-[var(--hover-bg)] text-[var(--text-primary)] transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--button-primary-bg)] focus:ring-inset"
     >
       <div class="w-5 h-5 flex items-center justify-center text-[var(--text-secondary)]">
         {#if themeStore.isDark}
@@ -87,7 +87,7 @@
 
     <button
       onclick={() => uiStore.openModal('settings')}
-      class="w-full flex items-center space-x-3 px-3 py-3 rounded-lg hover:bg-[var(--hover-bg)] text-[var(--text-primary)] transition-colors"
+      class="w-full flex items-center space-x-3 px-3 py-3 rounded-lg hover:bg-[var(--hover-bg)] text-[var(--text-primary)] transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--button-primary-bg)] focus:ring-inset"
     >
       <div class="w-5 h-5 flex items-center justify-center text-[var(--text-secondary)]">
         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

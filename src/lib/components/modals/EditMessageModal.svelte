@@ -48,13 +48,13 @@
     
     <div class="mt-4 flex justify-end gap-3">
       <button
-        class="px-4 py-2 text-[var(--text-secondary)] hover:bg-[var(--hover-bg)] rounded-lg transition-colors"
+        class="px-4 py-2 text-[var(--text-secondary)] hover:bg-[var(--hover-bg)] rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--button-primary-bg)] focus:ring-offset-2 focus:ring-offset-[var(--bg-secondary)]"
         onclick={handleCancel}
       >
         取消
       </button>
       <button
-        class="px-4 py-2 bg-[var(--button-primary-bg)] hover:bg-[var(--button-primary-hover)] text-white rounded-lg transition-colors"
+        class="px-4 py-2 bg-[var(--button-primary-bg)] hover:bg-[var(--button-primary-hover)] text-white rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--button-primary-bg)] focus:ring-offset-2 focus:ring-offset-[var(--bg-secondary)]"
         onclick={handleSave}
       >
         保存

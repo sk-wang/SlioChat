@@ -316,7 +316,7 @@
           onchange={handleSandboxFileUpload}
         />
         <button
-          class="p-2 text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--hover-bg)] rounded transition-colors"
+          class="p-2 text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--hover-bg)] rounded transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--button-primary-bg)] focus:ring-inset"
           onclick={triggerFileUpload}
           title="上传文件"
         >
@@ -327,7 +327,7 @@
           </svg>
         </button>
         <button
-          class="p-2 text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--hover-bg)] rounded transition-colors"
+          class="p-2 text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--hover-bg)] rounded transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--button-primary-bg)] focus:ring-inset"
           onclick={handleRefresh}
           title="刷新"
         >
@@ -337,7 +337,7 @@
           </svg>
         </button>
         <button
-          class="p-2 text-[var(--text-secondary)] hover:text-red-500 hover:bg-red-500/10 rounded transition-colors"
+          class="p-2 text-[var(--text-secondary)] hover:text-red-500 hover:bg-red-500/10 rounded transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-inset"
           onclick={handleClear}
           title="清空"
         >
@@ -348,7 +348,7 @@
           </svg>
         </button>
         <button
-          class="p-2 text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--hover-bg)] rounded transition-colors"
+          class="p-2 text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--hover-bg)] rounded transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--button-primary-bg)] focus:ring-inset"
           onclick={() => agentStore.setShowSandbox(false)}
           title="关闭"
         >
@@ -363,7 +363,7 @@
     <!-- Tabs -->
     <div class="flex border-b border-[var(--border-color)]">
       <button
-        class="flex-1 px-4 py-2 text-sm transition-colors"
+        class="flex-1 px-4 py-2 text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--button-primary-bg)] focus:ring-inset"
         class:text-[var(--text-primary)]={activeTab === 'files'}
         class:border-b-2={activeTab === 'files'}
         class:border-[var(--button-primary-bg)]={activeTab === 'files'}
@@ -373,7 +373,7 @@
         文件
       </button>
       <button
-        class="flex-1 px-4 py-2 text-sm transition-colors"
+        class="flex-1 px-4 py-2 text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--button-primary-bg)] focus:ring-inset"
         class:text-[var(--text-primary)]={activeTab === 'editor'}
         class:border-b-2={activeTab === 'editor'}
         class:border-[var(--button-primary-bg)]={activeTab === 'editor'}
@@ -392,7 +392,7 @@
           <!-- Path breadcrumb -->
           <div class="px-3 py-2 bg-[var(--bg-secondary)] text-xs text-[var(--text-secondary)] flex items-center gap-2">
             {#if currentPath !== '/'}
-              <button onclick={handleBack} class="p-1 hover:text-[var(--text-primary)] hover:bg-[var(--hover-bg)] rounded transition-colors" title="返回">
+              <button onclick={handleBack} class="p-1 hover:text-[var(--text-primary)] hover:bg-[var(--hover-bg)] rounded transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--button-primary-bg)] focus:ring-inset" title="返回">
                 <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <path d="M19 12H5"/>
                   <path d="M12 19l-7-7 7-7"/>
@@ -411,9 +411,14 @@
           }}>
             {#if vfs.isReady}
               {#if currentEntries.length === 0}
-                <div class="text-center text-[var(--text-secondary)] text-sm py-8">
-                  暂无文件<br/>
-                  <span class="text-xs">上传文件或让 Agent 生成文件</span>
+                <div class="flex flex-col items-center justify-center py-8 text-center">
+                  <div class="w-12 h-12 mb-3 rounded-full bg-[var(--bg-tertiary)] flex items-center justify-center">
+                    <svg class="w-6 h-6 text-[var(--text-secondary)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                    </svg>
+                  </div>
+                  <p class="text-sm text-[var(--text-secondary)] mb-1">暂无文件</p>
+                  <p class="text-xs text-[var(--text-tertiary)]">上传文件或让 Agent 生成文件</p>
                 </div>
               {:else}
                 {#each currentEntries as entry}
@@ -425,7 +430,7 @@
                     <!-- File row -->
                     <div class="flex items-center gap-2 px-3 py-2">
                       <button
-                        class="flex-1 flex items-center gap-3 text-left"
+                        class="flex-1 flex items-center gap-3 text-left focus:outline-none focus:ring-2 focus:ring-[var(--button-primary-bg)] focus:ring-inset rounded"
                         onclick={() => handleFileClick(entry)}
                         ondblclick={() => handleFileDblClick(entry)}
                       >
@@ -473,7 +478,7 @@
                         {#if entry.type === 'file'}
                           {@const isPinned = workspaceStore.isPinned(entry.path)}
                           <button
-                            class="flex-1 flex items-center justify-center gap-1 p-2 text-xs transition-colors rounded {isPinned ? 'text-blue-600 bg-blue-50 dark:text-blue-400 dark:bg-blue-900' : 'text-[var(--text-secondary)] hover:text-blue-600 hover:bg-blue-50 dark:hover:text-blue-400 dark:hover:bg-blue-900'}"
+                            class="flex-1 flex items-center justify-center gap-1 p-2 text-xs transition-colors rounded {isPinned ? 'text-blue-600 bg-blue-50 dark:text-blue-400 dark:bg-blue-900' : 'text-[var(--text-secondary)] hover:text-blue-600 hover:bg-blue-50 dark:hover:text-blue-400 dark:hover:bg-blue-900'} focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1"
                             onclick={() => handlePinFile(entry)}
                             title={isPinned ? "取消引用" : "引用到对话"}
                           >
@@ -485,7 +490,7 @@
                           </button>
                         {/if}
                         <button
-                          class="flex-1 flex items-center justify-center gap-1 p-2 text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--hover-bg)] rounded transition-colors"
+                          class="flex-1 flex items-center justify-center gap-1 p-2 text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--hover-bg)] rounded transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--button-primary-bg)] focus:ring-offset-1"
                           onclick={() => startRename(entry)}
                           title="重命名"
                         >
@@ -496,7 +501,7 @@
                           重命名
                         </button>
                         <button
-                          class="flex-1 flex items-center justify-center gap-1 p-2 text-xs text-[var(--text-secondary)] hover:text-blue-500 hover:bg-blue-500/10 rounded transition-colors"
+                          class="flex-1 flex items-center justify-center gap-1 p-2 text-xs text-[var(--text-secondary)] hover:text-blue-500 hover:bg-blue-500/10 rounded transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1"
                           onclick={() => handleMove(entry)}
                           title="移动"
                         >
@@ -513,7 +518,7 @@
                         {#if entry.type === 'file'}
                           {#if isImageFile(entry.name)}
                             <button
-                              class="flex-1 flex items-center justify-center gap-1 p-2 text-xs text-[var(--text-secondary)] hover:text-purple-500 hover:bg-purple-500/10 rounded transition-colors"
+                              class="flex-1 flex items-center justify-center gap-1 p-2 text-xs text-[var(--text-secondary)] hover:text-purple-500 hover:bg-purple-500/10 rounded transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-1"
                               onclick={() => handlePreviewImage(entry)}
                               title="预览图片"
                             >
@@ -526,7 +531,7 @@
                             </button>
                           {/if}
                           <button
-                            class="flex-1 flex items-center justify-center gap-1 p-2 text-xs text-[var(--text-secondary)] hover:text-green-500 hover:bg-green-500/10 rounded transition-colors"
+                            class="flex-1 flex items-center justify-center gap-1 p-2 text-xs text-[var(--text-secondary)] hover:text-green-500 hover:bg-green-500/10 rounded transition-colors focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-1"
                             onclick={() => handleDownload(entry)}
                             title="下载"
                           >
@@ -539,7 +544,7 @@
                           </button>
                         {/if}
                         <button
-                          class="flex-1 flex items-center justify-center gap-1 p-2 text-xs text-[var(--text-secondary)] hover:text-red-500 hover:bg-red-500/10 rounded transition-colors"
+                          class="flex-1 flex items-center justify-center gap-1 p-2 text-xs text-[var(--text-secondary)] hover:text-red-500 hover:bg-red-500/10 rounded transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-1"
                           onclick={() => handleDelete(entry)}
                           title="删除"
                         >
@@ -571,7 +576,7 @@
                 {currentFileName}
               </span>
               <button
-                class="hover:text-[var(--text-primary)] p-2 hover:bg-[var(--hover-bg)] rounded transition-colors flex items-center justify-center"
+                class="hover:text-[var(--text-primary)] p-2 hover:bg-[var(--hover-bg)] rounded transition-colors flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-[var(--button-primary-bg)] focus:ring-inset"
                 class:opacity-50={!isEditing}
                 onclick={handleSave}
                 disabled={!isEditing}
@@ -619,7 +624,7 @@
           {previewImage.path.split('/').pop()}
         </h3>
         <button
-          class="p-2 text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--hover-bg)] rounded transition-colors"
+          class="p-2 text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--hover-bg)] rounded transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--button-primary-bg)] focus:ring-inset"
           onclick={closeImagePreview}
           title="关闭"
         >

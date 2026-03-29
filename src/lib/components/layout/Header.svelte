@@ -49,7 +49,7 @@
     <button
       id="menu-toggle"
       onclick={toggleMobileSidebar}
-      class="md:hidden p-1.5 text-[var(--text-secondary)] hover:bg-[var(--hover-bg)] rounded-lg transition-colors"
+      class="md:hidden p-1.5 text-[var(--text-secondary)] hover:bg-[var(--hover-bg)] rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--button-primary-bg)] focus:ring-inset"
       aria-label="Toggle sidebar"
     >
       <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -59,7 +59,7 @@
 
     <button
       onclick={togglePCSidebar}
-      class="hidden md:block p-2 text-[var(--text-secondary)] hover:bg-[var(--hover-bg)] rounded-lg transition-colors"
+      class="hidden md:block p-2 text-[var(--text-secondary)] hover:bg-[var(--hover-bg)] rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--button-primary-bg)] focus:ring-inset"
       aria-label="Toggle sidebar"
     >
       <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -80,7 +80,7 @@
       {:else}
         <h1
           id="current-conversation-title"
-          class="text-sm md:text-lg font-medium text-[var(--text-primary)] truncate max-w-[150px] sm:max-w-[200px] md:max-w-none cursor-pointer hover:text-[var(--button-primary-bg)]"
+          class="text-sm md:text-lg font-medium text-[var(--text-primary)] truncate max-w-[180px] sm:max-w-[250px] md:max-w-none cursor-pointer hover:text-[var(--button-primary-bg)] focus:outline-none focus:ring-2 focus:ring-[var(--button-primary-bg)] focus:ring-offset-1 rounded"
           onclick={startEditingTitle}
           onkeydown={(e) => e.key === 'Enter' && startEditingTitle()}
           role="button"
@@ -96,7 +96,7 @@
   <div class="flex items-center gap-1 md:gap-2">
     <!-- YOLO Mode Toggle -->
     <button
-      class="p-1.5 md:p-2 rounded-lg transition-colors {agentStore.yoloMode ? 'text-orange-500 bg-orange-100 dark:bg-orange-900/30' : 'text-[var(--text-secondary)] hover:bg-[var(--hover-bg)]'}"
+      class="p-1.5 md:p-2 rounded-lg transition-colors {agentStore.yoloMode ? 'text-orange-500 bg-orange-100 dark:bg-orange-900/30' : 'text-[var(--text-secondary)] hover:bg-[var(--hover-bg)]'} focus:outline-none focus:ring-2 focus:ring-[var(--button-primary-bg)] focus:ring-inset"
       onclick={() => agentStore.toggleYoloMode()}
       title={agentStore.yoloMode ? 'YOLO 模式已开启 (自动执行工具)' : 'YOLO 模式已关闭 (需确认工具)'}
     >
@@ -111,7 +111,7 @@
 
     <!-- Sandbox Toggle -->
     <button
-      class="p-1.5 md:p-2 text-[var(--text-secondary)] hover:bg-[var(--hover-bg)] rounded-lg transition-colors"
+      class="p-1.5 md:p-2 text-[var(--text-secondary)] hover:bg-[var(--hover-bg)] rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--button-primary-bg)] focus:ring-inset"
       class:bg-[var(--button-primary-bg)]={agentStore.showSandbox}
       class:text-white={agentStore.showSandbox}
       onclick={() => agentStore.toggleSandbox()}
